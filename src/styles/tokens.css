@@ -56,6 +56,7 @@
   /* Accent: active tab colour, focus rings. Override to brand the kit. */
   --lg-accent: #0a7aff;
   --lg-toggle-on: #34c759;
+  --lg-danger: #ff3b30;
 
   /* Sliding pill (tab bar, segmented control, toggle thumb): flat fill at
      rest, full glass while lifted. */
@@ -99,6 +100,7 @@
   --lg-text: #eaeaea;
   --lg-text-secondary: #cccccc;
   --lg-accent: #3d9bff;
+  --lg-danger: #ff453a;
   --lg-pill-highlight: rgba(255, 255, 255, 0.08);
   --lg-pill-border: rgba(255, 255, 255, 0.06);
 }
@@ -126,6 +128,7 @@
     --lg-text: #eaeaea;
     --lg-text-secondary: #cccccc;
     --lg-accent: #3d9bff;
+    --lg-danger: #ff453a;
     --lg-pill-highlight: rgba(255, 255, 255, 0.08);
     --lg-pill-border: rgba(255, 255, 255, 0.06);
   }

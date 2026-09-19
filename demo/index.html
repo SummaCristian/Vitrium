@@ -25,6 +25,10 @@
     [hidden] { display: none !important; }
     main { max-width: 720px; margin: 0 auto; padding: 48px 16px; display: grid; gap: 32px; }
     h1, h2 { margin: 0; }
+    .stack { display: grid; gap: 16px; }
+    .field-row { display: grid; grid-template-columns: 8.5rem 1fr; align-items: center; gap: 16px; }
+    .field-row > div { justify-self: start; }
+    .field-row > .lg-slider { justify-self: stretch; }
     .row { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
     .stripes { height: 120px; border-radius: 16px;
       background: repeating-linear-gradient(90deg, #000 0 12px, #fff 12px 24px); }
@@ -106,6 +110,8 @@
     <p>Anchored glass panels. Click the button for a popover with content; hover the blocks for one popover re-anchored between targets.</p>
     <section class="row" id="popovers-row"></section>
     <section class="row" id="blocks-row" style="gap: 6px"></section>
+
+    <div id="controls-demo"></div>
 
     <h2>Modal sheet</h2>
     <p>The same sheet component presented over a scrim, with an inert page behind it. Drag it below its smallest detent, press Esc or click outside it to dismiss.</p>

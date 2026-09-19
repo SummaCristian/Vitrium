@@ -2,7 +2,7 @@
 
 A JS/CSS re-implementation of a Liquid Glass-inspired design system and components, ready to use for the web. Framework-agnostic vanilla core; Web Component wrappers are planned.
 
-> Work in progress. Ported so far: foundation, buttons, segmented control, toggle, tab bar.
+> Work in progress. Ported so far: foundation, buttons, segmented control, toggle, tab bar, pickers, popover, sheet, slider, stepper, text field, alert, menu, progress.
 
 ## Foundation
 
@@ -110,6 +110,72 @@ A glass sheet that resizes between detents. It has two presentations. **Persiste
 - **Outputs:** `onResize(px)` with the live height, `onDetentChange(id)`, and `sheet.height`, `sheet.detent`, `sheet.isGesturing`, `sheet.detentHeight(id)`, `sheet.scrollTop`.
 
 The "resize or scroll?" logic is pure and lives in `core/sheet-physics.js` (exported as `sheetPhysics`).
+
+## Slider, stepper, text field
+
+```js
+import { createSlider, createStepper, createTextField } from 'liquid-glass-web';
+
+const volume = createSlider({ value: 40, min: 0, max: 100, step: 1, label: 'Volume', onChange(v) {}, onCommit(v) {} });
+const price = createSlider({ value: [20, 60], minGap: 10, labels: ['From', 'To'] });   // a range: two thumbs
+const guests = createStepper({ value: 2, min: 0, max: 10, label: 'Guests', onChange(v) {} });
+const search = createTextField({ variant: 'search', label: 'Search', onInput(q) {}, onSubmit(q) {} });
+```
+
+- **Slider.** The thumb is the same lens as the segmented control's and the toggle's: it lifts into glass when grabbed, stretches along its motion, rubber-bands past the ends and pulls the control along a little. While you drag it follows the finger freely and settles on the snapped value on release. Each thumb is a real `role="slider"` (arrows, PageUp/PageDown, Home/End; flipped in right-to-left). Keyboard focus is shown by the lens lifting into glass, not by an outline. `onChange` fires while dragging, `onCommit` when it ends. A `max` off the step grid is still reachable.
+- **Stepper.** A glass capsule with − and +; press and hold repeats. The halves are `aria-disabled` at the bounds, and a live region announces the new value (`format` shapes it).
+- **Text field.** A real `<input>` (or `<textarea>` with `multiline`) in a glass capsule, so typing, autofill, IME and forms work as usual. `variant: 'search'` adds the icon and a clear button, Escape clears, Enter calls `onSubmit`. `setInvalid()` shows an error ring.
+- All three carry the liquid-glass press / drag deform on their own surface (the field's input, textarea and clear button keep their gestures). `set()` is silent by default, as everywhere else.
+
+## Alert
+
+```js
+import { createAlert } from 'liquid-glass-web';
+
+const alert = createAlert({
+  title: 'Delete this list?',
+  message: 'This can’t be undone.',
+  transition: 'morph',
+  actions: [
+    { id: 'cancel', label: 'Cancel', role: 'cancel' },
+    { id: 'delete', label: 'Delete', role: 'destructive' },
+  ],
+});
+const choice = await alert.present({ from: button });   // 'delete' | 'cancel' | null
+```
+
+A centred glass dialog over a scrim. The page behind is `inert`, Tab is trapped, focus starts on the default action (never a destructive one) and returns to the opener. `role: 'cancel'` is what Esc and the scrim pick; without one they do nothing unless `dismissible: true`. `present()` resolves with the chosen action's `id`. `transition: 'morph'` grows it out of the element that summoned it and shrinks it back into it (pass `from`; without it the focused element is used, and it falls back to a pop; reduced motion always pops). It presses and deforms like the other glass surfaces.
+
+## Menu
+
+```js
+import { createMenu } from 'liquid-glass-web';
+
+createMenu({
+  trigger: button, label: 'Sort',
+  items: [
+    { id: 'name', label: 'Name', checked: true, onSelect() {} },
+    { id: 'date', label: 'Date', icon: icons.calendar, onSelect() {} },
+    { type: 'separator' },
+    { id: 'reset', label: 'Reset', destructive: true, onSelect() {} },
+  ],
+});
+```
+
+A list of actions that its trigger morphs into: it's built on the same morph popup as the chip pickers, so the trigger grows into the panel as one glass shape. Give it a glass pill or circle button as the trigger. Items can have an icon, a shortcut hint, a check (`checked: true | false` makes it a checkbox), `destructive`, `disabled`, and `keepOpen`. Keyboard: Enter, Space and the arrows open it; Up/Down/Home/End move (skipping disabled items), letters jump to a label, Enter/Space choose, Esc and Tab close and return focus to the trigger. `setItems()` swaps the items (e.g. to move a check).
+
+## Progress
+
+```js
+import { createProgress } from 'liquid-glass-web';
+
+const bar = createProgress({ value: 0.4, label: 'Uploading' });
+const spinner = createProgress({ variant: 'circular' });   // no value: indeterminate
+bar.set(0.7);   // animates
+bar.set(null);  // back to indeterminate
+```
+
+A bar or a ring, determinate (`value` from 0 to `max`, default 1) or indeterminate. It's a real `role="progressbar"` (no `aria-valuenow` while indeterminate). Reduced motion swaps the sweep and spin for a gentle pulse.
 
 ## Testing
 

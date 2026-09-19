@@ -1,6 +1,7 @@
 import '../src/styles/index.css';
 import { mountExplore } from './explore.js';
 import { mountModalDemo } from './modal-demo.js';
+import { mountControlsDemo } from './controls-demo.js';
 import { createBackButton, createToolbar, createListPicker, createChipPicker, createPopover, createSegmentedControl, createToggle, createTabBar, icons, initLiquidGlass, initBlurCapability, getBlurMode, setBlurMode, applyBlurState, resolveBlurCapability } from '../src/index.js';
 
 initLiquidGlass();
@@ -202,5 +203,6 @@ for (let i = 1; i <= 8; i++) {
   blocks.appendChild(b);
 }
 
+window.controls = mountControlsDemo(document.getElementById('controls-demo'));
 window.sheet = explore.sheet;
 window.modalSheet = modalDemo.modalSheet;   // for the tests and for poking at it in the console

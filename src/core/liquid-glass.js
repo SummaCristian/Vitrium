@@ -137,19 +137,22 @@ const INNER_CONTROL = 'a, button, input, select, textarea, [role="button"]';
 //   by its title bar, so its scrollable / draggable body is left alone).
 // `opts.exclude` — the inverse: a pointerdown inside a matching descendant is
 //   ignored.
-// The light-DOM delegated path reads the same two as `data-lg-from` /
+// `opts.controls` — let a press on a control inside the surface deform it too
+//   (a stepper's − / + buttons). The pointer is then captured by the surface, so
+//   the controls must act on pointerdown / keyboard clicks, not on pointer clicks.
+// The light-DOM delegated path reads `from` / `exclude` as `data-lg-from` /
 // `data-lg-exclude` attributes.
 export function attachLiquidGlass(el, opts = {}) {
   if (!el || el._liquidGlassBound) return;
   el._liquidGlassBound = true;
   el.classList.add('liquid-glass');
-  const { from, exclude } = opts;
+  const { from, exclude, controls } = opts;
   el.addEventListener('pointerdown', (e) => {
     // A press that starts on a control inside the surface (a link or button in a
     // popover) is that control's, not the surface's; deforming would capture the
     // pointer and swallow its click.
     const inner = e.target.closest(INNER_CONTROL);
-    if (inner && inner !== el && el.contains(inner)) return;
+    if (inner && inner !== el && el.contains(inner) && !controls) return;
     if (from && !e.target.closest(from)) return;
     if (exclude && e.target.closest(exclude)) return;
     beginPress(el, e);

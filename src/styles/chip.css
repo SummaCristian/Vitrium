@@ -1,0 +1,137 @@
+/* Glass chip: the collapsed form of a picker. Icon, a stacked label over value,
+   and a chevron. Combine with .lg-glass + .liquid-glass (createChipPicker adds
+   all three). */
+
+.lg-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 8px 16px;
+  border: none;
+  font: inherit;
+  text-align: start;
+  color: var(--lg-text);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  /* Must restate the liquid-glass spring (translate/scale/filter) next to our own
+     transitions: a `transition` here would otherwise replace it, and a released
+     deform would snap home instead of springing back. */
+  transition:
+    box-shadow 0.2s ease,
+    background 0.2s ease,
+    translate var(--lg-press-out-dur) var(--lg-ease-spring),
+    scale var(--lg-press-out-dur) var(--lg-ease-spring),
+    filter 0.2s ease;
+}
+
+.lg-chip.liquid-glass.lg-pressing {
+  transition:
+    box-shadow 0.2s ease, background 0.2s ease,
+    translate var(--lg-press-in-dur) var(--lg-press-in-ease),
+    scale var(--lg-press-in-dur) var(--lg-press-in-ease),
+    filter 0.2s ease;
+}
+
+.lg-chip.liquid-glass.lg-dragging {
+  transition:
+    box-shadow 0.2s ease, background 0.2s ease,
+    translate 0s, scale 0s, filter 0.2s ease;
+}
+
+/* Ring while its panel is open. */
+.lg-chip[aria-expanded="true"] {
+  box-shadow:
+    var(--lg-shadow),
+    0 0 0 3px color-mix(in srgb, var(--lg-accent) 12%, transparent);
+}
+
+.lg-chip:focus-visible {
+  outline: 2px solid var(--lg-accent);
+  outline-offset: 2px;
+}
+
+.lg-chip__icon,
+.lg-chip__chevron {
+  display: flex;
+  flex-shrink: 0;
+  transition: opacity 0.24s ease, transform 0.2s ease;
+}
+
+.lg-chip__icon { color: color-mix(in srgb, var(--lg-text) 75%, transparent); }
+.lg-chip__chevron { color: var(--lg-text-muted); }
+
+.lg-chip__icon > svg,
+.lg-chip__chevron > svg {
+  width: 18px;
+  height: 18px;
+}
+
+.lg-chip[aria-expanded="true"] .lg-chip__chevron {
+  transform: rotate(180deg);
+}
+
+/* Label ("COUNTRY") stacked over the value, gap 1, line-height = size. */
+.lg-chip__box {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  transition: opacity 0.24s ease;
+}
+
+.lg-chip__label {
+  font-size: 8px;
+  line-height: 8px;
+  font-weight: 400;
+  text-transform: uppercase;
+  color: var(--lg-text-muted);
+}
+
+.lg-chip__value {
+  font-size: 14px;
+  line-height: 14px;
+  font-weight: 700;
+  color: var(--lg-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Loading: a shimmering placeholder of the same footprint, in place of the chip. */
+.lg-chip--loading {
+  visibility: hidden;
+}
+
+.lg-picker {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.lg-picker--loading::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  min-width: 10rem;
+  border-radius: 12px;
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--lg-text) 6%, transparent) 25%,
+    color-mix(in srgb, var(--lg-text) 12%, transparent) 50%,
+    color-mix(in srgb, var(--lg-text) 6%, transparent) 75%);
+  background-size: 200% 100%;
+  animation: lg-shimmer 1.6s linear infinite;
+}
+
+@keyframes lg-shimmer {
+  from { background-position: 200% center; }
+  to { background-position: -200% center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-chip__chevron { transition: none; }
+  .lg-picker--loading::before { animation: none; }
+}

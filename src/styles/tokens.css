@@ -1,0 +1,193 @@
+/* Liquid Glass design tokens.
+
+   Everything is a custom property on :root, prefixed `--lg-`, so a host app
+   can retheme by overriding any of them. Theme follows `prefers-color-scheme`
+   unless the host pins one with <html data-theme="light|dark">. */
+
+:root {
+  /* Material — the canonical glass recipe. */
+  --lg-tint: rgba(250, 250, 250, 0.7);
+  --lg-outline: rgba(0, 0, 0, 0.25);
+  --lg-shadow-color: rgba(0, 0, 0, 0.1);
+
+  /* Specular rim on the top/bottom edges. Plain white in SDR; pushed past
+     white on HDR displays (see the dynamic-range block below). */
+  --lg-specular: rgb(255 255 255);
+  --lg-highlight:
+    inset -1px 0 2px 0 rgba(0, 0, 0, 0.25),
+    inset 1px 0 2px 0 rgba(0, 0, 0, 0.25),
+    inset 0 -1px 2px 0 var(--lg-specular),
+    inset 0 1px 2px 0 var(--lg-specular),
+    inset 0 -8px 4px 0 rgba(0, 0, 0, 0.02),
+    inset 0 8px 4px 0 rgba(0, 0, 0, 0.02);
+
+  --lg-blur-sm: 4px;
+  --lg-blur-md: 8px;
+  --lg-blur-lg: 18px;
+
+  /* "Clear" variant: lighter tint, shallower blur, for surfaces that should
+     stay glassy but get out of the way of what's behind them. */
+  --lg-tint-clear: rgba(250, 250, 250, 0.35);
+
+  /* How much of a tint color shows on each material (see .lg-glass--tinted). */
+  --lg-tint-strength: 60%;
+  --lg-tint-strength-clear: 40%;
+  --lg-tint-saturate-clear: 1.8;
+  --lg-blur-clear: 8px;
+
+  /* 0.5px outside gradient stroke, top to bottom (Figma's "outside stroke"). */
+  --lg-stroke-gradient: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(94, 94, 94, 0.25) 25%,
+    rgba(94, 94, 94, 0.8) 50%,
+    rgba(94, 94, 94, 0.25) 75%,
+    rgba(255, 255, 255, 1) 100%
+  );
+  --lg-stroke-opacity: 0.8;
+
+  /* Full shadow stack of a glass surface: hairline outline + rim + drop shadow. */
+  --lg-shadow: 0 0 0 0.1px var(--lg-outline), var(--lg-highlight), 0 4px 40px 0 var(--lg-shadow-color);
+
+  /* Compact variant of the shadow stack, for controls (tab bar, segmented
+     control, pill) rather than floating buttons. */
+  --lg-shadow-compact: 0 0 0 0.1px var(--lg-outline), var(--lg-highlight), 0 4px 20px 0 var(--lg-shadow-color);
+
+  /* Text on glass. */
+  --lg-text: #1d1d1f;
+  --lg-text-secondary: #4a4a4f;
+  --lg-text-muted: color-mix(in srgb, var(--lg-text) 55%, transparent);
+
+  /* Accent: active tab colour, focus rings. Override to brand the kit. */
+  --lg-accent: #0a7aff;
+  --lg-toggle-on: #34c759;
+  --lg-danger: #ff3b30;
+
+  /* Sliding pill (tab bar, segmented control, toggle thumb): flat fill at
+     rest, full glass while lifted. */
+  --lg-pill-bg: color-mix(in srgb, var(--lg-text) 8%, transparent);
+  --lg-pill-highlight: rgba(255, 255, 255, 0.3);
+  --lg-pill-border: rgba(255, 255, 255, 0.1);
+
+  /* Motion: press in fast and linear, spring back out with overshoot. */
+  --lg-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --lg-press-in-dur: 0.11s;
+  --lg-press-in-ease: cubic-bezier(0.3, 0, 0.4, 1);
+  --lg-press-out-dur: 0.5s;
+
+  /* Morphs (a control changing size or shape). */
+  --lg-morph-dur: 0.45s;
+  --lg-ease-morph: cubic-bezier(0.34, 1.3, 0.64, 1);
+
+  --lg-radius-pill: 999px;
+}
+
+/* Dark theme — same values as the media block below; keep them in sync. */
+:root[data-theme="dark"] {
+  --lg-tint: rgba(21, 21, 21, 0.8);
+  --lg-tint-clear: rgba(21, 21, 21, 0.35);
+  --lg-outline: rgba(255, 255, 255, 0.25);
+  --lg-highlight:
+    inset -1px 0 2px 0 rgba(0, 0, 0, 0.75),
+    inset 1px 0 2px 0 rgba(0, 0, 0, 0.75),
+    inset 0 -1px 2px 0 rgba(255, 255, 255, 0.2),
+    inset 0 1px 2px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -8px 4px 0 rgba(255, 255, 255, 0.02),
+    inset 0 8px 4px 0 rgba(255, 255, 255, 0.02);
+  --lg-stroke-gradient: linear-gradient(
+    to bottom,
+    rgba(223, 223, 223, 0.35) 0%,
+    rgba(41, 41, 41, 0.5) 25%,
+    rgba(0, 0, 0, 1) 50%,
+    rgba(41, 41, 41, 0.5) 75%,
+    rgba(223, 223, 223, 0.35) 100%
+  );
+  --lg-text: #eaeaea;
+  --lg-text-secondary: #cccccc;
+  --lg-accent: #3d9bff;
+  --lg-danger: #ff453a;
+  --lg-pill-highlight: rgba(255, 255, 255, 0.08);
+  --lg-pill-border: rgba(255, 255, 255, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --lg-tint: rgba(21, 21, 21, 0.8);
+    --lg-tint-clear: rgba(21, 21, 21, 0.35);
+    --lg-outline: rgba(255, 255, 255, 0.25);
+    --lg-highlight:
+      inset -1px 0 2px 0 rgba(0, 0, 0, 0.75),
+      inset 1px 0 2px 0 rgba(0, 0, 0, 0.75),
+      inset 0 -1px 2px 0 rgba(255, 255, 255, 0.2),
+      inset 0 1px 2px 0 rgba(255, 255, 255, 0.2),
+      inset 0 -8px 4px 0 rgba(255, 255, 255, 0.02),
+      inset 0 8px 4px 0 rgba(255, 255, 255, 0.02);
+    --lg-stroke-gradient: linear-gradient(
+      to bottom,
+      rgba(223, 223, 223, 0.35) 0%,
+      rgba(41, 41, 41, 0.5) 25%,
+      rgba(0, 0, 0, 1) 50%,
+      rgba(41, 41, 41, 0.5) 75%,
+      rgba(223, 223, 223, 0.35) 100%
+    );
+    --lg-text: #eaeaea;
+    --lg-text-secondary: #cccccc;
+    --lg-accent: #3d9bff;
+    --lg-danger: #ff453a;
+    --lg-pill-highlight: rgba(255, 255, 255, 0.08);
+    --lg-pill-border: rgba(255, 255, 255, 0.06);
+  }
+}
+
+/* HDR specular highlights. In light mode the rim is already the brightest SDR
+   white, so it barely reads. On displays with headroom, spend it: display-p3
+   above 100% is extended-range and the compositor takes it past reference
+   white. The @supports is load-bearing: `dynamic-range` shipped before
+   color(), and an unparseable --lg-specular would invalidate the whole
+   box-shadow (outline and drop shadow included) at computed-value time. */
+@media (dynamic-range: high) {
+  @supports (color: color(display-p3 1 1 1)) {
+    :root {
+      --lg-specular: color(display-p3 200% 200% 200%);
+    }
+  }
+}
+
+/* Perf-gated blur (see core/blur-capability.js). With [data-blur="off"] every
+   backdrop-filter is disabled and the tint becomes near-opaque so surfaces
+   stay legible without the blur behind them. Must come after the theme blocks. */
+:root[data-blur="off"] {
+  --lg-blur-sm: 0px;
+  --lg-blur-md: 0px;
+  --lg-blur-lg: 0px;
+  --lg-blur-clear: 0px;
+  --lg-tint: rgba(250, 250, 250, 0.94);
+  --lg-tint-clear: rgba(250, 250, 250, 0.9);
+}
+
+:root[data-blur="off"][data-theme="dark"] {
+  --lg-tint: rgba(21, 21, 21, 0.94);
+  --lg-tint-clear: rgba(21, 21, 21, 0.9);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-blur="off"]:not([data-theme="light"]) {
+    --lg-tint: rgba(21, 21, 21, 0.94);
+    --lg-tint-clear: rgba(21, 21, 21, 0.9);
+  }
+}
+
+/* Catch hardcoded backdrop-filters (e.g. in host-app glass) as well. */
+:root[data-blur="off"] * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Keep press feedback, drop the springy overshoot. */
+  :root {
+    --lg-ease-spring: ease;
+    --lg-press-in-ease: ease;
+    --lg-press-out-dur: 0.15s;
+  }
+}

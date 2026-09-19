@@ -1,0 +1,414 @@
+/* Tab bar: a glass pill of tabs with a draggable lifted pill, plus an optional
+   standalone circular action button (e.g. Search) beside it.
+
+   It is a fixed component, like a native tab bar: pinned to the bottom of the
+   viewport as a row on narrow screens, and to the top-start corner as a
+   vertical rail on wide ones (the `placement` option moves the row to the top
+   and the rail to the end). The page reserves room for it through
+   --lg-tabbar-{top,bottom,start,end}-space, which the component keeps up to
+   date on <html> (only the occupied side is non-zero). Each edge's clearance
+   is set with --lg-tabbar-{top,bottom,start,end}-offset. */
+
+.lg-tabbar {
+  --lg-tab-color: var(--lg-text-muted);
+  --lg-tab-active-color: var(--lg-accent);
+  /* Side clearance of the row. */
+  --lg-tabbar-inset: 1.75rem;
+
+  /* Bottom row. `bottom: 20px` alone anchors to the large viewport and ignores
+     Safari's dynamic toolbar, so the bar wouldn't track it as the toolbar
+     collapses and expands. Anchoring off `100dvh` (which does track it) and
+     pulling back up by the element's own height instead keeps a similar
+     clearance while staying reactive. It also lands the box well clear of the
+     true edge and safe area rather than flush against it, so it doesn't trip
+     Safari's fixed-element edge handling (iOS Safari's floating bottom bar
+     opaque-paints the safe strip when a backdrop-filter'd fixed element sits
+     exactly at its boundary). 28px clears the children's drop shadow (0 4px
+     20px) too, since a fixed element's box-shadow is otherwise cut off at the
+     true viewport edge without enough raw clearance to render into. The
+     safe-area-inset-bottom term is 0 in-browser, and the real home-indicator
+     inset in standalone/PWA mode, where it would otherwise sit closer to the
+     true edge than intended. --lg-tabbar-bottom-offset replaces the 28px. */
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 100dvh;
+  transform: translateY(calc(-100% - var(--lg-tabbar-bottom-offset, 28px) - env(safe-area-inset-bottom)));
+  z-index: 20;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem var(--lg-tabbar-inset) 0;
+  box-sizing: border-box;
+
+  /* The row spans the viewport: only the controls take pointer events, so the
+     page behind the gaps stays interactive. */
+  pointer-events: none;
+
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.lg-tabbar > * {
+  pointer-events: auto;
+}
+
+.lg-tabbar__group {
+  position: relative;
+  min-width: 0;
+}
+
+.lg-tabbar__bar {
+  position: relative;
+  /* setTabs() animates an inline width measured from offsetWidth (which
+     includes this padding); content-box would land it 8px wide of the natural
+     size and snap back when the inline width is cleared. */
+  box-sizing: border-box;
+  padding: 4px;
+  /* A swipe anywhere on the bar belongs to the pill, not the page behind it. */
+  touch-action: none;
+  border-radius: var(--lg-radius-pill);
+  background: var(--lg-tint);
+  box-shadow: var(--lg-shadow-compact);
+  backdrop-filter: blur(var(--lg-blur-sm));
+  -webkit-backdrop-filter: blur(var(--lg-blur-sm));
+}
+
+.lg-tabbar__bar::after {
+  content: "";
+  position: absolute;
+  inset: -0.5px;
+  border-radius: inherit;
+  padding: 0.5px;
+  background: var(--lg-stroke-gradient);
+  opacity: var(--lg-stroke-opacity);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Tabs live in their own layer so a pill-shaped hole can be clipped out of
+   them without cutting into the bar's own background/blur. */
+.lg-tabbar__items {
+  display: flex;
+  /* Content-sized, not 100% of the bar: while the bar's width is animating
+     (setTabs), the tabs and the pill's anchors must not stretch with it. */
+  width: max-content;
+}
+
+.lg-tabbar__tab,
+.lg-tabbar .lg-pill-active-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  /* Fluid side padding: full-size on wide screens, tightening on narrow ones
+     so a 5-tab bar plus its action circle still fits a phone. */
+  padding: 0.625rem clamp(0.25rem, 1.6vw, 1.1875rem);
+  font: inherit;
+  font-size: 0.625rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.lg-tabbar__tab {
+  background: none;
+  border: none;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  color: var(--lg-tab-color);
+}
+
+.lg-tabbar .lg-pill-active-cell {
+  color: var(--lg-tab-active-color);
+}
+
+.lg-tabbar__tab:focus-visible {
+  outline: 2px solid var(--lg-tab-active-color);
+  outline-offset: -4px;
+  border-radius: var(--lg-radius-pill);
+}
+
+.lg-tabbar__icon {
+  display: flex;
+  font-size: 1.1rem;
+  pointer-events: none;
+}
+
+.lg-tabbar__icon > svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.lg-tabbar__label {
+  pointer-events: none;
+}
+
+/* While the group is squashed or stretched to glide between layouts (JS sets
+   --lg-sx / --lg-sy), its content undoes the scale so text and icons keep their
+   shape. */
+.lg-tabbar__group .lg-tabbar__icon,
+.lg-tabbar__group .lg-tabbar__label {
+  scale: calc(1 / var(--lg-sx, 1)) calc(1 / var(--lg-sy, 1));
+}
+
+/* With a prominent tab the bar and the circle spread to opposite sides, held
+   in from the viewport's edges by --lg-tabbar-inset. Without one the row
+   stays centred. */
+.lg-tabbar--split {
+  justify-content: space-between;
+}
+
+/* Held for the collapse of a row that's leaving for a rail at the end: the bar
+   gathers at the row's end (the vertical layout below resets this). */
+.lg-tabbar--gather-end {
+  justify-content: flex-end;
+}
+
+/* Prominent tab: a detached glass circle, no sliding pill. Selected = tinted
+   icon. Diameter is set from JS to match the bar's own height. */
+.lg-tabbar__prominent {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  -webkit-tap-highlight-color: transparent;
+  color: var(--lg-tab-color);
+  will-change: transform;
+  transition:
+    color 0.2s ease,
+    translate var(--lg-press-out-dur) var(--lg-ease-spring),
+    scale var(--lg-press-out-dur) var(--lg-ease-spring),
+    filter 0.2s ease;
+}
+
+.lg-tabbar__prominent[aria-selected="true"] {
+  color: var(--lg-tab-active-color);
+}
+
+.lg-tabbar__prominent:focus-visible {
+  outline: 2px solid var(--lg-tab-active-color);
+  outline-offset: 3px;
+}
+
+.lg-tabbar__prominent > svg {
+  width: 1.375rem;
+  height: 1.375rem;
+  pointer-events: none;
+}
+
+.lg-tabbar__prominent.liquid-glass.lg-pressing {
+  transition:
+    color 0.2s ease,
+    translate var(--lg-press-in-dur) var(--lg-press-in-ease),
+    scale var(--lg-press-in-dur) var(--lg-press-in-ease),
+    filter 0.2s ease;
+}
+
+.lg-tabbar__prominent.liquid-glass.lg-dragging {
+  transition: color 0.2s ease, translate 0s, scale 0s, filter 0.2s ease;
+}
+
+/* Standalone circular action, split off from the tab group. Diameter is set
+   from JS to match the bar's own height. */
+.lg-tabbar__action {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  -webkit-tap-highlight-color: transparent;
+  color: var(--lg-tab-color);
+  will-change: transform;
+}
+
+.lg-tabbar__action:focus-visible {
+  outline: 2px solid var(--lg-tab-active-color);
+  outline-offset: 3px;
+}
+
+.lg-tabbar__action > svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  pointer-events: none;
+}
+
+.lg-tabbar__tab--enter {
+  animation: lg-tab-in var(--lg-morph-dur) var(--lg-ease-morph) both;
+}
+
+@keyframes lg-tab-in {
+  from { opacity: 0; scale: 0.6; }
+  to { opacity: 1; scale: 1; }
+}
+
+/* Fades the prominent circle in as it emerges (its travel + deform are
+   spring-driven from JS; opacity only here, since a CSS animation on `scale`
+   would pin it and fight the deform). */
+.lg-tabbar__prominent--enter {
+  animation: lg-circle-in 0.3s ease-out;
+}
+
+@keyframes lg-circle-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Leaving copy of the prominent circle, positioned over where it was; its
+   slide, deform and fade are driven from JS. */
+.lg-tabbar__ghost {
+  position: fixed;
+  margin: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-tabbar__prominent--enter { animation: none; }
+  .lg-tabbar__tab--enter { animation: none; }
+}
+
+/* ---- Row at the top ---- */
+
+/* placement.row = 'top': the mirror image of the bottom row. Its clearance
+   from the top edge is --lg-tabbar-top-offset (default 20px, plus the safe
+   area), and the breathing room the bottom row keeps above its bar moves
+   below it. */
+.lg-tabbar--row-top:not(.lg-tabbar--vertical),
+.lg-tabbar--compact {
+  top: calc(var(--lg-tabbar-top-offset, 20px) + env(safe-area-inset-top));
+  transform: none;
+  padding: 0 var(--lg-tabbar-inset) 0.75rem;
+}
+
+/* ---- Compact layout ---- */
+
+/* compact: true replaces the wide-screen rail with one horizontal bar centred
+   at the top (the iPadOS style). It sits where a top row would, whatever the
+   placement. Tabs show only their label, and the prominent last tab (kept in the
+   bar, not detached) shows only its icon. */
+.lg-tabbar--compact .lg-tabbar__tab,
+.lg-tabbar--compact .lg-pill-active-cell {
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.lg-tabbar--compact .lg-tabbar__tab[data-kind="icon"] {
+  padding-inline: 1rem;
+}
+
+.lg-tabbar--compact .lg-tabbar__icon > svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* ---- Vertical rail ---- */
+
+/* Pinned to the top-start corner instead of the bottom (placement.rail =
+   'end' pins it to the top-end corner). Set --lg-tabbar-top-offset (default
+   20px) to clear a header, and --lg-tabbar-start-offset /
+   --lg-tabbar-end-offset (default 20px) to move it off the edge it sits on.
+   placement.railAlign = 'center' centres it on the viewport, and 'bottom'
+   anchors it to the bottom edge (--lg-tabbar-bottom-offset).
+   --lg-tabbar-rail-top and --lg-tabbar-rail-start are older names for the
+   top and start offsets and still work. */
+.lg-tabbar--vertical {
+  inset: auto;
+  inset-inline-start: var(--lg-tabbar-start-offset, var(--lg-tabbar-rail-start, 20px));
+  top: var(--lg-tabbar-top-offset, var(--lg-tabbar-rail-top, 20px));
+  transform: none;
+
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 1rem;
+  padding: 0;
+}
+
+.lg-tabbar--vertical.lg-tabbar--rail-end {
+  inset-inline-start: auto;
+  inset-inline-end: var(--lg-tabbar-end-offset, 20px);
+}
+
+.lg-tabbar--vertical.lg-tabbar--align-center {
+  top: 50dvh;
+  transform: translateY(-50%);
+}
+
+/* Anchored the way the bottom row is (off 100dvh, lifted by its own height),
+   so it tracks Safari's dynamic toolbar and clears the safe area. */
+.lg-tabbar--vertical.lg-tabbar--align-bottom {
+  top: 100dvh;
+  transform: translateY(calc(-100% - var(--lg-tabbar-bottom-offset, 28px) - env(safe-area-inset-bottom)));
+}
+
+.lg-tabbar--vertical .lg-tabbar__items {
+  flex-direction: column;
+  width: auto;   /* tabs stretch to the widest one; the rail's thickness is its width */
+}
+
+/* The rail's tabs are roomier than the row's, with larger type and icons. */
+.lg-tabbar--vertical .lg-tabbar__tab,
+.lg-tabbar--vertical .lg-pill-active-cell {
+  padding: 1.25rem 0.75rem;
+  font-size: 0.75rem;
+}
+
+.lg-tabbar--vertical .lg-tabbar__icon > svg,
+.lg-tabbar--vertical .lg-tabbar__prominent > svg,
+.lg-tabbar--vertical .lg-tabbar__action > svg {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+/* At least square. The lens's corner radius is half its shorter side, so it
+   stays concentric with the bar's full-pill radius (half the bar's thickness)
+   only if no tab is shorter than the bar is wide; otherwise the lens's corners
+   poke out of the bar. (In a row the same is done from JS, sizeTabs(): a
+   minimum width equal to the tab height.) */
+.lg-tabbar--vertical .lg-tabbar__tab {
+  aspect-ratio: 1;
+}
+
+/* Not near the viewport's bottom edge here (a rail, or a row at the top), so
+   the safe-area shadow shrink (0 4px 20px) isn't needed: use the full glass
+   shadow. */
+.lg-tabbar--vertical .lg-tabbar__bar,
+.lg-tabbar--vertical .lg-pill.lg-pill--lifted,
+.lg-tabbar--compact .lg-tabbar__bar,
+.lg-tabbar--compact .lg-pill.lg-pill--lifted,
+.lg-tabbar--row-top .lg-tabbar__bar,
+.lg-tabbar--row-top .lg-pill.lg-pill--lifted {
+  box-shadow: var(--lg-shadow);
+}
+
+/* While the orientation sequence runs, the optional action button steps aside
+   (it fades out, and back in as the bar expands). */
+.lg-tabbar--orienting .lg-tabbar__action {
+  pointer-events: none;
+  animation: lg-fade-out 0.25s ease forwards;
+}
+
+@keyframes lg-fade-out {
+  to { opacity: 0; }
+}
+
+.lg-tabbar__action--enter {
+  animation: lg-circle-in 0.3s ease-out;
+}
+
+/* Per-frame inline translate/scale (the circle's and ghost's spring travel) must not be smoothed by .liquid-glass's own spring transition
+   on those properties; that would lag and swing them. */
+.lg-tabbar__prominent--moving,
+.lg-tabbar__ghost {
+  transition: none !important;
+}

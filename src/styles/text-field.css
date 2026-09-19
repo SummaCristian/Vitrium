@@ -1,0 +1,141 @@
+/* Text field (components/text-field.js): a glass capsule around a native input. */
+
+.lg-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  color: var(--lg-text);
+  cursor: text;
+  /* Restates the liquid-glass spring (translate/scale/filter): a `transition`
+     here would otherwise replace it. */
+  transition:
+    box-shadow 0.2s ease,
+    opacity 0.2s ease,
+    translate var(--lg-press-out-dur) var(--lg-ease-spring),
+    scale var(--lg-press-out-dur) var(--lg-ease-spring),
+    filter 0.2s ease;
+  /* liquid-glass claims touch gestures; a form field has to stay scrollable. */
+  touch-action: pan-y;
+}
+
+.lg-field.liquid-glass.lg-pressing {
+  transition:
+    box-shadow 0.2s ease, opacity 0.2s ease,
+    translate var(--lg-press-in-dur) var(--lg-press-in-ease),
+    scale var(--lg-press-in-dur) var(--lg-press-in-ease),
+    filter 0.2s ease;
+}
+
+.lg-field.liquid-glass.lg-dragging {
+  transition:
+    box-shadow 0.2s ease, opacity 0.2s ease,
+    translate 0s, scale 0s, filter 0.2s ease;
+}
+
+/* A wide surface shouldn't swell under a passing cursor. */
+.lg-field.liquid-glass:not(.lg-pressing):not(.lg-dragging):hover {
+  scale: 1;
+}
+
+.lg-field--multiline {
+  align-items: flex-start;
+  padding: 12px 16px;
+  border-radius: 22px;
+}
+
+/* The same ring the chip shows while its panel is open. */
+.lg-field:focus-within {
+  box-shadow:
+    var(--lg-shadow),
+    0 0 0 3px color-mix(in srgb, var(--lg-accent) 22%, transparent);
+}
+
+.lg-field.is-invalid,
+.lg-field.is-invalid:focus-within {
+  box-shadow:
+    var(--lg-shadow),
+    0 0 0 3px color-mix(in srgb, var(--lg-danger) 28%, transparent);
+}
+
+.lg-field__input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 16px;   /* below 16px, iOS Safari zooms the page on focus */
+  resize: none;
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.lg-field__input::placeholder {
+  color: var(--lg-text-muted);
+}
+
+/* The clear button is ours; hide the browser's own. */
+.lg-field__input::-webkit-search-cancel-button,
+.lg-field__input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  display: none;
+}
+
+.lg-field__icon {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--lg-text-muted);
+}
+
+.lg-field__icon > svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.lg-field__clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--lg-text) 28%, transparent);
+  color: var(--lg-tint);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  opacity: 0;
+  scale: 0.6;
+  pointer-events: none;
+  transition: opacity 0.15s ease, scale 0.25s var(--lg-ease-spring);
+}
+
+.lg-field__clear > svg {
+  width: 12px;
+  height: 12px;
+  stroke-width: 3;
+}
+
+.lg-field.has-value .lg-field__clear {
+  opacity: 1;
+  scale: 1;
+  pointer-events: auto;
+}
+
+.lg-field.is-disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.lg-field.is-disabled .lg-field__input {
+  cursor: default;
+}

@@ -1,0 +1,89 @@
+/* List picker: the listbox inside the morph panel (components/list-picker.js). */
+
+.lg-list__section + .lg-list__section {
+  margin-top: 8px;
+}
+
+.lg-list__section-label {
+  padding: 0 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--lg-text-muted);
+}
+
+/* The check always occupies its 18px slot (visibility toggled) so names line up
+   whether or not the row is selected. */
+.lg-list__option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 8px;
+  color: var(--lg-text);
+}
+
+.lg-list__check {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--lg-accent);
+  visibility: hidden;
+}
+
+.lg-list__check > svg {
+  width: 18px;
+  height: 18px;
+}
+
+.lg-list__option[aria-selected="true"] .lg-list__check {
+  visibility: visible;
+}
+
+.lg-list__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.lg-list__name,
+.lg-list__description {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  -webkit-text-stroke: 0.5px rgba(128, 128, 128, 0.25);
+  paint-order: stroke fill;
+}
+
+.lg-list__name {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.lg-list__description {
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--lg-text-muted);
+}
+
+/* Selected row: accent fill + a 0.25px outside hairline. */
+.lg-list__option[aria-selected="true"] {
+  background: color-mix(in srgb, var(--lg-accent) 12%, transparent);
+  box-shadow: 0 0 0 0.25px rgba(128, 128, 128, 0.25);
+}
+
+.lg-list__option[aria-selected="true"] .lg-list__name {
+  color: var(--lg-accent);
+  -webkit-text-stroke: 0;
+}
+
+.lg-list__option[aria-selected="true"] .lg-list__description {
+  color: color-mix(in srgb, var(--lg-accent) 75%, transparent);
+  -webkit-text-stroke: 0;
+}
+
+/* Keyboard-active or hovered row (not the committed selection). */
+.lg-list__option.is-active:not([aria-selected="true"]),
+.lg-list__option:hover:not([aria-selected="true"]) {
+  background: color-mix(in srgb, var(--lg-text) 7%, transparent);
+}

@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Liquid Glass Web</title>
+  <style>
+    :root { color-scheme: light dark; }
+    button, input, textarea, select { font-family: inherit; }
+    body {
+      margin: 0; min-height: 100vh; font: 16px/1.4 'Nunito Variable', system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 15% 20%, #ff7a59 0, transparent 40%),
+        radial-gradient(circle at 85% 30%, #4f8cff 0, transparent 45%),
+        radial-gradient(circle at 50% 90%, #3ce065 0, transparent 45%),
+        #f2f2f7;
+      color: var(--lg-text);
+    }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) body { background-color: #0b0b0d; } }
+    :root[data-theme="dark"] body { background-color: #0b0b0d; }
+    /* The tab bar is fixed; it publishes the room it takes, and the page clears it. */
+    body { padding-top: var(--lg-tabbar-top-space, 0px); padding-bottom: var(--lg-tabbar-bottom-space, 0px);
+           padding-inline: var(--lg-tabbar-start-space, 0px) var(--lg-tabbar-end-space, 0px); box-sizing: border-box;
+           transition: padding 0.5s var(--lg-ease-morph); }
+    /* `main { display: grid }` below would otherwise beat the browser's own [hidden] rule. */
+    [hidden] { display: none !important; }
+    main { max-width: 720px; margin: 0 auto; padding: 48px 16px; display: grid; gap: 32px; }
+    h1, h2 { margin: 0; }
+    .stack { display: grid; gap: 16px; }
+    .field-row { display: grid; grid-template-columns: 8.5rem 1fr; align-items: center; gap: 16px; }
+    .field-row > div { justify-self: start; }
+    .field-row > .lg-slider { justify-self: stretch; }
+    .row { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+    .stripes { height: 120px; border-radius: 16px;
+      background: repeating-linear-gradient(90deg, #000 0 12px, #fff 12px 24px); }
+    .lg-btn { border: 0; font: inherit; cursor: pointer; display: grid; place-items: center; }
+    .lg-btn.circle { width: 3rem; height: 3rem; }
+    .lg-btn.pill { padding: 0.75rem 1.5rem; }
+    .panel { padding: 1rem 1.25rem; border-radius: 24px; max-width: 260px; }
+
+    /* Stack the tab bar (z-index 20) above the sheet, so the sheet wraps around it as it grows. */
+    :root { --lg-z-sheet: 10; }
+    body[data-tab="explore"] { overflow: hidden; }
+
+    /* Explore: a busy, interactive backdrop standing in for a map. The persistent sheet must not block it. */
+    #panel-explore { position: fixed; inset: 0; }
+    #backdrop {
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(circle at 20% 25%, #ff7a59 0, transparent 38%),
+        radial-gradient(circle at 80% 30%, #4f8cff 0, transparent 42%),
+        radial-gradient(circle at 50% 85%, #3ce065 0, transparent 45%),
+        #eef0f4;
+    }
+    @media (prefers-color-scheme: dark) { #backdrop { background-color: #0b0b0d; } }
+    .marker {
+      position: absolute; width: 44px; height: 44px; border: 0; border-radius: 50%;
+      background: #fff; color: #111; font: 700 14px 'Nunito Variable', system-ui; box-shadow: 0 2px 8px rgba(0,0,0,.3); cursor: pointer;
+    }
+    #readout {
+      position: absolute; top: 8px; right: 8px; z-index: 5; padding: 6px 10px; border-radius: 10px;
+      background: rgba(0,0,0,.6); color: #fff; font: 12px/1.3 'Nunito Variable', system-ui;
+    }
+    #controls {
+      position: absolute; top: 84px; inset-inline-start: calc(var(--lg-tabbar-start-space, 0px) + 8px); z-index: 5; display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border-radius: 10px;
+      background: rgba(0,0,0,.6); color: #fff; font: 12px/1.3 'Nunito Variable', system-ui;
+    }
+    #controls fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+    #controls legend { font-weight: 700; padding: 0; margin-bottom: 4px; }
+    #controls label { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+    #modal-controls { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .setting-toggle { display: flex; gap: 10px; align-items: center; }
+    .sheet-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .sheet-title { margin: 0; font-size: 1.35rem; font-weight: 800; }
+    .item, .filter-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent); }
+    .item .dot { width: 36px; height: 36px; border-radius: 10px; flex: none; }
+    #header-btn { padding: 0.4rem 1rem; }
+    #sheet-input { font: inherit; padding: 10px 12px; border-radius: 12px; border: 1px solid color-mix(in srgb, currentColor 25%, transparent); background: transparent; color: inherit; width: 100%; box-sizing: border-box; -webkit-user-select: text; user-select: text; }
+  </style>
+</head>
+<body>
+  <main id="panel-home">
+    <h1>Liquid Glass Web</h1>
+    <p>Foundation demo: glass material and liquid press/deform. Press and drag the controls.</p>
+
+    <section class="row" aria-label="Controls">
+      <button class="lg-btn circle lg-glass lg-glass--circle liquid-glass" aria-label="Circle">★</button>
+      <button class="lg-btn pill lg-glass liquid-glass">Pill button</button>
+      <button class="lg-btn pill lg-glass lg-glass--clear liquid-glass">Clear variant</button>
+      <div class="panel lg-glass liquid-glass">A panel. Drag me too.</div>
+      <div class="panel lg-glass lg-glass--clear liquid-glass">Clear panel.</div>
+    </section>
+
+    <h2>Tinted glass</h2>
+    <section class="row" aria-label="Tint controls">
+      <label class="row" style="gap: 8px">Tint <input type="color" id="tint-color" value="#0a7aff" /></label>
+    </section>
+    <section class="row" id="tinted-row">
+      <button class="lg-btn circle lg-glass lg-glass--circle liquid-glass" data-tinted aria-label="Tinted circle">★</button>
+      <button class="lg-btn pill lg-glass liquid-glass" data-tinted>Tinted pill</button>
+      <button class="lg-btn pill lg-glass lg-glass--clear liquid-glass" data-tinted>Tinted clear</button>
+      <div class="panel lg-glass liquid-glass" data-tinted>Tinted panel.</div>
+      <div class="panel lg-glass lg-glass--clear liquid-glass" data-tinted>Tinted clear panel.</div>
+    </section>
+
+    <div class="stripes" aria-hidden="true"></div>
+
+    <h2>Toolbar &amp; back button</h2>
+    <section class="row" id="toolbar-row"></section>
+
+    <h2>Segmented control &amp; toggle</h2>
+    <section class="row" id="controls-row"><div id="seg"></div></section>
+
+    <section class="row" aria-label="Vertical segmented control">
+      <div id="seg-v"></div>
+      <button class="lg-btn pill lg-glass liquid-glass" id="seg-flip">Flip orientation</button>
+    </section>
+
+    <h2>Pickers</h2>
+    <p>A chip that morphs into its panel. The list picker is one; the chip picker takes any content.</p>
+    <section class="row" id="pickers-row"></section>
+
+    <h2>Popovers</h2>
+    <p>Anchored glass panels. Click the button for a popover with content; hover the blocks for one popover re-anchored between targets.</p>
+    <section class="row" id="popovers-row"></section>
+    <section class="row" id="blocks-row" style="gap: 6px"></section>
+
+    <div id="controls-demo"></div>
+
+    <h2>Modal sheet</h2>
+    <p>The same sheet component presented over a scrim, with an inert page behind it. Drag it below its smallest detent, press Esc or click outside it to dismiss.</p>
+    <div id="modal-demo"></div>
+
+    <h2>Tab bar</h2>
+    <section class="row"><span>Tabs:</span><div id="tab-count"></div><span>Prominent last:</span><span id="prominent-toggle"></span><span>FAB (press):</span><span id="press-toggle"></span></section>
+    <section class="row"><span>Orientation:</span><div id="orientation"></div><span>Compact (desktop):</span><span id="compact-toggle"></span></section>
+    <section class="row"><span>Row:</span><div id="place-row"></div><span>Rail:</span><div id="place-rail"></div><span>Align:</span><div id="place-align"></div></section>
+    <section class="row" aria-label="Environment">
+      <button class="lg-btn pill lg-glass liquid-glass" id="theme">Theme: auto</button>
+      <button class="lg-btn pill lg-glass liquid-glass" id="blur">Blur: auto</button>
+    </section>
+  </main>
+
+  <!-- The Explore tab: a busy backdrop with the persistent sheet over it (see explore.js). -->
+  <div id="panel-explore" hidden></div>
+
+  <!-- Fixed, so it lives outside the panels: it stays put while they switch. -->
+  <div id="tabbar"></div>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

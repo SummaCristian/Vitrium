@@ -1,0 +1,45 @@
+/* Demo: a search overlay the tab bar's prominent circle morphs into (see search-overlay.js). */
+.demo-search {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: max(20px, env(safe-area-inset-top)) 16px 16px;
+  background: color-mix(in srgb, Canvas 55%, transparent);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+.demo-search[hidden] { display: none; }
+.demo-search__row { display: flex; gap: 10px; align-items: center; }
+.demo-search__bar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  padding: 0 18px;
+  border-radius: 26px;
+}
+.demo-search__bar svg { width: 20px; height: 20px; flex: none; }
+.demo-search__input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+}
+.demo-search__close { width: 52px; height: 52px; flex: none; }
+
+/* While open, the real circle is hidden so only the morphing snapshot shows. */
+body.demo-search-open .lg-tabbar__prominent { visibility: hidden; }
+
+::view-transition-group(demo-search-morph) {
+  animation-duration: 450ms;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+::view-transition-old(demo-search-morph),
+::view-transition-new(demo-search-morph) { height: 100%; }

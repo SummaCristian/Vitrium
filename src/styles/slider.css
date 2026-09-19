@@ -1,0 +1,74 @@
+/* Slider (components/slider.js): a thin track, an accent fill, and the pill lens
+   (see pill.css) as the thumb. Everything that moves is written by the
+   component in pixels (thumb transforms, fill inset and width), driven by
+   springs, so there's no position CSS here. */
+
+.lg-slider {
+  --lg-slider-thumb-w: 38px;
+  --lg-slider-thumb-h: 24px;
+  --lg-slider-track-h: 6px;
+  position: relative;
+  width: 100%;
+  min-width: 120px;
+  height: 36px;
+  /* Horizontal drags belong to the thumb; vertical ones still scroll the page. */
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+
+/* The same off-state track the toggle uses. */
+.lg-slider__track {
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  height: var(--lg-slider-track-h);
+  translate: 0 -50%;
+  overflow: hidden;
+  border-radius: var(--lg-radius-pill);
+  background: color-mix(in srgb, var(--lg-text) 10%, transparent);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--lg-text) 18%, transparent);
+}
+
+.lg-slider__fill {
+  position: absolute;
+  inset-block: 0;
+  background: var(--lg-accent);
+}
+
+.lg-slider__thumb {
+  position: absolute;
+  top: 50%;
+  inset-inline-start: 0;
+  width: var(--lg-slider-thumb-w);
+  height: var(--lg-slider-thumb-h);
+  margin-top: calc(var(--lg-slider-thumb-h) / -2);
+  touch-action: pan-y;
+  /* The lens shows focus by lifting into glass, not with an outline. */
+  outline: none;
+}
+
+.lg-slider__thumb .lg-pill {
+  inset: 0;
+}
+
+/* Resting thumb: the toggle's frosted white capsule; it gives way to glass while lifted. */
+.lg-slider .lg-pill-inner {
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.2),
+    0 0.5px 1px rgba(0, 0, 0, 0.1),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.6);
+}
+
+.lg-slider .lg-pill.lg-pill--lifted .lg-pill-inner {
+  background: var(--lg-pill-bg);
+}
+
+.lg-slider.is-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}

@@ -1,0 +1,7 @@
+node_modules
+dist
+demo-dist
+*.log
+graphify-out
+test-results
+playwright-report

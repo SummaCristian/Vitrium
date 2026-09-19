@@ -1,0 +1,265 @@
+/* Sheet (components/sheet.js): a glass panel that resizes between detents. */
+
+/* While a gesture is live, this transparent layer becomes the hit-test target
+   for everything the sheet doesn't cover, so wheel input can't leak to what's
+   behind it just because the sheet shrank out from under the cursor mid-gesture.
+   Inert (pointer-events: none) at rest. */
+.lg-sheet-shield {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--lg-z-sheet, 900) - 2);
+  pointer-events: none;
+}
+
+.lg-sheet-shield.busy {
+  pointer-events: auto;
+}
+
+/* setHidden() uses the `hidden` attribute; these elements set `position`, not `display`, but say so anyway. */
+.lg-sheet-shield[hidden],
+.lg-sheet-scrim[hidden],
+.lg-sheet-frame[hidden] {
+  display: none;
+}
+
+/* The dimming layer behind a modal sheet. The element's own opacity follows the
+   fade-in, per frame; the dim fades in and out separately (`is-blocking`), so a
+   sheet that lets the page stay usable at small detents doesn't dim it then. */
+.lg-sheet-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--lg-z-sheet, 900) - 1);
+  pointer-events: none;
+  opacity: 0;
+}
+
+.lg-sheet-scrim__dim {
+  position: absolute;
+  inset: 0;
+  background: var(--lg-scrim, rgb(0 0 0 / 0.32));
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.lg-sheet-scrim.is-blocking { pointer-events: auto; }
+.lg-sheet-scrim--clear .lg-sheet-scrim__dim { display: none; }
+.lg-sheet-scrim.is-blocking .lg-sheet-scrim__dim { opacity: 1; }
+
+/* A dismissed sheet is fully off screen: out of the tab order and the accessibility tree too. */
+.lg-sheet-frame.is-offscreen { visibility: hidden; }
+
+/* The region the sheet may occupy: the viewport minus the margins. Its height is
+   what the detents' fractions are fractions of. */
+.lg-sheet-frame {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: var(--lg-sheet-top, 20px);
+  bottom: calc(var(--lg-sheet-bottom, 20px) + env(safe-area-inset-bottom));
+  z-index: var(--lg-z-sheet, 900);
+  pointer-events: none;
+}
+
+/* The sheet itself is `position: absolute` inside the frame and always
+   transform-free: a `transform` on a fixed-position element pressed against the
+   bottom safe area is what makes iOS Safari mispaint that area, so the
+   squash/stretch is applied to the inner glass layer instead. */
+.lg-sheet {
+  --lg-sheet-fade: 4rem;
+
+  position: absolute;
+  bottom: 0;
+  left: calc(var(--lg-sheet-inline, 8px) + var(--lg-sheet-inset, 0px));
+  right: calc(var(--lg-sheet-inline, 8px) + var(--lg-sheet-inset, 0px));
+  height: var(--lg-sheet-size, 192px);
+  max-height: 100%;
+  pointer-events: auto;
+  will-change: height;
+
+  /* Drag chrome, not text: a touch-drag starting on it mustn't start a selection
+     or callout. (Content that should be selectable opts back in.) */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* A fixed-width panel pinned to a side, instead of stretching across. */
+.lg-sheet[data-layout="panel"] {
+  width: var(--lg-sheet-width);
+  left: auto;
+  right: auto;
+}
+
+/* Logical, so start/end follow the writing direction. Centering with auto margins
+   rather than a transform keeps the sheet transform-free. */
+.lg-sheet[data-layout="panel"][data-side="end"] { inset-inline-end: calc(var(--lg-sheet-inline, 8px) + var(--lg-sheet-inset, 0px)); }
+.lg-sheet[data-layout="panel"][data-side="start"] { inset-inline-start: calc(var(--lg-sheet-inline, 8px) + var(--lg-sheet-inset, 0px)); }
+.lg-sheet[data-layout="panel"][data-side="center"] { inset-inline: 0; margin-inline: auto; }
+
+.lg-sheet:focus { outline: none; }
+
+.lg-sheet__glass {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--lg-sheet-radius, 28px);
+  /* An iOS-style continuous ("squircle") corner where supported. It reads less
+     round than a circular arc at the same radius, but only Chromium has it, so
+     nothing here compensates: other engines just get the circular corner. */
+  corner-shape: superellipse;
+  -webkit-backdrop-filter: blur(var(--lg-blur-lg));
+  backdrop-filter: blur(var(--lg-blur-lg));
+  /* The squash/stretch is written here per frame (no transition: the spring
+     already smooths it), anchored to the bottom edge where the sheet is pinned,
+     so it reads as the free top edge overshooting. */
+  transform-origin: bottom;
+  transition:
+    filter 0.2s ease,
+    background 0.25s ease,
+    backdrop-filter 0.25s ease,
+    -webkit-backdrop-filter 0.25s ease;
+}
+
+.lg-sheet__glass.is-active {
+  filter: brightness(1.11) saturate(1.35);
+}
+
+/* The lighter, less opaque material below the largest detent: it keeps what's
+   behind more visible except when the sheet fills the view. */
+.lg-sheet__glass.is-clear {
+  background: var(--lg-tint-clear);
+  -webkit-backdrop-filter: blur(var(--lg-blur-clear));
+  backdrop-filter: blur(var(--lg-blur-clear));
+}
+
+/* The real clip. The glass layer can't have `overflow: hidden` (that would cut
+   off its own box-shadow), so this matching inner layer confines the handle,
+   header and content to the rounded shape while the sheet is dragged smaller
+   than its resting height. */
+.lg-sheet__clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Overlays, not flex siblings: the content spans the sheet's full height from
+   underneath them, so its edge fades have room to blend into. */
+.lg-sheet__handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* The grabber sits close to the top edge; the hit area extends below it. */
+  padding: 0.5rem 0 1.5rem;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: default;
+}
+
+.lg-sheet__handle:focus-visible {
+  outline: none;
+}
+
+.lg-sheet__grabber {
+  width: 36px;
+  height: 5px;
+  border-radius: var(--lg-radius-pill);
+  background: var(--lg-outline);
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+
+.lg-sheet__handle:focus-visible .lg-sheet__grabber {
+  opacity: 1;
+  outline: 2px solid var(--lg-accent);
+  outline-offset: 4px;
+}
+
+.lg-sheet__header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  /* The top clears the grabber (1rem + its 5px); the bottom is the gap before the content. */
+  padding: calc(1rem + 5px) 1.25rem 1rem;
+  touch-action: none;
+}
+
+.lg-sheet__footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  padding: 0.75rem 1.25rem 1rem;
+  touch-action: none;
+}
+
+/* Content scrolls NATIVELY, but only while the sheet is fully open: below that a
+   drag on it resizes the sheet, so it stays `overflow: hidden`. (`is-scrollable`
+   is toggled from the live size, so it flips the instant a drag reaches the top.)
+   touch-action follows suit: `pan-y` lets a touch scroll it natively (the sheet
+   still claims a pull-down at the top by cancelling that first touchmove). */
+.lg-sheet__content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  touch-action: none;
+  -webkit-user-select: text;
+  user-select: text;
+  /* Clear the pinned header above and footer below, so the first row starts right
+     below the header and the last can scroll fully clear of the footer. */
+  padding:
+    var(--lg-sheet-header-height, 2rem)
+    1.25rem
+    max(var(--lg-sheet-fade-bottom, 1.5rem), calc(var(--lg-sheet-footer-height, 0px) + 1rem));
+
+  /* Fade both edges into the glass rather than a hard cut: the top one is what
+     makes a row scrolled up read as sliding *under* the header. The visible stops
+     are #fff, not #000: Firefox masks by luminance (black = hidden), Chrome and
+     Safari by alpha, and white reads as "visible" under both. */
+  -webkit-mask-image: linear-gradient(to bottom,
+    transparent 0,
+    transparent calc(var(--lg-sheet-header-height, 2rem) - var(--lg-sheet-fade)),
+    #fff var(--lg-sheet-header-height, 2rem),
+    #fff calc(100% - var(--lg-sheet-footer-height, 0px) - 2.5rem),
+    transparent calc(100% - var(--lg-sheet-footer-height, 0px)));
+  mask-image: linear-gradient(to bottom,
+    transparent 0,
+    transparent calc(var(--lg-sheet-header-height, 2rem) - var(--lg-sheet-fade)),
+    #fff var(--lg-sheet-header-height, 2rem),
+    #fff calc(100% - var(--lg-sheet-footer-height, 0px) - 2.5rem),
+    transparent calc(100% - var(--lg-sheet-footer-height, 0px)));
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
+.lg-sheet.is-scrollable .lg-sheet__content {
+  overflow-y: auto;
+  touch-action: pan-y;
+}
+
+/* While a drag is resizing, nothing should select. */
+.lg-sheet.is-dragging,
+.lg-sheet.is-dragging * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-sheet__glass,
+  .lg-sheet__grabber {
+    transition: none;
+  }
+}

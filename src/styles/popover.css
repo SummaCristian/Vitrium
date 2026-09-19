@@ -1,0 +1,139 @@
+/* Popover (components/popover.js): a glass panel anchored to an element. */
+
+.lg-popover {
+  position: fixed;
+  z-index: var(--lg-z-popover, 1000);
+  top: 0;
+  left: 0;
+
+  max-width: var(--lg-popover-max-width, min(22rem, calc(100vw - 16px)));
+  padding: 12px 16px;
+  border-radius: 12px;
+  word-wrap: break-word;
+  text-align: start;
+  color: var(--lg-text);
+  box-sizing: border-box;
+
+  /* Closed: invisible, non-interactive AND out of the tab order / a11y tree
+     (visibility flips only after the fade, so it doesn't cut it short). */
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: scale(0.78) translateY(var(--lg-popover-closed-ty, -6px));
+  transition:
+    opacity 120ms ease-out,
+    transform 200ms var(--lg-ease-morph),
+    visibility 0s linear 200ms;
+  will-change: opacity, transform;
+}
+
+.lg-popover[data-show] {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: scale(1) translateY(0);
+  transition:
+    opacity 120ms ease-out,
+    transform 200ms var(--lg-ease-morph),
+    visibility 0s;
+}
+
+.lg-popover:focus-visible {
+  outline: none;
+}
+
+.lg-popover__body {
+  position: relative;
+}
+
+/* The arrow is a rotated square straddling the popover's edge: half behind the
+   box, half poking out. It shares the glass material (tint + the same blur) so
+   the part outside reads as the same surface. (A clip-path notch cut into the
+   body itself was tried instead, but Chromium doesn't reliably paint
+   backdrop-filter into the part of a clip-path that extends past the element's
+   own box.) */
+.lg-popover__arrow {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: inherit;
+  backdrop-filter: inherit;
+  -webkit-backdrop-filter: inherit;
+  transform: rotate(45deg);
+}
+
+/* Left unclipped, the half behind the box paints flat on top of the glass
+   edge's own rim and stroke, showing as a seam. Clip to just the triangle that
+   points outward. `data-side` is the box edge the arrow is attached to. */
+.lg-popover__arrow[data-side="top"] { clip-path: polygon(0 0, 100% 0, 0 100%); }
+.lg-popover__arrow[data-side="bottom"] { clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+.lg-popover__arrow[data-side="left"] { clip-path: polygon(0 0, 0 100%, 100% 100%); }
+.lg-popover__arrow[data-side="right"] { clip-path: polygon(0 0, 100% 0, 100% 100%); }
+
+/* Simple content helpers. */
+.lg-popover__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.lg-popover ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* With the liquid-glass deform on (the default), the surface's own scale-in on
+   `transform`, its fade and the visibility flip are merged with the deform's
+   translate/scale spring into one declaration: a plain `transition` on either
+   side would otherwise replace the other wholesale. */
+.lg-popover.liquid-glass {
+  transition:
+    opacity 120ms ease-out,
+    transform 200ms var(--lg-ease-morph),
+    visibility 0s linear 200ms,
+    translate var(--lg-press-out-dur) var(--lg-ease-spring),
+    scale var(--lg-press-out-dur) var(--lg-ease-spring),
+    filter 0.2s ease;
+}
+
+.lg-popover.liquid-glass[data-show] {
+  transition:
+    opacity 120ms ease-out,
+    transform 200ms var(--lg-ease-morph),
+    visibility 0s,
+    translate var(--lg-press-out-dur) var(--lg-ease-spring),
+    scale var(--lg-press-out-dur) var(--lg-ease-spring),
+    filter 0.2s ease;
+}
+
+.lg-popover.liquid-glass.lg-pressing {
+  transition:
+    opacity 120ms ease-out,
+    transform 200ms var(--lg-ease-morph),
+    visibility 0s,
+    translate var(--lg-press-in-dur) var(--lg-press-in-ease),
+    scale var(--lg-press-in-dur) var(--lg-press-in-ease),
+    filter 0.2s ease;
+}
+
+.lg-popover.liquid-glass.lg-dragging {
+  transition:
+    opacity 120ms ease-out,
+    transform 200ms var(--lg-ease-morph),
+    visibility 0s,
+    translate 0s, scale 0s, filter 0.2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-popover,
+  .lg-popover.liquid-glass,
+  .lg-popover.liquid-glass[data-show],
+  .lg-popover[data-show] {
+    transition: none;
+    transform: none;
+  }
+}

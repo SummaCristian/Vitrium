@@ -1,0 +1,110 @@
+/* Progress (components/progress.js): a bar or a ring. The component sets
+   --lg-progress (0..1) on the fill; indeterminate has no value and animates. */
+
+.lg-progress--linear {
+  position: relative;
+  width: 100%;
+  min-width: 80px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--lg-radius-pill);
+  background: color-mix(in srgb, var(--lg-text) 14%, transparent);
+  box-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--lg-text) 12%, transparent);
+}
+
+.lg-progress__fill {
+  height: 100%;
+  width: calc(var(--lg-progress, 0) * 100%);
+  border-radius: inherit;
+  background: var(--lg-accent);
+  transition: width 0.3s ease;
+}
+
+/* Indeterminate: a segment sweeping across. */
+.lg-progress--linear.is-indeterminate .lg-progress__fill {
+  width: 40%;
+  transition: none;
+  animation: lg-progress-sweep 1.3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes lg-progress-sweep {
+  from { translate: -100% 0; }
+  to { translate: 250% 0; }
+}
+
+.lg-progress--linear:dir(rtl).is-indeterminate .lg-progress__fill {
+  animation-name: lg-progress-sweep-rtl;
+}
+
+@keyframes lg-progress-sweep-rtl {
+  from { translate: 100% 0; }
+  to { translate: -250% 0; }
+}
+
+/* Ring. */
+.lg-progress--circular {
+  --lg-progress-size: 28px;
+  display: inline-block;
+  width: var(--lg-progress-size);
+  height: var(--lg-progress-size);
+  flex-shrink: 0;
+}
+
+.lg-progress--circular > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform: rotate(-90deg);   /* start at 12 o'clock */
+}
+
+.lg-progress__ring,
+.lg-progress__arc {
+  fill: none;
+  stroke-width: 2.5;
+}
+
+.lg-progress__ring {
+  stroke: color-mix(in srgb, var(--lg-text) 14%, transparent);
+}
+
+.lg-progress__arc {
+  stroke: var(--lg-accent);
+  stroke-linecap: round;
+  stroke-dasharray: calc(var(--lg-progress, 0) * 100) 100;
+  transition: stroke-dasharray 0.3s ease;
+}
+
+/* Indeterminate: a fixed arc spinning. */
+.lg-progress--circular.is-indeterminate > svg {
+  animation: lg-progress-spin 0.9s linear infinite;
+}
+
+.lg-progress--circular.is-indeterminate .lg-progress__arc {
+  stroke-dasharray: 28 100;
+  transition: none;
+}
+
+@keyframes lg-progress-spin {
+  from { transform: rotate(-90deg); }
+  to { transform: rotate(270deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No sweeping or spinning: the indeterminate state pulses instead. */
+  .lg-progress--linear.is-indeterminate .lg-progress__fill {
+    width: 100%;
+    translate: none;
+    animation: lg-progress-pulse 1.6s ease-in-out infinite;
+  }
+  .lg-progress--circular.is-indeterminate > svg {
+    animation: lg-progress-pulse 1.6s ease-in-out infinite;
+  }
+  .lg-progress__fill,
+  .lg-progress__arc { transition: none; }
+}
+
+@keyframes lg-progress-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}

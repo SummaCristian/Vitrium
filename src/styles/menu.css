@@ -1,0 +1,85 @@
+/* Menu (components/menu.js): action rows inside the morph panel (morph-popup.css). */
+
+.lg-menu .lg-morph__inner {
+  padding: 8px;
+}
+
+.lg-menu .lg-morph__title {
+  padding: 6px 10px 8px;
+}
+
+.lg-menu__list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.lg-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 14px 0 10px;
+  box-sizing: border-box;
+  border-radius: 16px;
+  color: var(--lg-text);
+  font-size: 15px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lg-menu__item.is-active {
+  background: color-mix(in srgb, var(--lg-text) 9%, transparent);
+}
+
+.lg-menu__item[data-destructive] {
+  color: var(--lg-danger);
+}
+
+.lg-menu__item[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* The icon / check slot: reserved on every row when any row uses it, so labels line up. */
+.lg-menu__lead {
+  display: flex;
+  flex-shrink: 0;
+  width: 20px;
+  justify-content: center;
+}
+
+.lg-menu__lead > svg {
+  width: 18px;
+  height: 18px;
+}
+
+.lg-menu__item[aria-checked="true"] .lg-menu__lead {
+  color: var(--lg-accent);
+}
+
+.lg-menu__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.lg-menu__shortcut {
+  color: var(--lg-text-muted);
+  font-size: 13px;
+}
+
+.lg-menu__separator {
+  height: 1px;
+  margin: 5px 10px;
+  background: color-mix(in srgb, var(--lg-text) 15%, transparent);
+}
+
+.lg-menu__label {
+  padding: 8px 12px 4px;
+  color: var(--lg-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}

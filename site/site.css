@@ -1,0 +1,63 @@
+:root {
+  color-scheme: light dark;
+
+  /* PoliAule design tokens: flat surfaces, glass reserved for controls and navigation. */
+  --background-color: #F2F2F2;
+  --background-color-secondary: #FFFFFF;
+  --text-color-primary: #1A1A1A;
+  --text-color-secondary: #333333;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.08);
+  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 24px; --radius-2xl: 32px; --radius-pill: 999px;
+  --lg-accent: #0a7aff;
+  --code-bg: #1E1E1E; --code-text: #EAEAEA;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background-color: #1E1E1E; --background-color-secondary: #2A2A2A;
+    --text-color-primary: #EAEAEA; --text-color-secondary: #CCCCCC;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.6);
+    --lg-accent: #3d9bff; --code-bg: #151515;
+  }
+}
+:root[data-theme="dark"] {
+  --background-color: #1E1E1E; --background-color-secondary: #2A2A2A;
+  --text-color-primary: #EAEAEA; --text-color-secondary: #CCCCCC;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.6);
+  --lg-accent: #3d9bff; --code-bg: #151515;
+}
+button, input, textarea, select { font-family: inherit; }
+body {
+  margin: 0; min-height: 100vh; font: 16px/1.5 'Nunito Variable', system-ui, sans-serif; color: var(--text-color-primary);
+  background: var(--background-color);
+  padding-top: var(--lg-tabbar-top-space, 0px); padding-bottom: var(--lg-tabbar-bottom-space, 0px);
+  padding-inline: var(--lg-tabbar-start-space, 0px) var(--lg-tabbar-end-space, 0px); box-sizing: border-box;
+  transition: padding 0.5s var(--lg-ease-morph);
+}
+[hidden] { display: none !important; }
+
+#page { max-width: 880px; margin: 0 auto; padding: 48px 20px 96px; display: grid; gap: 40px; }
+#page > * { min-width: 0; }
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: clamp(2.2rem, 6vw, 3rem); font-weight: bold; line-height: 1.1; }
+h2 { font-size: clamp(1.6rem, 1.36rem + 1.2vw, 2rem); font-weight: bold; }
+h3 { font-size: clamp(1.15rem, 1.09rem + 0.3vw, 1.25rem); font-weight: 600; }
+.lede { font-size: 1.2rem; max-width: 34em; opacity: 0.85; }
+.stack { display: grid; gap: 16px; }
+.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.card { padding: 1.25rem 1.5rem; border-radius: var(--radius-xl); display: grid; justify-items: start; gap: 12px; background: var(--background-color-secondary); box-shadow: var(--shadow); }
+.grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.lg-btn { border: 0; font: inherit; cursor: pointer; }
+.lg-btn.pill { padding: 0.7rem 1.4rem; }
+a.lg-btn { text-decoration: none; color: inherit; display: inline-block; }
+.card-link { text-decoration: none; color: inherit; cursor: pointer; text-align: start; }
+.card-link p { opacity: 0.75; font-size: 0.95rem; }
+
+pre.code {
+  margin: 0; padding: 1rem 1.25rem; border-radius: var(--radius-lg); overflow-x: auto; font: 0.85rem/1.55 ui-monospace, 'SF Mono', Menlo, monospace;
+  background: var(--code-bg); color: var(--code-text); -webkit-user-select: text; user-select: text;
+}
+code { font: 0.9em ui-monospace, 'SF Mono', Menlo, monospace; }
+.demo { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; min-height: 72px; }
+.api { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.api th, .api td { text-align: start; padding: 8px 10px; border-bottom: 1px solid color-mix(in srgb, currentColor 14%, transparent); vertical-align: top; }
+.api th { font-weight: 800; }

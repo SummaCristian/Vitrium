@@ -20,7 +20,7 @@ export const foundation = {
     const samples = h('div', { class: 'row' });
     const sliderHost = h('div', { style: 'width: 200px' });
     const segHost = h('div');
-    samples.append(segHost, createToggle({ value: true, label: 'Sample toggle' }).el, sliderHost, h('div', { style: 'width: 160px' }, createProgress({ value: 0.6, label: 'Sample progress' }).el));
+    samples.append(segHost, createToggle({ value: true, color: 'accent', label: 'Sample toggle' }).el, sliderHost, h('div', { style: 'width: 160px' }, createProgress({ value: 0.6, label: 'Sample progress' }).el));
     sliderHost.append(createSlider({ value: 40, label: 'Sample slider' }).el);
     createSegmentedControl(segHost, { items: [{ value: 'a', label: 'One' }, { value: 'b', label: 'Two' }], value: 'a' });
 

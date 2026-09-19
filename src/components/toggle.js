@@ -5,9 +5,13 @@
 import { createPillDragCore } from '../core/pill-drag-core.js';
 import { createPillParts, el } from './dom.js';
 
-// Returns { el, set, refresh, on }. User changes call `onChange(isOn)`;
+// `color` is the track's on-colour: any CSS color, or 'accent' to follow the
+// system accent (--lg-accent, so it updates when the accent does). Omit it for
+// the default (--lg-toggle-on). setColor() changes it later; null restores the default.
+//
+// Returns { el, set, setColor, refresh, on }. User changes call `onChange(isOn)`;
 // set(isOn) is programmatic (silent) and animates by default.
-export function createToggle({ value = false, onChange, label } = {}) {
+export function createToggle({ value = false, onChange, label, color } = {}) {
   const root = el('button', 'lg-toggle' + (value ? ' on' : ''), { type: 'button', role: 'switch' });
   root.setAttribute('aria-checked', String(value));
   if (label) root.setAttribute('aria-label', label);
@@ -19,8 +23,15 @@ export function createToggle({ value = false, onChange, label } = {}) {
   const { pill, activeRow, hit } = createPillParts();
   root.append(items, pill, hit);
 
+  const setColor = (c) => {
+    if (c == null) root.style.removeProperty('--lg-toggle-on');
+    else root.style.setProperty('--lg-toggle-on', c === 'accent' ? 'var(--lg-accent)' : c);
+  };
+  setColor(color);
+
   const api = {
     el: root,
+    setColor,
     get on() { return root.classList.contains('on'); },
     set(v, { animate = true } = {}) {
       apply(v);

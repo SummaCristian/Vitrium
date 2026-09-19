@@ -36,15 +36,23 @@ createToolbar([
     id: 'toggle',
     title: 'Toggle',
     summary: 'A draggable switch with a springy thumb.',
-    demo(el) { el.append(createToggle({ value: true, label: 'Demo toggle' }).el, createToggle({ label: 'Off by default' }).el); },
+    demo(el) { el.append(
+        createToggle({ value: true, label: 'Default' }).el,
+        createToggle({ value: true, color: '#ff375f', label: 'Custom colour' }).el,
+        createToggle({ value: true, color: 'accent', label: 'Follows the accent' }).el,
+      ); },
     code: `
 import { createToggle } from 'liquid-glass-web';
 
 const toggle = createToggle({ value: true, label: 'Notifications', onChange(on) {} });
-document.body.append(toggle.el);`,
+document.body.append(toggle.el);
+
+createToggle({ color: '#ff375f' });   // any CSS colour
+createToggle({ color: 'accent' });    // follows --lg-accent`,
     api: [
       ['value', 'boolean', 'Initial state.'],
       ['label', 'string', 'Accessible name.'],
+      ['color', "CSS color | 'accent'", "On-colour of the track. 'accent' follows --lg-accent. Default: --lg-toggle-on (green). Change later with setColor()."],
       ['onChange', '(on: boolean) => void', 'Called when the state changes.'],
     ],
   },

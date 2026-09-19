@@ -67,3 +67,14 @@ createSegmentedControl(document.getElementById('tab-count'), {
 document.getElementById('prominent-toggle').replaceWith(
   createToggle({ value: prominentOn, label: 'Last tab prominent', onChange: (on) => { prominentOn = on; tabbar.setTabs(currentTabs()); } }).el,
 );
+
+const segV = createSegmentedControl(document.getElementById('seg-v'), {
+  items: [{ value: 'a', label: 'One' }, { value: 'b', label: 'Two' }, { value: 'c', label: 'Three' }],
+  value: 'b',
+  orientation: 'vertical',
+});
+let segVertical = true;
+document.getElementById('seg-flip').addEventListener('click', () => {
+  segVertical = !segVertical;
+  segV.setOrientation(segVertical ? 'vertical' : 'horizontal');
+});

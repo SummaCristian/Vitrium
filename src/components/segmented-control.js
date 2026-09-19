@@ -7,12 +7,18 @@
 //
 //   createSegmentedControl(root, { value, onSelect })      // adopt existing items
 //   createSegmentedControl(root, { items: [{ value, label, icon }], ... })
+//
+// `orientation`: 'horizontal' (default) or 'vertical'; change it later with
+// setOrientation(), which morphs between the two layouts (pass
+// { animate: false } to snap).
 import { createPillDragCore } from '../core/pill-drag-core.js';
+import { layoutMorph } from '../core/layout-morph.js';
 import { createPillParts, el, toNode } from './dom.js';
 
 // onSelect(value, { silent }) fires when a different item becomes selected.
-export function createSegmentedControl(root, { items: itemDefs, value, onSelect } = {}) {
+export function createSegmentedControl(root, { items: itemDefs, value, onSelect, orientation = 'horizontal' } = {}) {
   root.classList.add('lg-seg');
+  root.classList.toggle('lg-seg--vertical', orientation === 'vertical');
   root.setAttribute('role', 'radiogroup');
 
   if (itemDefs) {
@@ -50,11 +56,23 @@ export function createSegmentedControl(root, { items: itemDefs, value, onSelect 
   const core = createPillDragCore({
     root, items: itemsEl, pill, hit, activeRow,
     cellSelector: '.lg-seg__item',
+    axis: orientation === 'vertical' ? 'y' : 'x',
     onChange(i, { silent }) {
       markActive(i);
       onSelect?.(cellsOf()[i].dataset.value, { silent });
     },
   });
+
+  // The pill's corner radius is half its shorter side, so the track's must be
+  // that plus the track padding to stay concentric with it. A fixed 999px would
+  // resolve to half the track's shorter side, which in a narrow vertical
+  // column is much bigger than the pill's: its corners would poke out.
+  function syncRadius() {
+    const sizes = cellsOf().map(c => Math.min(c.offsetWidth, c.offsetHeight) / 2).filter(Boolean);
+    if (!sizes.length) return;
+    const pad = parseFloat(getComputedStyle(track).paddingLeft) || 0;
+    track.style.borderRadius = (Math.min(...sizes) + pad) + 'px';
+  }
 
   const indexOf = v => cellsOf().findIndex(c => c.dataset.value === String(v));
 
@@ -68,9 +86,53 @@ export function createSegmentedControl(root, { items: itemDefs, value, onSelect 
 
   // Re-measure after labels change, or right before the control is shown
   // (it can't be measured while display:none / mid-transform).
-  function refresh({ snap = false } = {}) { core.refresh({ snap }); }
+  function refresh({ snap = false } = {}) { syncRadius(); core.refresh({ snap }); }
 
-  const ro = new ResizeObserver(() => core.refresh());
+  // Switch between a row and a column. Animated: the track resizes, every cell
+  // glides to its new spot and the lens moves and reshapes with them. While it
+  // plays, the lens shows flat (no label copy, no clip hole; see .lg-seg--morphing),
+  // since the cells and the lens don't move in exactly the same way.
+  let morphing = false, cancelMorph = null;
+  function setOrientation(next, { animate = true } = {}) {
+    const vertical = next === 'vertical';
+    if (root.classList.contains('lg-seg--vertical') === vertical) return;
+    const apply = () => {
+      root.classList.toggle('lg-seg--vertical', vertical);
+      syncRadius();
+      core.setAxis(vertical ? 'y' : 'x');
+    };
+    cancelMorph?.();
+    cancelMorph = null;
+    morphing = false;
+    root.classList.remove('lg-seg--morphing');
+    if (!animate) { apply(); return; }
+    morphing = true;
+    root.classList.add('lg-seg--morphing');
+    cancelMorph = layoutMorph(
+      [
+        { el: track, mode: 'box' },
+        ...cellsOf().map(el => ({ el, mode: 'translate' })),
+        { el: pill, mode: 'lens' },
+        { el: hit, mode: 'lens' },
+      ],
+      apply,
+      {
+        onDone() {
+          morphing = false;
+          cancelMorph = null;
+          root.classList.remove('lg-seg--morphing');
+          syncRadius();
+          core.refresh({ snap: true });
+        },
+      },
+    );
+  }
+
+  const ro = new ResizeObserver(() => {
+    if (morphing) return;   // the morph owns sizes and the pill until it lands
+    syncRadius();
+    core.refresh();
+  });
   ro.observe(root);
 
   if (value !== undefined) select(value);
@@ -78,7 +140,8 @@ export function createSegmentedControl(root, { items: itemDefs, value, onSelect 
   return {
     select,
     refresh,
-    destroy() { ro.disconnect(); core.destroy(); },
+    setOrientation,
+    destroy() { cancelMorph?.(); ro.disconnect(); core.destroy(); },
     get value() { return cellsOf()[core.index]?.dataset.value; },
   };
 }

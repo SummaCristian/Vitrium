@@ -1,5 +1,5 @@
 // Spring-driven "glass pill" tap + drag behavior, extracted from
-// the tab bar's group pill (horizontal axis only, for now).
+// the tab bar's group pill. Works along either axis (see `axis`).
 //
 // The core owns everything that isn't markup/styling: the springs, the lift
 // (grow) on tap/grab, the inertia squash-and-stretch, the rubber-banded rail,
@@ -8,7 +8,9 @@
 // label under the lifted pill. Consumers supply the DOM and decide what a
 // selection means (see the segmented control).
 //
-// Expected DOM (positions are set from JS, the rest is the consumer's CSS):
+// Expected DOM (positions are set from JS, the rest is the consumer's CSS).
+// Written for the horizontal axis; on the vertical one "width" and "height",
+// "left" and "top" swap roles:
 //   root       position:relative; gets the "trail" transform while dragging
 //     items    position:relative; flex row of cells; gets the clip-path hole
 //     pill     position:absolute; translated/scaled/resized by the core
@@ -47,6 +49,8 @@ const rubber = (x, give) => (x * give) / (give + Math.abs(x));
 //   haptic             called on a committed tap/drag (default: light tick;
 //                      pass null when onChange already buzzes on its own).
 //   trail              overrides TRAIL, how far the whole control follows a drag.
+//   axis               'x' (default: cells in a row) or 'y' (cells in a column).
+//                      Change it later with setAxis() after re-laying the cells out.
 //   onPillTap()        a grab of the pill itself that barely moved (a tap on
 //                      the pill; without this it just settles back).
 //   onRender({ pos })  after every frame's transforms are written.
@@ -57,6 +61,7 @@ export function createPillDragCore({
   liftedClass = 'lg-pill--lifted',
   tapScale = 1.3,
   trail = TRAIL,
+  axis: initialAxis = 'x',
   canSelect,
   onReject,
   haptic = () => haptics.trigger('light'),
@@ -68,6 +73,7 @@ export function createPillDragCore({
   let anchors = [];               // [{ pos, size }] — the pill's {x, w} sitting on each cell
   let index = -1;
   let itemsW = 0, itemsH = 0;
+  let vertical = initialAxis === 'y';
   let didInit = false;
   let timers = [];
 
@@ -113,16 +119,19 @@ export function createPillDragCore({
     for (const el of [pill, hit]) {
       el.style.left = left + 'px';
       el.style.top = top + 'px';
-      el.style.height = itemsH + 'px';
+      // The pill's cross-axis size is fixed to the items'; the main-axis size
+      // is animated by render().
+      if (vertical) { el.style.width = itemsW + 'px'; el.style.height = ''; }
+      else { el.style.height = itemsH + 'px'; el.style.width = ''; }
     }
     activeRow.style.width = itemsW + 'px';
+    activeRow.style.height = itemsH + 'px';
 
     // Cells are usually positioned against `items` itself, but may share an
     // offsetParent with it (e.g. a padded container) — normalize to items' origin.
-    anchors = cells.map(el => ({
-      pos: el.offsetLeft - (el.offsetParent === items ? 0 : items.offsetLeft),
-      size: el.offsetWidth,
-    }));
+    anchors = cells.map(el => vertical
+      ? { pos: el.offsetTop - (el.offsetParent === items ? 0 : items.offsetTop), size: el.offsetHeight }
+      : { pos: el.offsetLeft - (el.offsetParent === items ? 0 : items.offsetLeft), size: el.offsetWidth });
 
     // One duplicate per cell, centered on that cell's own anchor midpoint
     // rather than laid out by flex, which avoids sub-pixel drift between two
@@ -132,12 +141,23 @@ export function createPillDragCore({
       const dup = document.createElement('span');
       dup.className = activeCellClass;
       dup.innerHTML = el.innerHTML;
-      dup.style.left = (anchors[i].pos + anchors[i].size / 2) + 'px';
-      dup.style.transform = 'translateX(-50%)';
-      dup.style.height = '100%';
-      // Auto width on an abs-positioned box shrinks to the room right of `left`,
-      // squeezing the last cell's duplicate; max-content keeps it its natural size.
-      dup.style.width = 'max-content';
+      const center = (anchors[i].pos + anchors[i].size / 2) + 'px';
+      // Auto size on an abs-positioned box shrinks to the room left after its
+      // offset, squeezing the last cell's duplicate; max-content keeps it its
+      // natural size along the main axis.
+      if (vertical) {
+        dup.style.top = center;
+        dup.style.left = '0';
+        dup.style.width = '100%';
+        dup.style.height = 'max-content';
+        dup.style.transform = 'translateY(-50%)';
+      } else {
+        dup.style.left = center;
+        dup.style.top = '0';
+        dup.style.height = '100%';
+        dup.style.width = 'max-content';
+        dup.style.transform = 'translateX(-50%)';
+      }
       activeRow.appendChild(dup);
     });
 
@@ -168,11 +188,13 @@ export function createPillDragCore({
     // No selection: nothing to cut out of the label layer.
     if (index < 0) { items.style.clipPath = ''; items.style.webkitClipPath = ''; return; }
     if (!itemsW || !itemsH) return;
-    const w = pillMain.value * scMain;
-    const h = itemsH * scCross;
+    const mainVal = pillMain.value * scMain;
+    const crossVal = (vertical ? itemsW : itemsH) * scCross;
+    const w = vertical ? crossVal : mainVal;
+    const h = vertical ? mainVal : crossVal;
     const r = Math.min(w, h) / 2;
-    const cx = pillPos.value + pillMain.value / 2;
-    const cy = itemsH / 2 + crossOff.value;
+    const cx = vertical ? itemsW / 2 + crossOff.value : pillPos.value + pillMain.value / 2;
+    const cy = vertical ? pillPos.value + pillMain.value / 2 : itemsH / 2 + crossOff.value;
     const x = cx - w / 2, y = cy - h / 2;
     const d = `M0 0H${itemsW}V${itemsH}H0Z ` +
       `M${x + r} ${y}H${x + w - r}A${r} ${r} 0 0 1 ${x + w} ${y + r}V${y + h - r}A${r} ${r} 0 0 1 ${x + w - r} ${y + h}H${x + r}A${r} ${r} 0 0 1 ${x} ${y + h - r}V${y + r}A${r} ${r} 0 0 1 ${x + r} ${y}Z`;
@@ -210,10 +232,13 @@ export function createPillDragCore({
     const scMain = s * (1 + stMain - 0.5 * stCross);
     const scCross = s * (1 + stCross - 0.5 * stMain);
 
-    pill.style.width = pillMain.value + 'px';
-    hit.style.width = pillMain.value + 'px';
-    const posStr = `translateX(${pillPos.value}px) translateY(${crossOff.value}px)`;
-    pill.style.transform = `${posStr} scale(${scMain}, ${scCross})`;
+    const sizeProp = vertical ? 'height' : 'width';
+    pill.style[sizeProp] = pillMain.value + 'px';
+    hit.style[sizeProp] = pillMain.value + 'px';
+    const posStr = vertical
+      ? `translateY(${pillPos.value}px) translateX(${crossOff.value}px)`
+      : `translateX(${pillPos.value}px) translateY(${crossOff.value}px)`;
+    pill.style.transform = `${posStr} ${vertical ? `scale(${scCross}, ${scMain})` : `scale(${scMain}, ${scCross})`}`;
     hit.style.transform = posStr;
     pill.style.opacity = index >= 0 ? '1' : '0';
     // With no selection the hit overlay must not sit on top of a cell and eat its clicks.
@@ -221,9 +246,12 @@ export function createPillDragCore({
     // Full glass look only while lifted; flat at rest. Checking scale.value
     // (not scale.resting) also covers reduced-motion, where to() snaps.
     pill.classList.toggle(liftedClass, lifted);
-    activeRow.style.transform = `translateX(${-pillPos.value}px) translateY(${-crossOff.value}px)`;
+    activeRow.style.transform = vertical
+      ? `translateY(${-pillPos.value}px) translateX(${-crossOff.value}px)`
+      : `translateX(${-pillPos.value}px) translateY(${-crossOff.value}px)`;
     // The whole control (pill + chrome together) trails the drag a touch.
-    const cx = containerOff.value, cy = containerCross.value;
+    const cMain = containerOff.value, cCross = containerCross.value;
+    const cx = vertical ? cCross : cMain, cy = vertical ? cMain : cCross;
     root.style.transform = (cx || cy) ? `translate(${cx}px, ${cy}px)` : '';
     updateMask(scMain, scCross);
     onRender?.({ pos: pillPos.value });
@@ -299,7 +327,13 @@ export function createPillDragCore({
     return raw;
   };
 
-  const pillEdgeAtPointer = (e) => (e.clientX - itemsOrigin) - pillMain.value / 2;
+  // "Main" is whichever screen axis the cells run along; "cross" is the other
+  // one (used to tell a tap from a drag, and for the off-rail wobble).
+  const mainPos = (e) => vertical ? e.clientY : e.clientX;
+  const mainDelta = (e) => vertical ? e.clientY - startY : e.clientX - startX;
+  const crossDelta = (e) => vertical ? e.clientX - startX : e.clientY - startY;
+
+  const pillEdgeAtPointer = (e) => (mainPos(e) - itemsOrigin) - pillMain.value / 2;
 
   function engage(e) {
     if (grabbed) return;
@@ -327,8 +361,9 @@ export function createPillDragCore({
     absoluteDrag = !onHit;
     startX = e.clientX; startY = e.clientY;
     grantTime = performance.now();
-    samples = [{ x: e.clientX, t: grantTime }];
-    itemsOrigin = items.getBoundingClientRect().left;
+    samples = [{ x: mainPos(e), t: grantTime }];
+    const r = items.getBoundingClientRect();
+    itemsOrigin = vertical ? r.top : r.left;
 
     if (absoluteDrag) holdTimer = setTimeout(() => engage(e), HOLD_MS);
     else engage(e); // grabbing the pill itself: no wait
@@ -337,10 +372,10 @@ export function createPillDragCore({
   function onDragMove(e) {
     if (!dragging) return;
     const now = performance.now();
-    samples.push({ x: e.clientX, t: now });
+    samples.push({ x: mainPos(e), t: now });
     while (samples.length > 2 && now - samples[0].t > 100) samples.shift();
 
-    const dMain = e.clientX - startX, dCross = e.clientY - startY;
+    const dMain = mainDelta(e), dCross = crossDelta(e);
     if (!grabbed) {
       if (Math.hypot(dMain, dCross) > ENGAGE_MOVE) engage(e);
       else return;
@@ -378,7 +413,7 @@ export function createPillDragCore({
     crossOff.to(0, { stiffness: 480, damping: 26, mass: 0.6 });
     containerOff.to(0, { stiffness: 320, damping: 24, mass: 0.8 });
     containerCross.to(0, { stiffness: 320, damping: 24, mass: 0.8 });
-    const dMain = e.clientX - startX, dCross = e.clientY - startY;
+    const dMain = mainDelta(e), dCross = crossDelta(e);
 
     // A barely-moved grab of the pill itself is a tap on it.
     if (!terminated && !absoluteDrag && onPillTap && Math.abs(dMain) < 8 && Math.abs(dCross) < 8) {
@@ -453,7 +488,22 @@ export function createPillDragCore({
     [pillPos, pillMain, crossOff, containerOff, containerCross, scale].forEach(sp => sp.dispose());
   }
 
+  // Switch between a row and a column of cells. Re-lay the cells out first
+  // (e.g. flip the container's flex-direction), then call this: the pill is
+  // re-measured and placed without animating, since its stored numbers mean
+  // something different on the other axis.
+  function setAxis(next) {
+    const v = next === 'y';
+    if (v === vertical) return;
+    vertical = v;
+    didInit = false;
+    for (const el of [pill, hit]) { el.style.width = ''; el.style.height = ''; }
+    crossOff.set(0); containerOff.set(0); containerCross.set(0);
+    refresh({ snap: true });
+  }
+
   return {
+    setAxis,
     destroy,
     refresh,
     select,

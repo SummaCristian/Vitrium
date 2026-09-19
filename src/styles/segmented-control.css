@@ -84,3 +84,27 @@
   margin: 6px 2px;
   background: color-mix(in srgb, var(--lg-text) 15%, transparent);
 }
+
+/* Vertical: a column of items, the pill sliding up and down. */
+.lg-seg--vertical .lg-seg__items {
+  flex-direction: column;
+}
+
+.lg-seg--vertical .lg-seg__separator {
+  width: auto;
+  height: 1px;
+  align-self: stretch;
+  margin: 2px 6px;
+}
+
+/* While the orientation morph plays, show the lens flat: the label copies
+   inside it and the clip hole in the label layer are computed for the final
+   layout, so they would visibly disagree with the moving cells. */
+.lg-seg--morphing .lg-pill-active-row {
+  opacity: 0;
+}
+
+.lg-seg--morphing .lg-seg__items {
+  clip-path: none !important;
+  -webkit-clip-path: none !important;
+}

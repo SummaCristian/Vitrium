@@ -54,6 +54,8 @@ body {
 
 **Orientation:** `orientation: 'auto' | 'horizontal' | 'vertical'` (default `'auto'`) and `breakpoint` (px, default `600`). In `'auto'` the bar is a rail when the viewport is at least `breakpoint` wide (it's viewport-fixed, so that's the width it lives in). `tabbar.setOrientation(mode, { animate })` changes it later, and `tabbar.orientation` reads the resolved value. Animated, it's a three-step sequence, with the steps overlapping so it reads as one motion, built from the same motions as `setTabs()`: the bar collapses to the size of the selected tab (the prominent circle slides into it), that small blob glides to its new corner, and it expands back into the full layout. The reserved-space variables update once, at the moment it starts to move, so the page doesn't reflow during the collapse.
 
+**Accessibility.** The bar is a `tablist` (`aria-orientation` follows the layout; name it with the `label` option), and the prominent circle is a real member of it via `aria-owns`, so assistive tech sees one list of tabs. A tab's `panel` option (an element id) becomes its `aria-controls`. Keyboard: Tab lands on the selected tab (roving tabindex), then the arrow keys (either axis; Left/Right flip in a right-to-left row), Home and End move between all tabs, prominent included, selecting as they go.
+
 Icons and rich labels accept a Node or a **trusted** HTML/SVG string; plain labels are set as text.
 Programmatic `select()` calls are silent by default; `onSelect` still receives `{ silent: true }` on initial selection.
 

@@ -49,6 +49,8 @@ const rubber = (x, give) => (x * give) / (give + Math.abs(x));
 //   haptic             called on a committed tap/drag (default: light tick;
 //                      pass null when onChange already buzzes on its own).
 //   trail              overrides TRAIL, how far the whole control follows a drag.
+//   keyboard           arrow keys cycle the cells (default). Pass false when the
+//                      consumer handles keys itself (e.g. its own extra cells).
 //   axis               'x' (default: cells in a row) or 'y' (cells in a column).
 //                      Change it later with setAxis() after re-laying the cells out.
 //   onPillTap()        a grab of the pill itself that barely moved (a tap on
@@ -62,6 +64,7 @@ export function createPillDragCore({
   tapScale = 1.3,
   trail = TRAIL,
   axis: initialAxis = 'x',
+  keyboard = true,
   canSelect,
   onReject,
   haptic = () => haptics.trigger('light'),
@@ -467,7 +470,7 @@ export function createPillDragCore({
   }
 
   /* --- Keyboard (arrows cycle) ------------------------------------- */
-  root.addEventListener('keydown', (e) => {
+  if (keyboard) root.addEventListener('keydown', (e) => {
     const step = (e.key === 'ArrowRight' || e.key === 'ArrowDown') ? 1
       : (e.key === 'ArrowLeft' || e.key === 'ArrowUp') ? -1 : 0;
     if (!step || index < 0) return;

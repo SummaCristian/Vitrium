@@ -45,6 +45,14 @@
 //   circle slides into it), that small blob glides to its new corner, and it
 //   expands back into the full layout.
 //
+// Accessibility: the bar is a tablist (with aria-orientation following the
+// layout), and the prominent circle is a real member of it (aria-owns), so a
+// screen reader sees one list of tabs. Roving tabindex: Tab lands on the
+// selected tab, then arrows (either axis; Left/Right flip in right-to-left
+// rows), Home and End move between ALL tabs, prominent included, selecting as
+// they go. Options: `label` names the tablist; a tab's `panel` (an element id)
+// becomes its aria-controls.
+//
 // `icon` is a Node or trusted SVG/HTML string; `label` is set as text.
 import { createPillDragCore } from '../core/pill-drag-core.js';
 import { attachLiquidGlass } from '../core/liquid-glass.js';
@@ -94,8 +102,11 @@ function splitTabs(tabs) {
   return { main: prominent ? tabs.slice(0, -1) : tabs, prominent };
 }
 
-export function createTabBar(root, { tabs: initialTabs, value, onSelect, action, orientation = 'auto', breakpoint = 600 } = {}) {
+let tabbarUid = 0;
+
+export function createTabBar(root, { tabs: initialTabs, value, onSelect, action, orientation = 'auto', breakpoint = 600, label } = {}) {
   root.classList.add('lg-tabbar');
+  const uid = ++tabbarUid;
 
   // Orientation. `mode` is what the caller asked for; `vertical` is what it
   // currently resolves to (for 'auto', from the viewport width).
@@ -121,14 +132,17 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
   const group = el('div', 'lg-tabbar__group');
   const bar = el('div', 'lg-tabbar__bar');
   const items = el('div', 'lg-tabbar__items', { role: 'tablist' });
+  if (label) items.setAttribute('aria-label', label);
+  items.setAttribute('aria-orientation', vertical ? 'vertical' : 'horizontal');
   bar.appendChild(items);
   const parts = createPillParts();
   group.append(bar, parts.pill, parts.hit);
   root.appendChild(group);
 
-  function createTab({ id, label, icon }) {
+  function createTab({ id, label, icon, panel }) {
     const btn = el('button', 'lg-tabbar__tab', { type: 'button', role: 'tab' });
     btn.dataset.id = id;
+    if (panel) btn.setAttribute('aria-controls', panel);
     if (icon) btn.appendChild(el('span', 'lg-tabbar__icon')).appendChild(toNode(icon));
     btn.appendChild(el('span', 'lg-tabbar__label')).textContent = label;
     return btn;
@@ -179,6 +193,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     root: group, items, ...parts,
     cellSelector: '.lg-tabbar__tab',
     axis: vertical ? 'y' : 'x',
+    keyboard: false,   // handled below, across the prominent tab too
     onChange(i, { silent }) {
       currentId = mainTabs[i].id;
       markActive();
@@ -256,12 +271,17 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
 
   function fillProminent() {
     pBtn.dataset.id = prominent.id;
+    if (prominent.panel) pBtn.setAttribute('aria-controls', prominent.panel); else pBtn.removeAttribute('aria-controls');
     pBtn.setAttribute('aria-label', prominent.label);
     pBtn.replaceChildren(...(prominent.icon ? [toNode(prominent.icon)] : []));
   }
 
   function buildProminent({ enter = false } = {}) {
     pBtn = el('button', 'lg-tabbar__prominent lg-glass lg-glass--circle', { type: 'button', role: 'tab' });
+    pBtn.id = `lg-tabbar-${uid}-prominent`;
+    // The circle sits outside the tablist element (it's a sibling of the bar), so
+    // claim it: assistive tech then sees it as one more tab in the same list.
+    items.setAttribute('aria-owns', pBtn.id);
     fillProminent();
     if (enter) {
       pBtn.classList.add('lg-tabbar__prominent--enter');
@@ -420,7 +440,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
       if (pBtn) {
         tabEls.delete(oldProminentId);
         if (prominent) { fillProminent(); tabEls.set(prominent.id, pBtn); }
-        else { ghost = makeGhost(oldCircle); pBtn.remove(); pBtn = null; circleX.set(0); syncLayout(); }
+        else { ghost = makeGhost(oldCircle); pBtn.remove(); pBtn = null; circleX.set(0); items.removeAttribute('aria-owns'); syncLayout(); }
       }
     }
     syncMainEls({ enter: true });
@@ -542,6 +562,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     bar.style.width = bar.style.height = '';
     vertical = nextVertical;
     root.classList.toggle('lg-tabbar--vertical', vertical);
+    items.setAttribute('aria-orientation', vertical ? 'vertical' : 'horizontal');
     sizeTabs();
     core.setAxis(vertical ? 'y' : 'x');
     sizeCircles();
@@ -642,6 +663,38 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
   // 'auto' follows the viewport width.
   const onWideChange = () => { if (mode === 'auto') applyOrientation(resolveVertical()); };
   wide.addEventListener('change', onWideChange);
+
+  /* --- Keyboard ------------------------------------------------------------------ */
+  // Roving tabindex is set by markActive() (only the selected tab is a tab stop);
+  // these keys move between every tab, the prominent one included, and select as
+  // they go (automatic activation), like the pill core's own handler did for the
+  // bar alone.
+  root.addEventListener('keydown', (e) => {
+    if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    const tab = e.target.closest?.('[role="tab"]');
+    const order = [...mainTabs, ...(prominent ? [prominent] : [])].map(t => t.id);
+    const at = tab ? order.indexOf(tab.dataset.id) : -1;
+    if (at === -1) return;
+
+    // Both axes' arrows work in either layout; a right-to-left row reverses Left/Right.
+    const rtlRow = !vertical && getComputedStyle(root).direction === 'rtl';
+    let next = at;
+    switch (e.key) {
+      case 'ArrowRight': next = at + (rtlRow ? -1 : 1); break;
+      case 'ArrowLeft': next = at + (rtlRow ? 1 : -1); break;
+      case 'ArrowDown': next = at + 1; break;
+      case 'ArrowUp': next = at - 1; break;
+      case 'Home': next = 0; break;
+      case 'End': next = order.length - 1; break;
+      default: return;
+    }
+    next = Math.max(0, Math.min(order.length - 1, next));
+    e.preventDefault();
+    if (next === at) return;
+    haptics.trigger('light');
+    select(order[next], { silent: false });
+    tabEls.get(order[next])?.focus();
+  });
 
   /* --- Init ---------------------------------------------------------------------- */
   syncMainEls();

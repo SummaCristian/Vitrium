@@ -11,13 +11,23 @@
 // `orientation`: 'horizontal' (default) or 'vertical'; change it later with
 // setOrientation(), which morphs between the two layouts (pass
 // { animate: false } to snap).
+//
+// `selectedColor` opts into coloured text for the selected item: any CSS color,
+// or 'accent' to follow the system accent (--lg-accent, so it updates when the
+// accent does). Omit it for the default text colour. setSelectedColor() changes
+// it later; null restores the default.
 import { createPillDragCore } from '../core/pill-drag-core.js';
 import { layoutMorph } from '../core/layout-morph.js';
 import { createPillParts, el, toNode } from './dom.js';
 
 // onSelect(value, { silent }) fires when a different item becomes selected.
-export function createSegmentedControl(root, { items: itemDefs, value, onSelect, orientation = 'horizontal' } = {}) {
+export function createSegmentedControl(root, { items: itemDefs, value, onSelect, orientation = 'horizontal', selectedColor } = {}) {
   root.classList.add('lg-seg');
+  const setSelectedColor = (c) => {
+    if (c == null) root.style.removeProperty('--lg-seg-active-color');
+    else root.style.setProperty('--lg-seg-active-color', c === 'accent' ? 'var(--lg-accent)' : c);
+  };
+  setSelectedColor(selectedColor);
   root.classList.toggle('lg-seg--vertical', orientation === 'vertical');
   root.setAttribute('role', 'radiogroup');
 
@@ -141,6 +151,7 @@ export function createSegmentedControl(root, { items: itemDefs, value, onSelect,
     select,
     refresh,
     setOrientation,
+    setSelectedColor,
     destroy() { cancelMorph?.(); ro.disconnect(); core.destroy(); },
     get value() { return cellsOf()[core.index]?.dataset.value; },
   };

@@ -61,9 +61,11 @@ createToggle({ color: 'accent' });    // follows --lg-accent`,
     title: 'Segmented control',
     summary: 'A sliding-pill picker, horizontal or vertical.',
     demo(el) {
-      const a = h('div'); const b = h('div');
-      el.append(a, b);
-      createSegmentedControl(a, { items: [{ value: 'day', label: 'Day' }, { value: 'week', label: 'Week' }, { value: 'month', label: 'Month' }], value: 'week' });
+      const a = h('div'); const b = h('div'); const c = h('div');
+      el.append(a, c, b);
+      const days = [{ value: 'day', label: 'Day' }, { value: 'week', label: 'Week' }, { value: 'month', label: 'Month' }];
+      createSegmentedControl(a, { items: days, value: 'week' });
+      createSegmentedControl(c, { items: days, value: 'week', selectedColor: 'accent' });
       createSegmentedControl(b, { orientation: 'vertical', items: [{ value: 'a', label: 'One' }, { value: 'b', label: 'Two' }], value: 'a' });
     },
     code: `
@@ -73,11 +75,16 @@ createSegmentedControl(container, {
   items: [{ value: 'day', label: 'Day' }, { value: 'week', label: 'Week' }],
   value: 'week',
   onSelect(value) {},
-});`,
+});
+
+// Coloured selected text (opt-in):
+createSegmentedControl(container, { items, selectedColor: '#ff375f' });   // any CSS colour
+createSegmentedControl(container, { items, selectedColor: 'accent' });    // follows --lg-accent`,
     api: [
       ['items', '{ value, label }[]', 'The segments.'],
       ['value', 'any', 'Selected value.'],
       ['orientation', "'horizontal' | 'vertical'", 'Layout. Change later with setOrientation().'],
+      ['selectedColor', "CSS color | 'accent'", "Opt in to coloured text on the selected item. 'accent' follows --lg-accent. Default: normal text colour. Change later with setSelectedColor()."],
       ['onSelect', '(value, { silent }) => void', 'Selection callback.'],
     ],
   },

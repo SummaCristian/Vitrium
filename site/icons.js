@@ -14,6 +14,7 @@ const stroke = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor
 
 export const navIcons = {
   menu: stroke('<path d="M4 7h16M4 12h16M4 17h16"/>'),
+  sidebar: stroke('<rect x="3" y="4.5" width="18" height="15" rx="3.5"/><path d="M9.5 4.5v15"/>'),
   home: toSvg(Home01Icon),
   start: toSvg(BookOpen01Icon),
   foundation: toSvg(Settings02Icon),

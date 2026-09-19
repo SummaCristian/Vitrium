@@ -44,40 +44,108 @@ body {
 }
 [hidden] { display: none !important; }
 
-/* Three columns, like a documentation site: sidebar tree, content, "On this page". */
-.shell { max-width: 1260px; margin: 0 auto; padding: 0 24px; display: grid; gap: 48px; align-items: start;
-  grid-template-columns: 230px minmax(0, 1fr) 190px; }
+/* Three columns, like a documentation site: sidebar tree, content, "On this page". The two outer columns hug the edges of
+   the window; the content takes what is left, grows up to a comfortable width (tables get room to breathe) and stays
+   centred between them. */
+.shell { --halo: 24px; --side-top: 25px; --side-open: 230px; --side: var(--side-open); --edge: 32px; --fold: 0.4s cubic-bezier(0.2, 0, 0, 1);
+  padding: 0 var(--edge); display: grid; gap: 48px; align-items: start;
+  grid-template-columns: var(--side) 1fr 190px; transition: grid-template-columns var(--fold); }   /* 1fr, not minmax(0, 1fr): #page has min-width 0, and minmax() would not animate */
 .shell[data-layout="wide"] { grid-template-columns: minmax(0, 1fr); }
 .shell[data-layout="wide"] #sidebar, .shell[data-layout="wide"] #toc { display: none; }
-.shell[data-layout="wide"] #page { max-width: 880px; margin: 0 auto; width: 100%; }
-#sidebar, #toc { position: sticky; top: calc(var(--lg-tabbar-top-space, 0px) + 24px); align-self: start;
-  max-height: calc(100vh - var(--lg-tabbar-top-space, 0px) - 48px); overflow-y: auto; padding-block: 24px; }
+.shell[data-layout="wide"] #page { max-width: 880px; }
+/* The two side columns scroll on their own when they are taller than the window. Any `overflow` other than `visible`
+   clips at the padding edge, which cut off the soft shadows of the search field and the pill control. So the container
+   carries a --halo of padding for the shadows to fall in, and a matching negative margin so nothing moves. (The halo can
+   be no larger than the shell's side padding, or the right column would push the page wider than the window.) */
+#sidebar, #toc { position: sticky; top: calc(var(--lg-tabbar-top-space, 0px) + 24px - var(--halo)); align-self: start;
+  max-height: calc(100vh - var(--lg-tabbar-top-space, 0px) - 48px + 2 * var(--halo)); overflow-y: auto; scrollbar-width: thin;
+  margin: calc(-1 * var(--halo)); padding: calc(var(--halo) + 24px) var(--halo);
+  box-sizing: border-box; /* max-height then includes the padding; otherwise the column ends below the window and its last link is out of reach */ }
+/* The button that folds the sidebar: at the top right of the sidebar when it is open, and (the same element, moved there and
+   animated across) in the top-left corner of the window when it is folded. */
+.sidebar-head { display: flex; justify-content: flex-end; align-items: center; min-height: 2.5rem; }
+.sidebar-toggle { width: 2.5rem; height: 2.5rem; }
+.sidebar-toggle > svg { width: 1.25rem; height: 1.25rem; }
+#sidebar-slot { position: fixed; z-index: 30; top: 25px; inset-inline-start: 28px; }
+.shell[data-layout="wide"] + #sidebar-slot { display: none; }   /* the home page has no sidebar to fold */
+/* The sidebar starts at the very top of the window, level with the top-left corner slot the fold button moves to, instead of
+   below the tab bar's reserved space like the rest of the page. (Its content top is --side-top; the negative margin cancels
+   the space the body reserves above the shell.) Where the centred tab bar would run into it, it keeps the lower start. */
+#sidebar {
+  top: calc(var(--side-top) - var(--halo));
+  margin-block-start: calc(var(--side-top) - var(--halo) - var(--lg-tabbar-top-space, 0px));
+  padding-block-start: var(--halo);
+  max-height: calc(100vh - var(--side-top) + 2 * var(--halo));
+}
+@media (max-width: 940px) { .shell { --side-top: calc(var(--lg-tabbar-top-space, 0px) + 24px); } }
+/* The sidebar's panel, macOS style: attached to the left edge for the full height of the window, a faint translucent tint of
+   the text color (a touch darker than the page in light, lighter in dark) with a soft blur, and a hairline on its inner edge.
+   Fixed and drawn by the shell, so it doesn't affect the sticky column's layout or its shadow room. */
+.shell:not([data-layout="wide"])::before {
+  content: ""; position: fixed; z-index: 0; inset-block: 0; inset-inline-start: 0;
+  width: calc(var(--edge) + var(--side-open) + var(--halo));   /* always the open width: folding slides it away instead of squashing it */
+  background: color-mix(in srgb, var(--text-color-primary) 4%, transparent);
+  border-inline-end: 1px solid color-mix(in srgb, var(--text-color-primary) 9%, transparent);
+  backdrop-filter: blur(24px) saturate(1.6); -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  pointer-events: none;
+  transition: translate var(--fold), opacity 0.3s ease;
+}
+/* With blur switched off (see Foundation > Blur), the tint alone has to do the work. */
+:root[data-blur="off"] .shell::before { backdrop-filter: none; -webkit-backdrop-filter: none; }
+/* Folding the sidebar: its column animates to nothing (the content grows into the space on the same curve), the panel slides
+   off the edge, and the sidebar itself fades and is then hidden, so nothing shows through the sliver the halo leaves. */
+.shell[data-sidebar="collapsed"] { --side: 0px; }
+.shell[data-sidebar="collapsed"]::before { translate: -100% 0; opacity: 0; }
+#sidebar { transition: opacity 0.3s ease; }
+.shell[data-sidebar="collapsed"] #sidebar { opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0s 0.4s; }
 #toc:empty { visibility: hidden; }
-#page { padding: 40px 0 120px; display: grid; gap: 48px; min-width: 0; }
+/* The list is only as wide as its longest label, narrower than the column: put it against the window's edge, with its heading. */
+#toc { display: grid; justify-content: end; }
+#page { width: 100%; max-width: 1040px; margin-inline: auto; padding: 40px 0 120px; display: grid; gap: 48px; min-width: 0; }
 #page > * { min-width: 0; }
 .menu-btn { display: none; position: fixed; top: 16px; inset-inline-start: 16px; z-index: 30; }
 @media (max-width: 1100px) {
-  .shell:not([data-layout="wide"]) { grid-template-columns: 230px minmax(0, 1fr); }
+  .shell:not([data-layout="wide"]) { grid-template-columns: var(--side) 1fr; }
   #toc { display: none; }
 }
 @media (max-width: 860px) {
   .shell:not([data-layout="wide"]) { grid-template-columns: minmax(0, 1fr); }
-  #sidebar { display: none; }
+  #sidebar, #sidebar-slot { display: none; }
+  .shell:not([data-layout="wide"])::before { display: none; }
   .menu-btn { display: grid; }
   #page { padding-top: 72px; }
 }
 
 /* Sidebar */
-.sidebar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.sidebar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 .sidebar .lg-field__input { min-width: 0; }
 .sidebar .lg-field { width: 100%; box-sizing: border-box; }
-#sidebar, #toc { margin-inline: -8px; padding-inline: 8px; }
-.side-group { display: grid; gap: 4px; }
-.side-group h3, #toc h3 { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.55; padding: 0 10px 4px; }
-.side-items { display: grid; gap: 2px; }
+#toc h3 { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.55; padding: 0 10px 4px; }
+
+/* The tree: branches fold, their pages hang from a guide line under the chevron. */
+.tree, .node-list { list-style: none; margin: 0; padding: 0; }
+.tree { display: grid; gap: 10px; }
+.node-toggle { display: flex; align-items: center; gap: 6px; width: 100%; padding: 5px 8px; border: 0; border-radius: var(--radius-sm); background: none; color: inherit; font: inherit; text-align: start; }
+.node-toggle:hover { background: color-mix(in srgb, currentColor 7%, transparent); }
+.node-toggle:focus-visible, .side-link:focus-visible { outline: 2px solid var(--lg-accent); outline-offset: -2px; }
+.node-chevron { flex: none; display: grid; place-items: center; width: 14px; height: 14px; opacity: 0.6; transition: rotate 0.25s cubic-bezier(0.2, 0, 0, 1); }
+.node-chevron svg { width: 12px; height: 12px; }
+.node--branch:not(.open) > .node-toggle .node-chevron { rotate: -90deg; }
+/* The top level are section headings; a branch inside one (Controls) reads as an ordinary row. */
+.node--root > .node-toggle { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: color-mix(in srgb, currentColor 58%, transparent); }
+.node--sub > .node-toggle { font-size: 0.95rem; font-weight: 600; }
+/* Folding: the row height animates between 0 and its natural height (a grid row going 0fr -> 1fr), no measuring needed. */
+.node-children { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s cubic-bezier(0.2, 0, 0, 1); }
+.node.open > .node-children { grid-template-rows: 1fr; }
+.node-list { min-height: 0; overflow: hidden; margin-inline-start: 14px; padding-inline-start: 6px; border-inline-start: 1px solid color-mix(in srgb, currentColor 12%, transparent); }
+.node--branch:not(.open) > .node-children > .node-list { border-color: transparent; }
+.node-list > .node:first-child { margin-top: 2px; }
+.node-list > .node:last-child { margin-bottom: 2px; }
 .side-link { display: block; padding: 6px 10px; border-radius: var(--radius-sm); text-decoration: none; color: inherit; font-size: 0.95rem; opacity: 0.85; }
 .side-link:hover { background: color-mix(in srgb, currentColor 7%, transparent); }
 .side-link.active { background: color-mix(in srgb, var(--lg-accent) 16%, transparent); color: var(--lg-accent); font-weight: 700; opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .node-children, .node-chevron { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .shell, .shell::before, #sidebar { transition: none !important; } }
 .lg-sheet .sidebar { padding: 8px 20px 24px; }
 
 /* Documentation pages */
@@ -87,14 +155,15 @@ body {
 .doc-section, .playground { grid-template-columns: minmax(0, 1fr); }
 .doc-section { display: grid; gap: 16px; scroll-margin-top: calc(var(--lg-tabbar-top-space, 0px) + 24px); }
 section[id].card { scroll-margin-top: calc(var(--lg-tabbar-top-space, 0px) + 24px); }
-.doc-section > p { max-width: 65ch; color: var(--text-color-secondary); }
+/* Text follows the pane like the cards do (the pane itself is capped at 1040px). To cap the line length again, set --measure, e.g. 80ch. */
+.doc-section > p { max-width: var(--measure, none); color: var(--text-color-secondary); }
 /* Two classes so it beats .card's `justify-items: start` (which comes later): the scroll wrapper has to stretch to
    the card, not shrink-wrap the table, or a wide table pushes out of the card instead of scrolling inside it. */
 .card.table-card { padding: 0.5rem 1rem; justify-items: stretch; }
 .table-scroll { overflow-x: auto; }
 
 /* Playground: stage, then options, then the matching code */
-.sub-label { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.55; margin: 8px 0 -8px 4px; }
+.sub-label { font-size: 1rem; font-weight: 700; opacity: 0.55; margin: 8px 0 -8px 16px; }
 .playground { display: grid; gap: 16px; }
 .stage-card { position: relative; overflow: hidden; min-height: 180px; place-items: center; justify-items: center; }
 .stage { position: relative; z-index: 1; width: 100%; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: center; min-height: 100px; }
@@ -109,7 +178,7 @@ h1, h2, h3, p { margin: 0; }
 h1 { font-size: clamp(2.2rem, 6vw, 3rem); font-weight: bold; line-height: 1.1; }
 h2 { font-size: clamp(1.6rem, 1.36rem + 1.2vw, 2rem); font-weight: bold; }
 h3 { font-size: clamp(1.15rem, 1.09rem + 0.3vw, 1.25rem); font-weight: 600; }
-.lede { font-size: 1.2rem; max-width: 34em; opacity: 0.85; }
+.lede { font-size: 1.2rem; max-width: var(--measure, none); opacity: 0.85; }
 .stack { display: grid; gap: 16px; }
 .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .card { padding: 1.25rem 1.5rem; border-radius: var(--radius-xl); display: grid; grid-template-columns: minmax(0, 1fr); justify-items: start; gap: 12px; color: var(--text-color-primary); }
@@ -305,7 +374,7 @@ table.tokens { table-layout: auto; }
 .tp-note { font-size: 0.78rem; opacity: 0.65; }
 
 /* "On this page": a vertical segmented control, as the component ships (centred labels), kept within the column. */
-.toc-seg { width: fit-content; max-width: 100%; font-size: 0.84rem; }
+.toc-seg { width: 100%; font-size: 0.84rem; }   /* as wide as the block (its widest label or the heading), so the right edge is the same on every page */
 /* One line per label in both layers (the items and the selected-item overlay share these rules, so they stay identical),
    with a little less side padding, so even the longest section name fits the column instead of wrapping in one layer only. */
 .toc-seg .lg-seg__item, .toc-seg .lg-pill-active-cell { white-space: nowrap; padding-inline: 0.5rem; }

@@ -1,10 +1,8 @@
 // Sidebar tree, its search, and the "On this page" list.
-import { createTextField, createSegmentedControl } from '../src/index.js';
+import { createTextField, createSegmentedControl, icons } from '../src/index.js';
 import { h } from './dom.js';
 import { components } from './components/registry.js';
 import { foundationPages } from './pages/foundation.js';
-
-const guides = [{ title: 'Get started', href: '#/start' }];
 
 const groupsOf = () => {
   const groups = new Map();
@@ -12,47 +10,104 @@ const groupsOf = () => {
   return [...groups];
 };
 
+// The documentation tree. A node with `href` is a page; one with `children` is a branch that can be folded.
+const treeData = () => [
+  { title: 'Guides', children: [{ title: 'Get started', href: '#/start' }] },
+  { title: 'Foundation', children: [{ title: 'Overview', href: '#/foundation' }, ...foundationPages.map((p) => ({ title: p.title, href: `#/foundation/${p.id}` }))] },
+  { title: 'Components', children: [
+    { title: 'All components', href: '#/components' },
+    ...groupsOf().map(([name, items]) => ({ title: name, children: items.map((c) => ({ title: c.title, href: `#/components/${c.id}` })) })),
+  ] },
+];
+
+// Which branches are folded is shared by every sidebar on the page (the desktop one and the phone sheet's) and remembered
+// between visits. Everything starts open.
+const STORE = 'lgw:tree-collapsed';
+const folded = new Set((() => { try { return JSON.parse(localStorage.getItem(STORE)) ?? []; } catch { return []; } })());
+const painters = new Set();
+const setFolded = (id, on) => {
+  if (on) folded.add(id); else folded.delete(id);
+  try { localStorage.setItem(STORE, JSON.stringify([...folded])); } catch { /* not persisted: fine */ }
+  painters.forEach((paint) => paint());
+};
+
 // One sidebar. `onNavigate` lets a host (the mobile sheet) close itself when a link is followed.
 export function buildSidebar({ onNavigate } = {}) {
   const root = h('div', { class: 'sidebar' });
   const search = createTextField({ variant: 'search', label: 'Filter documentation', placeholder: 'Filter' });
-  const links = [];
+  const links = [];      // every page: { a, title, ancestors: [branch ids] }
+  const branches = [];   // every branch: { id, li, toggle, kids, el }
+  let uid = 0;
 
-  const link = (title, href) => {
-    const a = h('a', { class: 'side-link', href }, title);
-    a.addEventListener('click', () => onNavigate?.());
-    links.push({ a, title });
-    return a;
+  const build = (node, depth, ancestors) => {
+    const li = h('li', { class: 'node' });
+    if (node.href) {
+      const a = h('a', { class: 'side-link', href: node.href }, node.title);
+      a.addEventListener('click', () => onNavigate?.());
+      links.push({ a, title: node.title, ancestors });
+      li.append(a);
+      return li;
+    }
+    const id = [...ancestors, node.title].join('/');
+    const kidsId = `tree-${++uid}-${Math.random().toString(36).slice(2, 7)}`;
+    const chevron = h('span', { class: 'node-chevron', 'aria-hidden': 'true' });
+    chevron.innerHTML = icons.chevronDown;   // trusted static SVG from the library
+    const toggle = h('button', { class: 'node-toggle', type: 'button', 'aria-controls': kidsId }, chevron, h('span', {}, node.title));
+    const list = h('ul', { class: 'node-list' }, node.children.map((c) => build(c, depth + 1, [...ancestors, node.title])));
+    const kids = h('div', { class: 'node-children', id: kidsId }, list);
+    li.classList.add('node--branch', depth === 0 ? 'node--root' : 'node--sub');
+    li.append(toggle, kids);
+    toggle.addEventListener('click', () => setFolded(id, !folded.has(id)));
+    // Right opens, left folds (the usual tree keys); Tab and Enter work as on any button.
+    toggle.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' && folded.has(id)) { e.preventDefault(); setFolded(id, false); }
+      if (e.key === 'ArrowLeft' && !folded.has(id)) { e.preventDefault(); setFolded(id, true); }
+    });
+    branches.push({ id, li, toggle, kids });
+    return li;
   };
-  const group = (title, items) => h('div', { class: 'side-group' }, h('h3', {}, title), h('div', { class: 'side-items' }, items));
 
-  const tree = [
-    group('Guides', guides.map((g) => link(g.title, g.href))),
-    group('Foundation', [link('Overview', '#/foundation'), ...foundationPages.map((p) => link(p.title, `#/foundation/${p.id}`))]),
-    group('Components', [link('All components', '#/components')]),
-    ...groupsOf().map(([name, items]) => group(name, items.map((c) => link(c.title, `#/components/${c.id}`)))),
-  ];
-  root.append(search.el, ...tree);
+  const tree = h('ul', { class: 'tree' }, treeData().map((n) => build(n, 0, [])));
+  root.append(search.el, h('nav', { 'aria-label': 'Documentation' }, tree));
+
+  // Show each branch as open or folded. Folded ones are taken out of the tab order and the accessibility tree (`inert`),
+  // since they are only clipped to zero height. While filtering, every branch with a match is held open.
+  const paint = () => {
+    const filtering = root.hasAttribute('data-filtering');
+    for (const b of branches) {
+      const open = filtering || !folded.has(b.id);
+      b.li.classList.toggle('open', open);
+      b.toggle.setAttribute('aria-expanded', String(open));
+      b.kids.toggleAttribute('inert', !open);
+    }
+  };
+  painters.add(paint);
+  paint();
 
   const filter = (q) => {
     const needle = q.trim().toLowerCase();
-    for (const { a, title } of links) a.hidden = needle !== '' && !title.toLowerCase().includes(needle);
-    for (const g of tree) g.hidden = !!needle && [...g.querySelectorAll('.side-link')].every((a) => a.hidden);
+    root.toggleAttribute('data-filtering', needle !== '');
+    for (const { a, title } of links) a.closest('.node').hidden = needle !== '' && !title.toLowerCase().includes(needle);
+    for (const b of branches) b.li.hidden = needle !== '' && [...b.li.querySelectorAll('.side-link')].every((a) => a.closest('.node').hidden);
+    paint();
   };
   search.input.addEventListener('input', () => filter(search.input.value));
   search.input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') links.find(({ a }) => !a.hidden)?.a.click();
+    if (e.key === 'Enter') links.find(({ a }) => !a.closest('.node').hidden)?.a.click();
   });
 
   return {
     el: root,
-    // Mark the link for the current hash.
+    // Mark the link for the current hash, and unfold the branches that lead to it so it is never hidden.
     sync() {
       const here = location.hash || '#/';
-      for (const { a } of links) {
+      for (const { a, ancestors } of links) {
         const on = a.getAttribute('href') === here;
         a.classList.toggle('active', on);
-        if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+        if (on) {
+          a.setAttribute('aria-current', 'page');
+          ancestors.forEach((_, i) => { const id = ancestors.slice(0, i + 1).join('/'); if (folded.has(id)) setFolded(id, false); });
+        } else a.removeAttribute('aria-current');
       }
     },
   };

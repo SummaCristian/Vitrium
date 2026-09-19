@@ -44,20 +44,26 @@ const TAB_POOL = [
   { id: 'campus', label: 'Campus', icon: icons.map },
   { id: 'favourites', label: 'Favourites', icon: icons.star },
   { id: 'settings', label: 'Settings', icon: icons.settings },
-  { id: 'info', label: 'Info', icon: icons.search },
+  { id: 'search', label: 'Search', icon: icons.search },
 ];
 
 const initialTabs = Math.min(5, Math.max(2, Number(new URLSearchParams(location.search).get('tabs')) || 3));
 const tabbarRoot = document.getElementById('tabbar');
+let tabCount = initialTabs;
+let prominentOn = new URLSearchParams(location.search).get('prominent') !== '0';
+const currentTabs = () => TAB_POOL.slice(0, tabCount).map((t, i) => ({ ...t, prominent: prominentOn && i === tabCount - 1 }));
+
 const tabbar = createTabBar(tabbarRoot, {
-  tabs: TAB_POOL.slice(0, initialTabs),
+  tabs: currentTabs(),
   onSelect: (id, { silent }) => { if (!silent) console.log('tab', id); },
-  action: { label: 'Search', icon: icons.search, onClick: () => console.log('search') },
 });
-const buildTabBar = (count) => tabbar.setTabs(TAB_POOL.slice(0, count));
 
 createSegmentedControl(document.getElementById('tab-count'), {
   items: [2, 3, 4, 5].map(n => ({ value: n, label: String(n) })),
   value: initialTabs,
-  onSelect: (n, { silent }) => { if (!silent) buildTabBar(Number(n)); },
+  onSelect: (n, { silent }) => { if (!silent) { tabCount = Number(n); tabbar.setTabs(currentTabs()); } },
 });
+
+document.getElementById('prominent-toggle').replaceWith(
+  createToggle({ value: prominentOn, label: 'Last tab prominent', onChange: (on) => { prominentOn = on; tabbar.setTabs(currentTabs()); } }).el,
+);

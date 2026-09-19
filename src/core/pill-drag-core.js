@@ -165,7 +165,9 @@ export function createPillDragCore({
 
   /* --- Render ------------------------------------------------------ */
   function updateMask(scMain = scale.value, scCross = scale.value) {
-    if (!itemsW || !itemsH || index < 0) return;
+    // No selection: nothing to cut out of the label layer.
+    if (index < 0) { items.style.clipPath = ''; items.style.webkitClipPath = ''; return; }
+    if (!itemsW || !itemsH) return;
     const w = pillMain.value * scMain;
     const h = itemsH * scCross;
     const r = Math.min(w, h) / 2;
@@ -214,6 +216,8 @@ export function createPillDragCore({
     pill.style.transform = `${posStr} scale(${scMain}, ${scCross})`;
     hit.style.transform = posStr;
     pill.style.opacity = index >= 0 ? '1' : '0';
+    // With no selection the hit overlay must not sit on top of a cell and eat its clicks.
+    hit.style.pointerEvents = index >= 0 ? '' : 'none';
     // Full glass look only while lifted; flat at rest. Checking scale.value
     // (not scale.resting) also covers reduced-motion, where to() snaps.
     pill.classList.toggle(liftedClass, lifted);
@@ -233,6 +237,9 @@ export function createPillDragCore({
   function select(i, { animate = true, silent = false } = {}) {
     if (i < 0) return;
     const changed = i !== index;
+    // Coming back from "no selection": the pill was hidden, so place it on the
+    // new cell right away and fade it in rather than sliding from a stale spot.
+    if (index < 0 && anchors[i]) { pillPos.set(anchors[i].pos); pillMain.set(anchors[i].size); }
     index = i;
     clearTimers();
     if (!animate) {
@@ -252,6 +259,16 @@ export function createPillDragCore({
       pillMain.to(a.size, { stiffness: 400, damping: 35, mass: 0.8 });
     }, 50);
     later(() => scale.to(1, { stiffness: 350, damping: 30, mass: 0.8 }), 250);
+  }
+
+  // Clear the selection (the pill fades out). Doesn't fire onChange. A later
+  // select() brings it back.
+  function deselect() {
+    if (index < 0) return;
+    index = -1;
+    clearTimers();
+    scale.to(1, { stiffness: 350, damping: 30, mass: 0.8 });
+    render();
   }
 
   items.addEventListener('click', (e) => {
@@ -440,6 +457,7 @@ export function createPillDragCore({
     destroy,
     refresh,
     select,
+    deselect,
     get index() { return index; },
     get cells() { return cells; },
     indexOf: (el) => cells.indexOf(el),

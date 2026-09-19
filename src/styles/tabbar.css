@@ -23,6 +23,10 @@
 
 .lg-tabbar__bar {
   position: relative;
+  /* setTabs() animates an inline width measured from offsetWidth (which
+     includes this padding); content-box would land it 8px wide of the natural
+     size and snap back when the inline width is cleared. */
+  box-sizing: border-box;
   padding: 4px;
   /* A swipe anywhere on the bar belongs to the pill, not the page behind it. */
   touch-action: none;
@@ -105,6 +109,62 @@
   pointer-events: none;
 }
 
+/* With a prominent tab the bar and the circle spread to opposite sides, held
+   in from the container's edges by --lg-tabbar-inset. Without one the row
+   stays centred. */
+.lg-tabbar--split {
+  --lg-tabbar-inset: 1.25rem;
+  box-sizing: border-box;
+  justify-content: space-between;
+  padding-inline: var(--lg-tabbar-inset);
+}
+
+/* Prominent tab: a detached glass circle, no sliding pill. Selected = tinted
+   icon. Diameter is set from JS to match the bar's own height. */
+.lg-tabbar__prominent {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  -webkit-tap-highlight-color: transparent;
+  color: var(--lg-tab-color);
+  will-change: transform;
+  transition:
+    color 0.2s ease,
+    translate var(--lg-press-out-dur) var(--lg-ease-spring),
+    scale var(--lg-press-out-dur) var(--lg-ease-spring),
+    filter 0.2s ease;
+}
+
+.lg-tabbar__prominent[aria-selected="true"] {
+  color: var(--lg-tab-active-color);
+}
+
+.lg-tabbar__prominent:focus-visible {
+  outline: 2px solid var(--lg-tab-active-color);
+  outline-offset: 3px;
+}
+
+.lg-tabbar__prominent > svg {
+  width: 1.375rem;
+  height: 1.375rem;
+  pointer-events: none;
+}
+
+.lg-tabbar__prominent.liquid-glass.lg-pressing {
+  transition:
+    color 0.2s ease,
+    translate var(--lg-press-in-dur) var(--lg-press-in-ease),
+    scale var(--lg-press-in-dur) var(--lg-press-in-ease),
+    filter 0.2s ease;
+}
+
+.lg-tabbar__prominent.liquid-glass.lg-dragging {
+  transition: color 0.2s ease, translate 0s, scale 0s, filter 0.2s ease;
+}
+
 /* Standalone circular action, split off from the tab group. Diameter is set
    from JS to match the bar's own height. */
 .lg-tabbar__action {
@@ -130,11 +190,6 @@
   pointer-events: none;
 }
 
-/* setTabs(): the bar's width is animated from JS-set values. */
-.lg-tabbar__bar--resizing {
-  transition: width var(--lg-morph-dur) var(--lg-ease-morph);
-}
-
 .lg-tabbar__tab--enter {
   animation: lg-tab-in var(--lg-morph-dur) var(--lg-ease-morph) both;
 }
@@ -144,7 +199,28 @@
   to { opacity: 1; scale: 1; }
 }
 
+/* Fades the prominent circle in as it emerges (its travel + deform are
+   spring-driven from JS; opacity only here, since a CSS animation on `scale`
+   would pin it and fight the deform). */
+.lg-tabbar__prominent--enter {
+  animation: lg-circle-in 0.3s ease-out;
+}
+
+@keyframes lg-circle-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Leaving copy of the prominent circle, positioned over where it was; its
+   slide, deform and fade are driven from JS. */
+.lg-tabbar__ghost {
+  position: fixed;
+  margin: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .lg-tabbar__bar--resizing { transition: none; }
+  .lg-tabbar__prominent--enter { animation: none; }
   .lg-tabbar__tab--enter { animation: none; }
 }

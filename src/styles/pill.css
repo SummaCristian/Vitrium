@@ -11,7 +11,7 @@
   border-radius: var(--lg-radius-pill);
   will-change: transform;
   transform-origin: center;
-  transition: box-shadow 0.15s ease;
+  transition: box-shadow 0.15s ease, opacity 0.15s ease;
 }
 
 .lg-pill.lg-pill--lifted {

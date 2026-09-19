@@ -10,8 +10,20 @@ export function h(tag, props = {}, ...children) {
     else if (k.startsWith('on')) el.addEventListener(k.slice(2).toLowerCase(), v);
     else if (v !== false && v != null) el.setAttribute(k, v === true ? '' : v);
   }
-  for (const c of children.flat()) if (c != null) el.append(c);
+  // In running text, `like this` becomes inline code. Not inside code itself, where a backtick is just a character.
+  const parse = !/^(CODE|PRE|TEXTAREA|SCRIPT|STYLE)$/i.test(tag);
+  for (const c of children.flat()) {
+    if (c == null) continue;
+    if (parse && typeof c === 'string') el.append(...rich(c)); else el.append(c);
+  }
   return el;
+}
+
+// Splits text on backticks into strings and <code class="ic"> elements. Unbalanced backticks are left as they are.
+export function rich(text) {
+  const parts = text.split('`');
+  if (parts.length < 3 || parts.length % 2 === 0) return [text];
+  return parts.flatMap((part, i) => (i % 2 ? [h('code', { class: 'ic' }, part)] : part ? [part] : []));
 }
 
 // lang: 'js' (default), 'html', or 'text' for no highlighting (shell commands).

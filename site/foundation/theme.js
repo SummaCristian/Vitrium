@@ -18,7 +18,7 @@ export default {
       else if (source !== 'page') control.select(mode, { animate: true });
     });
     return [
-      section('Overview', {}, h('p', {}, 'Every token has a light and a dark value. They follow prefers-color-scheme by default; set data-theme="light" or "dark" on <html> to pin one.')),
+      section('Overview', {}, h('p', {}, 'Every token has a light and a dark value. They follow `prefers-color-scheme` by default; set `data-theme="light"` or `"dark"` on `<html>` to pin one.')),
       section('Try it', { card: true }, host),
     ];
   },

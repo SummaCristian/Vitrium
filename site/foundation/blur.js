@@ -12,7 +12,7 @@ export default {
       onSelect(v, { silent }) { if (silent) return; setBlurMode(v); applyBlurState(resolveBlurCapability()); },
     });
     return [
-      section('Overview', {}, h('p', {}, 'Backdrop blur is the most expensive part of the glass. initBlurCapability() starts with blur off, benchmarks the device when it is idle, and switches it on only if it holds up. You can override that with a mode.')),
+      section('Overview', {}, h('p', {}, 'Backdrop blur is the most expensive part of the glass. `initBlurCapability()` starts with blur off, benchmarks the device when it is idle, and switches it on only if it holds up. You can override that with a mode.')),
       section('Try it', { card: true }, host),
     ];
   },

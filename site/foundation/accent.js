@@ -21,8 +21,8 @@ export default {
 
     return [
       section('Overview', {},
-        h('p', {}, '--lg-accent is a single custom property. Selection, focus rings, slider fills and progress all read it, so changing it recolors them together.'),
-        h('p', {}, 'The toggle keeps its own on-color token, --lg-toggle-on (iOS green). Pass color: "accent" to a toggle to make it follow the accent, and selectedColor: "accent" to a segmented control to color its selected label.')),
+        h('p', {}, '`--lg-accent` is a single custom property. Selection, focus rings, slider fills and progress all read it, so changing it recolors them together.'),
+        h('p', {}, 'The toggle keeps its own on-color token, `--lg-toggle-on` (iOS green). Pass `color: "accent"` to a toggle to make it follow the accent, and `selectedColor: "accent"` to a segmented control to color its selected label.')),
       section('Try it', { card: true }, h('div', { class: 'row' }, picker, reset), samples),
     ];
   },

@@ -13,7 +13,7 @@ export default {
     picker.addEventListener('input', apply);
     apply();
     return [
-      section('Overview', {}, h('p', {}, 'setGlassTint(el, color) tints an element and picks a legible text color for it. Pass null to remove the tint. The regular material shows the color more strongly than the clear one.')),
+      section('Overview', {}, h('p', {}, '`setGlassTint(el, color)` tints an element and picks a legible text color for it. Pass `null` to remove the tint. The regular material shows the color more strongly than the clear one.')),
       section('Try it', { card: true }, h('div', { class: 'row' }, regular, clear, picker)),
     ];
   },

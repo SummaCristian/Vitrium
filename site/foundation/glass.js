@@ -123,7 +123,7 @@ export default {
 
     return [
       section('Overview', {},
-        h('p', {}, 'Glass is a set of classes, not a component. Put lg-glass on any element to give it the material: a translucent, blurred tint with a lit rim, a thin gradient stroke and a soft drop shadow. Every control in the library is built on it.'),
+        h('p', {}, 'Glass is a set of classes, not a component. Put `lg-glass` on any element to give it the material: a translucent, blurred tint with a lit rim, a thin gradient stroke and a soft drop shadow. Every control in the library is built on it.'),
         h('p', {}, 'The material reads its colors from tokens, so it follows the theme, and it switches to a near-opaque fallback when backdrop blur is off.')),
       section('Anatomy', {},
         h('p', {}, 'A glass surface is five layers on one element: the tint, the backdrop blur, an inner rim highlight made from inset shadows, a 0.5px gradient stroke drawn outside the edge, and a drop shadow. On displays with HDR headroom the rim goes brighter than white.')),
@@ -132,7 +132,7 @@ export default {
         table(['Class', 'What it does'], [
           [h('code', {}, 'lg-glass'), 'The material.'],
           [h('code', {}, 'lg-glass--clear'), 'A lighter tint and shallower blur, for surfaces that should stay out of the way of what is behind them.'],
-          [h('code', {}, 'lg-glass--tinted'), 'Colored glass. Set --lg-glass-tint, or call setGlassTint(), which also picks a legible text color.'],
+          [h('code', {}, 'lg-glass--tinted'), 'Colored glass. Set `--lg-glass-tint`, or call `setGlassTint()`, which also picks a legible text color.'],
           [h('code', {}, 'lg-glass--circle'), 'Required on true circles, where the stroke ring has to be masked radially.'],
           [h('code', {}, 'liquid-glass'), 'Adds the press-and-stretch physics. See Motion.'],
         ])),

@@ -118,14 +118,14 @@ export default {
     const groups = GROUPS.map(([title, re]) => [title, names.filter((n) => re.test(n))]).filter(([, list]) => list.length);
     return [
       section('Overview', {},
-        h('p', {}, 'Everything is a custom property on :root, prefixed --lg-, so you can retheme by overriding any of them. The values below are read straight from the stylesheet.'),
+        h('p', {}, 'Everything is a custom property on `:root`, prefixed `--lg-`, so you can retheme by overriding any of them. The values below are read straight from the stylesheet.'),
         h('p', {}, 'A dark value of "same" means the token does not change with the theme. Click any value to see it in full, with a larger preview and, for colors, its HEX, RGB and HSL forms.')),
       ...groups.map(([title, list]) => section(title, {},
         table(['Token', 'Purpose', 'Light', 'Dark'],
           list.map((n) => [nameCell(n), NOTES[n] ?? '', cell(n, 'Light', light.get(n)), cell(n, 'Dark', dark.get(n))]),
           { class: 'api tokens' }))),
       section('Overriding', {},
-        h('p', {}, 'Set a token on :root to change it everywhere, or on one element to change it there.'),
+        h('p', {}, 'Set a token on `:root` to change it everywhere, or on one element to change it there.'),
         codeBlock(`
 :root { --lg-accent: #ff375f; }          /* the whole page */
 .hero { --lg-blur-md: 16px; }            /* one subtree */`, 'text')),

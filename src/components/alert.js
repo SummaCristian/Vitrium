@@ -35,7 +35,6 @@
 // and the actions), actions, dismissible, transition, zIndex.
 // Returns { el, present({ from }), dismiss(), setTransition(mode), isOpen, destroy() }.
 import { attachLiquidGlass } from '../core/liquid-glass.js';
-import { haptics } from '../core/haptics.js';
 import { createModalLayer, FOCUSABLE } from '../core/modal-layer.js';
 import { el, toNode } from './dom.js';
 
@@ -177,7 +176,6 @@ export function createAlert({
   }
 
   function choose(action) {
-    haptics.trigger(action.role === 'destructive' ? 'warning' : 'light');
     action.onClick?.();
     if (action.dismiss !== false) finish(resultOf(action));
   }

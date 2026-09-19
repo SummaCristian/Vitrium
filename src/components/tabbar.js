@@ -93,7 +93,6 @@
 import { createPillDragCore } from '../core/pill-drag-core.js';
 import { attachLiquidGlass } from '../core/liquid-glass.js';
 import { Spring, onSpringFrame } from '../core/spring.js';
-import { haptics } from '../core/haptics.js';
 import { createPillParts, el, toNode } from './dom.js';
 
 // Spring for the bar's size along its axis when the tab set changes size.
@@ -299,7 +298,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     keyboard: false,   // handled below, across the prominent tab too
     // A `press` tab in the compact bar is a button, not a selection.
     canSelect: (i) => !mainTabs[i].press,
-    onReject: (i) => { haptics.trigger('light'); mainTabs[i].onPress?.(tabEls.get(mainTabs[i].id)); },
+    onReject: (i) => { mainTabs[i].onPress?.(tabEls.get(mainTabs[i].id)); },
     onChange(i, { silent }) {
       currentId = mainTabs[i].id;
       markActive();
@@ -411,12 +410,10 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     pBtn.addEventListener('click', (e) => {
       // Press mode: a FAB, not a tab. Selection is untouched; the caller reacts.
       if (prominent.press) {
-        haptics.trigger('light');
         prominent.onPress?.(pBtn, e);
         return;
       }
       if (currentId === prominent.id) return;
-      haptics.trigger('light');
       select(prominent.id, { silent: false });
     });
     attachLiquidGlass(pBtn);
@@ -433,7 +430,6 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     if (action.label) actionBtn.setAttribute('aria-label', action.label);
     if (action.icon) actionBtn.appendChild(toNode(action.icon));
     actionBtn.addEventListener('click', (e) => {
-      haptics.trigger('light');
       action.onClick?.(e);
     });
     attachLiquidGlass(actionBtn);
@@ -874,7 +870,6 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     if (next === at) return;
     const target = order[next];
     if (all.find(t => t.id === target)?.press) { tabEls.get(target)?.focus(); return; }   // focus only; Enter/Space presses it
-    haptics.trigger('light');
     select(target, { silent: false });
     tabEls.get(target)?.focus();
   });

@@ -3,7 +3,6 @@
 // on drag and commits to the nearer end on release. The root is a <button>, so
 // Space/Enter toggle natively.
 import { createPillDragCore } from '../core/pill-drag-core.js';
-import { haptics } from '../core/haptics.js';
 import { createPillParts, el } from './dom.js';
 
 // Returns { el, set, refresh, on }. User changes call `onChange(isOn)`;
@@ -42,7 +41,7 @@ export function createToggle({ value = false, onChange, label } = {}) {
     onPillTap: () => flip(),
     onChange(i, { silent }) {
       apply(i === 1);
-      if (!silent) { haptics.trigger('light'); onChange?.(i === 1); }
+      if (!silent) { onChange?.(i === 1); }
     },
   });
 

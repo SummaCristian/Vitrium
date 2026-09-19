@@ -18,7 +18,6 @@
 // user picks a different option; setValue() is silent by default.
 //
 // Returns { el, value, setValue, setOptions, setLabel, setLoading, open, close, destroy }.
-import { haptics } from '../core/haptics.js';
 import { createChipPicker } from './chip-picker.js';
 import { icons } from './icons.js';
 import { el, toNode } from './dom.js';
@@ -95,7 +94,7 @@ export function createListPicker({
     if (!rows.some(r => r.value === v) || v === current) return;
     current = v;
     sync();
-    if (!silent) { haptics.trigger('light'); onChange?.(current, { silent: false }); }
+    if (!silent) { onChange?.(current, { silent: false }); }
   }
 
   function commit(v) {

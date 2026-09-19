@@ -21,7 +21,6 @@ initBlurCapability();   // perf-gated backdrop-filter (safe "off" until benchmar
 - **Tokens** (`--lg-*`): tint, blur, rim highlight, stroke, shadow, motion. Light/dark follow `prefers-color-scheme`; pin with `<html data-theme="light|dark">`. HDR displays get a brighter specular rim.
 - **`.lg-glass`**: the material. `--clear` is the lighter variant, `--circle` is required on true circles.
 - **`.liquid-glass`**: hold and drag to stretch with elastic falloff, release to spring back. The click after a drag is swallowed.
-- **Haptics** are pluggable: `setHaptics({ trigger(kind) {} })`, e.g. wired to `web-haptics`.
 - **Core**: `Spring` physics, `createPillDragCore`, FLIP `morphGeometry` helpers.
 
 ## Components

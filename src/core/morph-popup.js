@@ -24,7 +24,6 @@
 // tear the freshly opened panel back down.
 import { snapGeometry, morphGeometry, hideInnerBoxInstantly, unhideInnerBox } from './flip-morph.js';
 import { attachLiquidGlass } from './liquid-glass.js';
-import { haptics } from './haptics.js';
 
 const MORPH_MS = 420;   // keep in sync with --lg-morph-panel-dur in morph-popup.css
 const EDGE = 8;         // px kept clear of the viewport edge
@@ -222,7 +221,6 @@ export function createMorphPopup({
     isOpen = true;
     if (role === 'dialog') document.addEventListener('focusin', pullFocusBack);
     trigger.setAttribute('aria-expanded', 'true');
-    haptics.trigger('light');
     lockScroll();
     onOpen?.();
 

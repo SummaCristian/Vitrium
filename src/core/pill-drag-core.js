@@ -20,7 +20,6 @@
 // Measurement uses offset* (not getBoundingClientRect) so it stays correct
 // while an ancestor is mid-transform, e.g. a modal mid morph-open.
 import { Spring, onSpringFrame } from './spring.js';
-import { haptics } from './haptics.js';
 
 const RAIL_GIVE = 11;             // elastic px the pill can be pulled past the end anchors
 const CROSS_GIVE = 5;             // elastic px the pill can be pulled off its rail
@@ -46,8 +45,6 @@ const rubber = (x, give) => (x * give) / (give + Math.abs(x));
 //   canSelect(index)   false → that cell can't be chosen: a tap calls
 //                      onReject(index) instead, a drag released over it
 //                      springs back to the current cell.
-//   haptic             called on a committed tap/drag (default: light tick;
-//                      pass null when onChange already buzzes on its own).
 //   trail              overrides TRAIL, how far the whole control follows a drag.
 //   keyboard           arrow keys cycle the cells (default). Pass false when the
 //                      consumer handles keys itself (e.g. its own extra cells).
@@ -67,7 +64,6 @@ export function createPillDragCore({
   keyboard = true,
   canSelect,
   onReject,
-  haptic = () => haptics.trigger('light'),
   onRender,
   onPillTap,
   onChange,
@@ -306,7 +302,6 @@ export function createPillDragCore({
     const i = cells.indexOf(e.target.closest(cellSelector));
     if (i === -1 || i === index) return;
     if (canSelect && !canSelect(i)) { onReject?.(i); return; }
-    haptic?.();
     select(i);
   });
 
@@ -458,7 +453,6 @@ export function createPillDragCore({
     if (nearest !== index) {
       index = nearest;
       onChange?.(nearest, { silent: false });
-      haptic?.();
     }
   }
 
@@ -477,7 +471,6 @@ export function createPillDragCore({
     const next = Math.max(0, Math.min(cells.length - 1, index + step));
     if (next === index) return;
     e.preventDefault();
-    haptics.trigger('light');
     select(next);
     cells[next].focus();
   });

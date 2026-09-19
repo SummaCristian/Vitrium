@@ -24,7 +24,6 @@
 // Returns { el, value, set(v, { silent }), setDisabled(bool), destroy() }.
 import { Spring, onSpringFrame } from '../core/spring.js';
 import { rubber } from '../core/sheet-physics.js';
-import { haptics } from '../core/haptics.js';
 import { clamp, snapToStep, toFraction, fromFraction } from '../core/value-math.js';
 import { el } from './dom.js';
 
@@ -154,7 +153,6 @@ export function createSlider({
     vals[i] = next;
     syncAria();
     if (!silent) {
-      if (ended) haptics.trigger('light');
       onChange?.(current(), { silent: false });
     }
     return true;

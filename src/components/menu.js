@@ -30,7 +30,6 @@
 // `title` says otherwise: pass `{ icon, text }`, or false for none), width
 // (px, default 220), onOpen, onClose.
 // Returns { el, trigger, open(), close(), isOpen, setItems(items), destroy() }.
-import { haptics } from '../core/haptics.js';
 import { createMorphPopup } from '../core/morph-popup.js';
 import { icons } from './icons.js';
 import { el, toNode } from './dom.js';
@@ -143,7 +142,6 @@ export function createMenu({
   function commit(row) {
     const { item } = row;
     if (item.disabled) return;
-    haptics.trigger('light');
     if (!item.keepOpen) popup.close();   // hands focus back to the trigger
     item.onSelect?.(item);
   }

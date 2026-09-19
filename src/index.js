@@ -9,7 +9,6 @@ export { createMorphPopup } from './core/morph-popup.js';
 export { createModalLayer } from './core/modal-layer.js';
 export { clamp, snapToStep, toFraction, fromFraction } from './core/value-math.js';
 export * as sheetPhysics from './core/sheet-physics.js';
-export { haptics, setHaptics } from './core/haptics.js';
 export {
   BLUR_MODE_KEY, BLUR_STATE_EVENT,
   getBlurMode, setBlurMode,

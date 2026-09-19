@@ -14,7 +14,6 @@
 // format, onChange(value, { silent }).
 // Returns { el, value, set(v, { silent }), setDisabled(bool), destroy() }.
 import { attachLiquidGlass } from '../core/liquid-glass.js';
-import { haptics } from '../core/haptics.js';
 import { clamp, decimals } from '../core/value-math.js';
 import { icons } from './icons.js';
 import { el, toNode } from './dom.js';
@@ -60,7 +59,6 @@ export function createStepper({
     current = next;
     status.textContent = format ? format(current) : String(current);
     render();
-    haptics.trigger('light');
     onChange?.(current, { silent: false });
     return true;
   }

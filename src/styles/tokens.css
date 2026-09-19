@@ -179,8 +179,8 @@
 
 /* Catch hardcoded backdrop-filters (e.g. in host-app glass) as well. */
 :root[data-blur="off"] * {
-  backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

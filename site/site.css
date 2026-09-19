@@ -86,12 +86,12 @@ body {
   width: calc(var(--edge) + var(--side-open) + var(--halo));   /* always the open width: folding slides it away instead of squashing it */
   background: color-mix(in srgb, var(--text-color-primary) 4%, transparent);
   border-inline-end: 1px solid color-mix(in srgb, var(--text-color-primary) 9%, transparent);
-  backdrop-filter: blur(24px) saturate(1.6); -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6); backdrop-filter: blur(24px) saturate(1.6);
   pointer-events: none;
   transition: translate var(--fold), opacity 0.3s ease;
 }
 /* With blur switched off (see Foundation > Blur), the tint alone has to do the work. */
-:root[data-blur="off"] .shell::before { backdrop-filter: none; -webkit-backdrop-filter: none; }
+:root[data-blur="off"] .shell::before { -webkit-backdrop-filter: none; backdrop-filter: none; }
 /* Folding the sidebar: its column animates to nothing (the content grows into the space on the same curve), the panel slides
    off the edge, and the sidebar itself fades and is then hidden, so nothing shows through the sliver the halo leaves. */
 .shell[data-sidebar="collapsed"] { --side: 0px; }
@@ -160,7 +160,7 @@ section[id].card { scroll-margin-top: calc(var(--lg-tabbar-top-space, 0px) + 24p
 /* Two classes so it beats .card's `justify-items: start` (which comes later): the scroll wrapper has to stretch to
    the card, not shrink-wrap the table, or a wide table pushes out of the card instead of scrolling inside it. */
 .card.table-card { padding: 0.5rem 1rem; justify-items: stretch; }
-.table-scroll { overflow-x: auto; }
+.table-scroll { overflow-x: auto; container-type: inline-size; }   /* the size the token values' max-width follows */
 
 /* Playground: stage, then options, then the matching code */
 .sub-label { font-size: 1rem; font-weight: 700; opacity: 0.55; margin: 8px 0 -8px 16px; }
@@ -273,7 +273,7 @@ code { font: 0.9em ui-monospace, 'SF Mono', Menlo, monospace; }
 .token-btn:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
 .token-btn:focus-visible { outline: 2px solid var(--lg-accent); outline-offset: 1px; }
 .swatch { flex: none; width: 14px; height: 14px; border-radius: 4px; box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 25%, transparent); }
-.token-value { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; max-width: 12rem; overflow: hidden; overflow-wrap: break-word; text-align: start; }
+.token-value { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; max-width: clamp(12rem, 26cqw, 40rem); overflow: hidden; overflow-wrap: break-word; text-align: start; }
 /* A HEX is short and complete, so it never wraps or clips. */
 .token-value--hex { display: inline-block; max-width: none; overflow: visible; white-space: nowrap; }
 .spring-track { position: relative; flex: 1 1 260px; max-width: 420px; height: 44px; border-radius: 999px; background: color-mix(in srgb, currentColor 8%, transparent); }
@@ -378,3 +378,31 @@ table.tokens { table-layout: auto; }
 /* One line per label in both layers (the items and the selected-item overlay share these rules, so they stay identical),
    with a little less side padding, so even the longest section name fits the column instead of wrapping in one layer only. */
 .toc-seg .lg-seg__item, .toc-seg .lg-pill-active-cell { white-space: nowrap; padding-inline: 0.5rem; }
+
+/* Table zoom: a corner button on every table card lifts the card to the centre of the window, above everything. */
+html { scrollbar-gutter: stable; }
+html.zoom-lock { overflow: hidden; }
+.table-zoom { position: absolute; z-index: 2; top: -12px; inset-inline-end: -12px; width: 2rem; height: 2rem;
+  transition: top 0.3s cubic-bezier(0.2, 0, 0, 1), inset-inline-end 0.3s cubic-bezier(0.2, 0, 0, 1); }
+/* Inside the corner while lifted (outside it, it would sit on the window's edge). This is its own class, not .zoomed: the card
+   keeps .zoomed until it has landed, but the button has to be back in its resting place by then, so it is put back when the
+   shrink STARTS and slides there during it, instead of jumping there in the last frame. */
+.zoom-lifted > .table-zoom { top: 12px; inset-inline-end: 12px; }
+@media (prefers-reduced-motion: reduce) { .table-zoom { transition: none; } }
+.table-zoom > svg { width: 1rem; height: 1rem; }
+.zoom-layer { position: fixed; inset: 0; z-index: 200; }   /* transparent: only there to catch a press outside the card */
+.zoom-placeholder { visibility: hidden; }
+/* The card's geometry lives in variables (set from zoom.js), because the morph clears inline width and height when it ends.
+   Nothing here may change how the TABLE lays out (padding, clamping, ...): if it did, the layout would jump at the moment
+   the card gains or loses this class. The table's layout depends on the card's width alone, so it changes continuously. */
+.card.table-card.zoomed {
+  position: fixed; margin: 0; box-sizing: border-box; justify-items: stretch; grid-template-rows: minmax(0, 1fr);
+  left: var(--zx); top: var(--zy); width: var(--zw); height: var(--zh);
+  border-radius: var(--radius-2xl);
+  /* A large surface over a busy page needs the material's large blur and a denser tint to stay readable without a scrim
+     (both are the library's own tokens; with blur switched off the tint is already near-opaque). */
+  background: color-mix(in srgb, var(--lg-tint) 55%, var(--background-color-secondary));
+  -webkit-backdrop-filter: blur(var(--lg-blur-lg)) saturate(1.3); backdrop-filter: blur(var(--lg-blur-lg)) saturate(1.3);
+}
+.zoomed .table-scroll { min-height: 0; overflow: auto; }
+.zoom-morphing .table-scroll { overflow: hidden; }   /* no scrollbars flashing while it grows */

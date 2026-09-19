@@ -73,8 +73,8 @@
   border-radius: var(--lg-radius-pill);
   background: var(--lg-tint);
   box-shadow: var(--lg-shadow-compact);
-  backdrop-filter: blur(var(--lg-blur-sm));
   -webkit-backdrop-filter: blur(var(--lg-blur-sm));
+  backdrop-filter: blur(var(--lg-blur-sm));
 }
 
 .lg-tabbar__bar::after {

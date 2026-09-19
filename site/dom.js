@@ -1,5 +1,6 @@
 import { createButton, icons } from '../src/index.js';
 import { highlight } from './highlight.js';
+import { addZoom } from './zoom.js';
 
 // Tiny DOM helper: h('div', { class: 'card' }, child, 'text').
 export function h(tag, props = {}, ...children) {
@@ -72,9 +73,11 @@ export function section(title, { card = false } = {}, ...children) {
 // A card holding a table. Cells may be strings or nodes; a row is an array of cells.
 export function table(headers, rows, { class: cls = 'api' } = {}) {
   // The glass card is the outer box and the table scrolls inside it, so the rim doesn't scroll away.
-  return h('div', { class: 'card lg-glass table-card' },
+  const card = h('div', { class: 'card lg-glass table-card' },
     h('div', { class: 'table-scroll' },
       h('table', { class: cls },
         h('thead', {}, h('tr', {}, headers.map((t) => h('th', {}, t)))),
         h('tbody', {}, rows.map((r) => h('tr', {}, r.map((c) => h('td', {}, c))))))));
+  addZoom(card);
+  return card;
 }

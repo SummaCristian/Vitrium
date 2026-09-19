@@ -85,6 +85,8 @@ export function layoutMorph(targets, apply, { onDone, config = CONFIG } = {}) {
   };
 
   const sp = new Spring(0);
+  // 0 -> 1 spread over the whole size change: the default 0.05 would snap the last 5% (tens of pixels on a big box) in one frame.
+  sp.eps = 0.002;
   let stop = () => {};
   let finished = false;
 

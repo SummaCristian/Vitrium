@@ -27,6 +27,9 @@ export class Spring {
   constructor(value = 0) {
     this.value = value; this.v = 0; this.target = value;
     this.k = 300; this.c = 30; this.m = 1; this.resting = true;
+    // How close to its target (and how slow) it must be to count as arrived. In the spring's own units, so a spring that runs
+    // 0 -> 1 across a large distance (a layout morph) wants this much smaller than one measured in pixels.
+    this.eps = 0.05;
     springs.add(this);
   }
   to(target, { stiffness = 300, damping = 30, mass = 1 } = {}) {
@@ -46,7 +49,7 @@ export class Spring {
       this.v += (F / this.m) * h;
       this.value += this.v * h;
     }
-    if (Math.abs(this.v) < 0.05 && Math.abs(this.value - this.target) < 0.05) {
+    if (Math.abs(this.v) < this.eps && Math.abs(this.value - this.target) < this.eps) {
       this.value = this.target; this.v = 0; this.resting = true;
     }
     return !this.resting;

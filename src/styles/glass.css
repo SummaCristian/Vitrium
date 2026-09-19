@@ -14,19 +14,22 @@
    Combine with .liquid-glass (liquid-glass.css) for the press/deform physics. */
 
 .lg-glass {
+  /* Every -webkit-backdrop-filter here comes BEFORE its unprefixed twin, on purpose. A minifier (Lightning CSS, which Vite
+     uses for production builds) drops the unprefixed line when the prefixed one follows it, and Chrome and Firefox do not
+     recognise the prefixed name, so the glass silently lost its blur outside Safari. */
   position: relative;
   border-radius: var(--lg-radius-pill);
   background: var(--lg-tint);
-  backdrop-filter: blur(var(--lg-blur-md));
   -webkit-backdrop-filter: blur(var(--lg-blur-md));
+  backdrop-filter: blur(var(--lg-blur-md));
   box-shadow: var(--lg-shadow);
   color: var(--lg-text-secondary);
 }
 
 .lg-glass--clear {
   background: var(--lg-tint-clear);
-  backdrop-filter: blur(var(--lg-blur-clear));
   -webkit-backdrop-filter: blur(var(--lg-blur-clear));
+  backdrop-filter: blur(var(--lg-blur-clear));
 }
 
 /* Tinted: the color sits over a thin neutral base so it reads as colored glass
@@ -45,8 +48,8 @@
   background: color-mix(in srgb, var(--lg-glass-tint, var(--lg-accent)) var(--lg-tint-strength-clear), transparent);
   /* Backdrop bleeds through and drags the hue (green over orange goes olive):
      saturating it keeps the tint reading as itself. */
-  backdrop-filter: blur(var(--lg-blur-clear)) saturate(var(--lg-tint-saturate-clear));
   -webkit-backdrop-filter: blur(var(--lg-blur-clear)) saturate(var(--lg-tint-saturate-clear));
+  backdrop-filter: blur(var(--lg-blur-clear)) saturate(var(--lg-tint-saturate-clear));
 }
 
 /* Outside 0.5px gradient stroke without affecting layout: a ring cut out with

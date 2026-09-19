@@ -1,6 +1,7 @@
 // The token reference is generated from src/styles/tokens.css, so it can't drift from the real values.
 import css from '../../src/styles/tokens.css?raw';
-import { h, section, table, codeBlock } from '../dom.js';
+import { h, section, table, codeBlock, copyText } from '../dom.js';
+import { isColour, shortColour, toggleTokenPopover } from './token-popover.js';
 
 const block = (start) => {
   const i = css.indexOf(start);
@@ -59,11 +60,53 @@ const NOTES = {
   '--lg-radius-pill': 'Fully rounded corners.',
 };
 
-const COLOUR = /^(#|rgba?\()/;
-const cell = (value) => {
-  if (value == null) return h('span', { class: 'muted' }, 'same');
-  const code = h('code', { class: 'token-value', title: value }, value);
-  return COLOUR.test(value) ? h('span', { class: 'swatch-cell' }, h('span', { class: 'swatch', style: `background:${value}` }), code) : code;
+// The token name in the first column. Clicking copies it and swaps the name for "Copied" and back. Both labels
+// stay in one grid cell the whole time, so the cell keeps the wider one's width and nothing reflows.
+const nameCell = (name) => {
+  const btn = h('button', { class: 'token-name', type: 'button', title: `Copy ${name}`, 'aria-label': `Copy ${name}` },
+    h('code', { class: 'tn-name' }, name), h('code', { class: 'tn-copied', 'aria-hidden': 'true' }, 'Copied'));
+  let timer;
+  btn.addEventListener('click', async () => {
+    if (!(await copyText(name))) return;
+    btn.classList.add('copied');
+    btn.setAttribute('aria-label', 'Copied');
+    clearTimeout(timer);
+    timer = setTimeout(() => { btn.classList.remove('copied'); btn.setAttribute('aria-label', `Copy ${name}`); }, 1200);
+  });
+  return btn;
+};
+
+// A value with its token references filled in from one theme's own values (var(--lg-outline) becomes what
+// --lg-outline is in that theme), so a Dark cell previews with dark values whatever theme the page is showing.
+const lookup = (name, theme) => (theme === 'Dark' ? dark.get(name) : undefined) ?? light.get(name);
+const resolveTheme = (value, theme) => {
+  let out = value;
+  for (let i = 0; i < 6 && /var\(/.test(out); i++) out = out.replace(/var\((--lg-[\w-]+)\)/g, (m, n) => lookup(n, theme) ?? m);
+  return out;
+};
+
+// A value in the table. Clicking (or Enter) opens a popover with the full value and a bigger preview.
+const cell = (name, theme, value) => {
+  if (value == null) {
+    // Same declaration in both themes. If it refers to tokens that do change (--lg-shadow uses --lg-highlight), the dark
+    // result still differs, so the cell stays clickable and previews with the dark values.
+    const base = theme === 'Dark' ? light.get(name) : null;
+    if (base && /var\(/.test(base) && resolveTheme(base, 'Dark') !== resolveTheme(base, 'Light')) {
+      const same = h('button', { class: 'token-btn', type: 'button', 'aria-haspopup': 'dialog', title: 'Same declaration, but it refers to tokens that differ in dark' }, h('span', { class: 'muted' }, 'same'));
+      same.addEventListener('click', (e) => toggleTokenPopover(same, { name, theme, value: base, resolved: resolveTheme(base, 'Dark'), surface: resolveTheme('var(--lg-tint)', 'Dark') }, { fromKeyboard: e.detail === 0 }));
+      return same;
+    }
+    return h('span', { class: 'muted' }, 'same');
+  }
+  const resolved = resolveTheme(value, theme);
+  // A colour shows as its HEX, which is short enough to always fit; anything else shows as written and may wrap.
+  const colour = isColour(resolved);
+  const hex = colour && shortColour(resolved);
+  const code = h('code', { class: hex ? 'token-value token-value--hex' : 'token-value' }, hex || value);
+  const inner = colour ? [h('span', { class: 'swatch', style: `background:${resolved}` }), code] : [code];
+  const btn = h('button', { class: 'token-btn', type: 'button', 'aria-haspopup': 'dialog', title: value }, ...inner);
+  btn.addEventListener('click', (e) => toggleTokenPopover(btn, { name, theme, value, resolved, surface: resolveTheme('var(--lg-tint)', theme) }, { fromKeyboard: e.detail === 0 }));
+  return btn;
 };
 
 export default {
@@ -76,10 +119,10 @@ export default {
     return [
       section('Overview', {},
         h('p', {}, 'Everything is a custom property on :root, prefixed --lg-, so you can retheme by overriding any of them. The values below are read straight from the stylesheet.'),
-        h('p', {}, 'A dark value of "same" means the token does not change with the theme.')),
+        h('p', {}, 'A dark value of "same" means the token does not change with the theme. Click any value to see it in full, with a larger preview and, for colours, its HEX, RGB and HSL forms.')),
       ...groups.map(([title, list]) => section(title, {},
         table(['Token', 'Purpose', 'Light', 'Dark'],
-          list.map((n) => [h('code', {}, n), NOTES[n] ?? '', cell(light.get(n)), cell(dark.get(n))]),
+          list.map((n) => [nameCell(n), NOTES[n] ?? '', cell(n, 'Light', light.get(n)), cell(n, 'Dark', dark.get(n))]),
           { class: 'api tokens' }))),
       section('Overriding', {},
         h('p', {}, 'Set a token on :root to change it everywhere, or on one element to change it there.'),

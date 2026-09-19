@@ -90,7 +90,9 @@ body {
 .doc-section { display: grid; gap: 16px; scroll-margin-top: calc(var(--lg-tabbar-top-space, 0px) + 24px); }
 section[id].card { scroll-margin-top: calc(var(--lg-tabbar-top-space, 0px) + 24px); }
 .doc-section > p { max-width: 65ch; color: var(--text-color-secondary); }
-.table-card { padding: 0.5rem 1rem; justify-items: stretch; }
+/* Two classes so it beats .card's `justify-items: start` (which comes later): the scroll wrapper has to stretch to
+   the card, not shrink-wrap the table, or a wide table pushes out of the card instead of scrolling inside it. */
+.card.table-card { padding: 0.5rem 1rem; justify-items: stretch; }
 .table-scroll { overflow-x: auto; }
 
 /* Playground: stage, then options, then the matching code */
@@ -112,7 +114,7 @@ h3 { font-size: clamp(1.15rem, 1.09rem + 0.3vw, 1.25rem); font-weight: 600; }
 .lede { font-size: 1.2rem; max-width: 34em; opacity: 0.85; }
 .stack { display: grid; gap: 16px; }
 .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-.card { padding: 1.25rem 1.5rem; border-radius: var(--radius-xl); display: grid; justify-items: start; gap: 12px; color: var(--text-color-primary); }
+.card { padding: 1.25rem 1.5rem; border-radius: var(--radius-xl); display: grid; grid-template-columns: minmax(0, 1fr); justify-items: start; gap: 12px; color: var(--text-color-primary); }
 .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
 .lg-btn { border: 0; font: inherit; cursor: pointer; }
 .lg-btn.pill { padding: 0.7rem 1.4rem; }
@@ -141,6 +143,8 @@ code { font: 0.9em ui-monospace, 'SF Mono', Menlo, monospace; }
 .api { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
 .api th, .api td { text-align: start; padding: 8px 10px; border-bottom: 1px solid color-mix(in srgb, currentColor 14%, transparent); vertical-align: top; }
 .api th { font-weight: 800; }
+/* No rule under the last row: the card's own edge closes the table. (The header keeps its rule.) */
+.api tbody tr:last-child td { border-bottom: 0; }
 
 /* Syntax colours (the code block is dark in both themes, so one palette serves both) */
 .tok-comment { color: var(--tok-comment); font-style: italic; }
@@ -187,13 +191,28 @@ code { font: 0.9em ui-monospace, 'SF Mono', Menlo, monospace; }
 .stage--backdrop.paused { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) { .stage--backdrop { animation: none; } }
 .muted { opacity: 0.5; }
-.swatch-cell { display: inline-flex; align-items: center; gap: 8px; }
+.token-name { display: grid; align-items: center; justify-items: start; margin: -3px -6px; padding: 3px 6px; border: 0; border-radius: 8px; background: none; color: inherit; font: inherit; text-align: start; }
+.token-name:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
+.token-name:focus-visible { outline: 2px solid var(--lg-accent); outline-offset: 1px; }
+/* Name and "Copied" share one grid cell. The swap is the copy button's: the outgoing label shrinks, fades and blurs away as the other grows in. */
+.token-name > code { grid-area: 1 / 1; transform-origin: left center; transition: opacity 0.3s ease, scale 0.3s cubic-bezier(0.2, 0, 0, 1), filter 0.3s ease; }
+.tn-copied { color: var(--lg-accent); font-weight: 700; opacity: 0; scale: 0.25; filter: blur(4px); }
+.token-name.copied .tn-name { opacity: 0; scale: 0.25; filter: blur(4px); }
+.token-name.copied .tn-copied { opacity: 1; scale: 1; filter: blur(0); }
+@media (prefers-reduced-motion: reduce) { .token-name > code { transition: opacity 0.15s ease; scale: 1 !important; filter: none !important; } }
+/* No max-width: 100% here: a percentage cap is ignored when the table sizes its columns, so a narrow column came out a few
+   pixels too small and clamped the button, leaving the text poking out of its hover box. The text has its own cap. */
+.token-btn { display: inline-flex; align-items: center; gap: 8px; margin: -3px -6px; padding: 3px 6px; border: 0; border-radius: 8px; background: none; color: inherit; font: inherit; text-align: start; }
+.token-btn:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
+.token-btn:focus-visible { outline: 2px solid var(--lg-accent); outline-offset: 1px; }
 .swatch { flex: none; width: 14px; height: 14px; border-radius: 4px; box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 25%, transparent); }
-.token-value { display: inline-block; max-width: 6.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+.token-value { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; max-width: 12rem; overflow: hidden; overflow-wrap: break-word; text-align: start; }
+/* A HEX is short and complete, so it never wraps or clips. */
+.token-value--hex { display: inline-block; max-width: none; overflow: visible; white-space: nowrap; }
 .spring-track { position: relative; flex: 1 1 260px; max-width: 420px; height: 44px; border-radius: 999px; background: color-mix(in srgb, currentColor 8%, transparent); }
 .spring-dot { position: absolute; inset-block-start: 0; inset-inline-start: 0; width: 44px; height: 44px; }
 table.tokens td:first-child { white-space: nowrap; }
-table.tokens td:nth-child(2) { min-width: 11rem; }
+table.tokens td:nth-child(2) { min-width: 8rem; }
 table.tokens code { font-size: 0.82em; }
 table.tokens { table-layout: auto; }
 
@@ -237,3 +256,52 @@ table.tokens { table-layout: auto; }
 .ui-leaf { width: var(--s); border-radius: 50% 50% 50% 12%; }
 .ui-banner { height: 92px; border-radius: 20px; }
 @media (prefers-reduced-motion: reduce) { .ui-track { animation: none; } }
+
+/* Token popover */
+/* Sized in rem, like the popover's own 22rem limit, so the two scale together (px content in a rem box overflows
+   when the root font size is below 16px). Every child may shrink, and the previews clip. */
+.tp { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; width: min(18.75rem, calc(100vw - 3rem)); text-align: start; }
+.tp > * { min-width: 0; }
+.tp-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.tp-head code { min-width: 0; font-weight: 700; font-size: 0.85rem; word-break: break-all; }
+.tp-theme { flex: none; padding: 2px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; background: color-mix(in srgb, currentColor 10%, transparent); }
+.tp-checker { --checker: conic-gradient(#cfcfcf 25%, #fff 0 50%, #cfcfcf 0 75%, #fff 0) 0 0 / 16px 16px; border-radius: 14px; overflow: hidden; background: var(--checker); box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 18%, transparent); }
+/* The checkerboard is the backdrop; the colour is a chip sitting on it with a margin of bare pattern around, so it
+   is obvious how much shows through, and its own edge keeps near-white or near-transparent colours visible. */
+.tp-checker { padding: 14px; }
+/* Blur preview: the squares have to be bigger than the blur, or even a small blur averages them into flat grey and
+   every amount looks the same. */
+.tp-checker--blur { --checker: conic-gradient(#8f8f8f 25%, #fff 0 50%, #8f8f8f 0 75%, #fff 0) 0 0 / 48px 48px; }
+/* A window in the middle of the pattern, showing a blurred copy of it. The copy overhangs the window
+   so the blur's own edge fade is clipped away, and the sharp squares either side are there to compare against. */
+.tp-blur { position: relative; height: 76px; width: 60%; margin-inline: auto; border-radius: 10px; overflow: hidden; box-shadow: 0 0 0 1px color-mix(in srgb, #000 22%, transparent), 0 2px 8px rgba(0, 0, 0, 0.18); }
+.tp-blur-back { position: absolute; inset: -64px; background: var(--checker); }
+.tp-swatch { height: 76px; border-radius: 10px; box-shadow: 0 0 0 1px color-mix(in srgb, #000 22%, transparent), 0 2px 8px rgba(0, 0, 0, 0.18); }
+.tp-stage { display: grid; place-items: center; height: 96px; border-radius: 14px; background: var(--background-color-secondary); box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 12%, transparent); }
+/* Shadow and highlight previews: an element on the checkerboard, filled with the --lg-tint of the theme the value
+   belongs to (set inline from the token), so a dark value shows on the dark glass tint even while the page is light. */
+.tp-checker--shadow { display: grid; place-items: center; height: 108px; padding: 0; }
+.tp-box { width: 120px; height: 56px; border-radius: 16px; }
+/* Drawn at a quarter of the size and scaled up 4x, so the rim and its blur scale with it (a vector re-raster, not a blurry enlargement). */
+.tp-box--zoom { width: 30px; height: 18px; border-radius: 5px; transform: scale(4); }
+.tp-checker--shadow { position: relative; }
+.tp-zoom-note { position: absolute; inset-block-end: 6px; inset-inline-end: 8px; padding: 1px 6px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; color: #fff; background: rgba(0, 0, 0, 0.55); }
+.tp-curve { display: block; height: 76px; width: auto; max-width: 100%; }
+.tp-curve-guide { fill: none; stroke: currentColor; opacity: 0.18; }
+.tp-curve-line { fill: none; stroke: var(--lg-accent); stroke-width: 2.5; stroke-linecap: round; }
+.tp-curve-handle { fill: none; stroke: currentColor; opacity: 0.35; stroke-dasharray: 3 3; }
+.tp-rows { display: grid; gap: 2px; }
+.tp-row { display: grid; grid-template-columns: 2.6rem minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 8px; margin-inline: -8px; border: 0; border-radius: 8px; background: none; color: inherit; font: inherit; text-align: start; }
+.tp-row:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
+.tp-row:focus-visible { outline: 2px solid var(--lg-accent); outline-offset: -2px; }
+.tp-row code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.82rem; }
+.tp-label { font-size: 0.72rem; font-weight: 700; opacity: 0.55; }
+.tp-status { display: grid; align-items: center; justify-items: end; font-size: 0.72rem; }
+.tp-status > span { grid-area: 1 / 1; transform-origin: right center; transition: opacity 0.3s ease, scale 0.3s cubic-bezier(0.2, 0, 0, 1), filter 0.3s ease; }
+.tp-idle { opacity: 0.55; }
+.tp-done { color: var(--lg-accent); font-weight: 700; opacity: 0; scale: 0.25; filter: blur(4px); }
+.tp-row.copied .tp-idle { opacity: 0; scale: 0.25; filter: blur(4px); }
+.tp-row.copied .tp-done { opacity: 1; scale: 1; filter: blur(0); }
+@media (prefers-reduced-motion: reduce) { .tp-status > span { transition: opacity 0.15s ease; scale: 1 !important; filter: none !important; } }
+.tp-pre { margin: 0; max-height: 9rem; overflow: auto; padding: 8px 10px; border-radius: 10px; font: 0.76rem/1.5 ui-monospace, 'SF Mono', Menlo, monospace; background: color-mix(in srgb, currentColor 7%, transparent); white-space: pre; -webkit-user-select: text; user-select: text; }
+.tp-note { font-size: 0.78rem; opacity: 0.65; }

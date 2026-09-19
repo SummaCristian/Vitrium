@@ -17,7 +17,7 @@ export function h(tag, props = {}, ...children) {
 const COPY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="3"/><path d="M5 15V7a3 3 0 0 1 3-3h8"/></svg>';
 
 // Copies to the clipboard; falls back to a hidden textarea where the async API isn't available.
-async function copyText(text) {
+export async function copyText(text) {
   try { await navigator.clipboard.writeText(text); return true; } catch { /* fall through */ }
   const ta = h('textarea', { style: 'position:fixed;opacity:0' });
   ta.value = text;

@@ -1,4 +1,6 @@
 import '../src/styles/index.css';
+import './search-overlay.css';
+import { createSearchOverlay } from './search-overlay.js';
 import { mountExplore } from './explore.js';
 import { mountModalDemo } from './modal-demo.js';
 import { mountControlsDemo } from './controls-demo.js';
@@ -54,7 +56,13 @@ const initialTabs = Math.min(5, Math.max(2, Number(new URLSearchParams(location.
 const tabbarRoot = document.getElementById('tabbar');
 let tabCount = initialTabs;
 let prominentOn = new URLSearchParams(location.search).get('prominent') !== '0';
-const currentTabs = () => TAB_POOL.slice(0, tabCount).map((t, i) => ({ ...t, prominent: prominentOn && i === tabCount - 1 }));
+let pressOn = new URLSearchParams(location.search).get('press') === '1';
+// Press mode: the prominent circle is a FAB that opens the search overlay instead of selecting a tab.
+const searchOverlay = createSearchOverlay(() => tabbar.prominentEl);
+const currentTabs = () => TAB_POOL.slice(0, tabCount).map((t, i) => {
+  const last = prominentOn && i === tabCount - 1;
+  return { ...t, prominent: last, ...(last && pressOn ? { press: true, onPress: () => searchOverlay.show() } : {}) };
+});
 
 // Tab navigation: Explore shows the persistent sheet demo; every other tab shows the components page (with the modal sheet demo).
 const explore = mountExplore(document.getElementById('panel-explore'));
@@ -86,6 +94,10 @@ createSegmentedControl(document.getElementById('tab-count'), {
 
 document.getElementById('prominent-toggle').replaceWith(
   createToggle({ value: prominentOn, label: 'Last tab prominent', onChange: (on) => { prominentOn = on; tabbar.setTabs(currentTabs()); } }).el,
+);
+
+document.getElementById('press-toggle').replaceWith(
+  createToggle({ value: pressOn, label: 'Prominent as FAB (opens overlay)', onChange: (on) => { pressOn = on; tabbar.setTabs(currentTabs()); } }).el,
 );
 
 const segV = createSegmentedControl(document.getElementById('seg-v'), {

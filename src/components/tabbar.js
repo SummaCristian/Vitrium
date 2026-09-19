@@ -20,6 +20,12 @@
 // LAST tab can be prominent, and only when there are at least 3 tabs (so the
 // bar keeps at least two); otherwise the flag is ignored with a console warning.
 //
+// `press: true` (with `prominent`) turns that circle into a FAB instead of a
+// tab: clicking it never changes the selection, it calls the tab's
+// `onPress(el, event)` (e.g. to open an overlay that morphs out of `el` with a
+// view transition; `tabs.prominentEl` exposes the same element). It never
+// appears selected, and arrow keys focus it without activating it.
+//
 // tabs.setTabs(newTabs) swaps the tab set in place, animating the bar's size
 // along its axis and springing the pill to its new anchor.
 //
@@ -346,7 +352,13 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
       // Drop the class afterwards: its fill would otherwise pin `scale` and fight liquid-glass's deform.
       btn.addEventListener('animationend', () => btn.classList.remove('lg-tabbar__prominent--enter'), { once: true });
     }
-    pBtn.addEventListener('click', () => {
+    pBtn.addEventListener('click', (e) => {
+      // Press mode: a FAB, not a tab. Selection is untouched; the caller reacts.
+      if (prominent.press) {
+        haptics.trigger('light');
+        prominent.onPress?.(pBtn, e);
+        return;
+      }
       if (currentId === prominent.id) return;
       haptics.trigger('light');
       select(prominent.id, { silent: false });
@@ -776,9 +788,11 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     next = Math.max(0, Math.min(order.length - 1, next));
     e.preventDefault();
     if (next === at) return;
+    const target = order[next];
+    if (prominent?.press && target === prominent.id) { tabEls.get(target)?.focus(); return; }   // focus only; Enter/Space presses it
     haptics.trigger('light');
-    select(order[next], { silent: false });
-    tabEls.get(order[next])?.focus();
+    select(target, { silent: false });
+    tabEls.get(target)?.focus();
   });
 
   /* --- Init ---------------------------------------------------------------------- */
@@ -794,6 +808,8 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
 
   return {
     select,
+    // The prominent circle (null when there is none): give it a view-transition-name to morph it.
+    get prominentEl() { return pBtn; },
     setLabel,
     setTabs,
     setOrientation,

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Liquid Glass Web</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      margin: 0; min-height: 100vh; font: 16px/1.4 system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 15% 20%, #ff7a59 0, transparent 40%),
+        radial-gradient(circle at 85% 30%, #4f8cff 0, transparent 45%),
+        radial-gradient(circle at 50% 90%, #3ce065 0, transparent 45%),
+        #f2f2f7;
+      color: var(--lg-text);
+    }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) body { background-color: #0b0b0d; } }
+    :root[data-theme="dark"] body { background-color: #0b0b0d; }
+    main { max-width: 720px; margin: 0 auto; padding: 48px 16px; display: grid; gap: 32px; }
+    h1, h2 { margin: 0; }
+    .row { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+    .stripes { height: 120px; border-radius: 16px;
+      background: repeating-linear-gradient(90deg, #000 0 12px, #fff 12px 24px); }
+    .lg-btn { border: 0; font: inherit; cursor: pointer; display: grid; place-items: center; }
+    .lg-btn.circle { width: 3rem; height: 3rem; }
+    .lg-btn.pill { padding: 0.75rem 1.5rem; }
+    .panel { padding: 1rem 1.25rem; border-radius: 24px; max-width: 260px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Liquid Glass Web</h1>
+    <p>Foundation demo: glass material and liquid press/deform. Press and drag the controls.</p>
+
+    <section class="row" aria-label="Controls">
+      <button class="lg-btn circle lg-glass lg-glass--circle liquid-glass" aria-label="Circle">★</button>
+      <button class="lg-btn pill lg-glass liquid-glass">Pill button</button>
+      <button class="lg-btn pill lg-glass lg-glass--clear liquid-glass">Clear variant</button>
+      <div class="panel lg-glass liquid-glass">A panel. Drag me too.</div>
+    </section>
+
+    <div class="stripes" aria-hidden="true"></div>
+
+    <section class="row" aria-label="Environment">
+      <button class="lg-btn pill lg-glass liquid-glass" id="theme">Theme: auto</button>
+      <button class="lg-btn pill lg-glass liquid-glass" id="blur">Blur: auto</button>
+    </section>
+  </main>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

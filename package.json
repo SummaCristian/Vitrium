@@ -1,0 +1,26 @@
+{
+  "name": "liquid-glass-web",
+  "version": "0.0.1",
+  "description": "A JS/CSS re-implementation of a Liquid Glass-inspired design system for the web.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": ["*.css"],
+  "files": ["src"],
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./styles": "./src/styles/index.css",
+    "./styles/*": "./src/styles/*",
+    "./core/*": "./src/core/*"
+  },
+  "scripts": {
+    "dev": "vite demo",
+    "build:demo": "vite build demo --outDir ../demo-dist --emptyOutDir",
+    "preview": "vite preview demo --outDir ../demo-dist"
+  },
+  "devDependencies": {
+    "vite": "^8.3.0"
+  },
+  "peerDependencies": {},
+  "repository": { "type": "git", "url": "git+https://github.com/SummaCristian/Liquid-Glass-Web.git" }
+}

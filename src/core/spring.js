@@ -35,6 +35,7 @@ export class Spring {
     this.resting = false; wake();
   }
   set(value) { this.value = value; this.target = value; this.v = 0; this.resting = true; wake(); }
+  dispose() { springs.delete(this); }
   stop() { this.target = this.value; this.v = 0; this.resting = true; }
   step(dt) {
     if (this.resting) return false;

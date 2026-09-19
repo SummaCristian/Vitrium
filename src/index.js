@@ -12,3 +12,9 @@ export {
   resolveBlurCapability, applyBlurState, scheduleIdleBenchmark, reevaluateBlurCapability,
   initBlurCapability,
 } from './core/blur-capability.js';
+
+export { icons } from './components/icons.js';
+export { createButton, createToolbar, createBackButton } from './components/button.js';
+export { createSegmentedControl } from './components/segmented-control.js';
+export { createToggle } from './components/toggle.js';
+export { createTabBar } from './components/tabbar.js';

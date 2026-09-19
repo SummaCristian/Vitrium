@@ -1,5 +1,5 @@
 import '../src/styles/index.css';
-import { initLiquidGlass, initBlurCapability, getBlurMode, setBlurMode, applyBlurState, resolveBlurCapability } from '../src/index.js';
+import { createBackButton, createToolbar, createSegmentedControl, createToggle, createTabBar, icons, initLiquidGlass, initBlurCapability, getBlurMode, setBlurMode, applyBlurState, resolveBlurCapability } from '../src/index.js';
 
 initLiquidGlass();
 initBlurCapability();
@@ -23,3 +23,48 @@ blurBtn.addEventListener('click', () => {
   applyBlurState(resolveBlurCapability());
   renderBlur();
 });
+
+document.getElementById('toolbar-row').append(
+  createBackButton({ onClick: () => console.log('back') }),
+  createToolbar([
+    { icon: icons.star, label: 'Favourite', onClick: () => console.log('fav') },
+    { icon: icons.settings, label: 'Settings', onClick: () => console.log('settings') },
+  ]),
+);
+
+createSegmentedControl(document.getElementById('seg'), {
+  items: [{ value: 'day', label: 'Day' }, { value: 'week', label: 'Week' }, { value: 'month', label: 'Month' }],
+  value: 'week',
+  onSelect: (v, { silent }) => { if (!silent) console.log('segment', v); },
+});
+document.getElementById('controls-row').append(createToggle({ value: true, label: 'Demo toggle', onChange: (v) => console.log('toggle', v) }).el);
+
+const TAB_POOL = [
+  { id: 'available', label: 'Available', icon: icons.calendar },
+  { id: 'campus', label: 'Campus', icon: icons.map },
+  { id: 'favourites', label: 'Favourites', icon: icons.star },
+  { id: 'settings', label: 'Settings', icon: icons.settings },
+  { id: 'info', label: 'Info', icon: icons.search },
+];
+
+const initialTabs = Math.min(5, Math.max(2, Number(new URLSearchParams(location.search).get('tabs')) || 3));
+const tabbarRoot = document.getElementById('tabbar');
+let tabbar = null;
+function buildTabBar(count) {
+  const previous = tabbar?.value;
+  tabbar?.destroy();
+  const tabs = TAB_POOL.slice(0, count);
+  tabbar = createTabBar(tabbarRoot, {
+    tabs,
+    value: tabs.some(t => t.id === previous) ? previous : tabs[0].id,
+    onSelect: (id, { silent }) => { if (!silent) console.log('tab', id); },
+    action: { label: 'Search', icon: icons.search, onClick: () => console.log('search') },
+  });
+}
+
+createSegmentedControl(document.getElementById('tab-count'), {
+  items: [2, 3, 4, 5].map(n => ({ value: n, label: String(n) })),
+  value: initialTabs,
+  onSelect: (n, { silent }) => { if (!silent) buildTabBar(Number(n)); },
+});
+buildTabBar(initialTabs);

@@ -2,7 +2,7 @@
 
 A JS/CSS re-implementation of a Liquid Glass-inspired design system and components, ready to use for the web. Framework-agnostic vanilla core; Web Component wrappers are planned.
 
-> Work in progress. Only the foundation is ported so far.
+> Work in progress. Ported so far: foundation, buttons, segmented control, toggle, tab bar.
 
 ## Foundation
 
@@ -23,6 +23,22 @@ initBlurCapability();   // perf-gated backdrop-filter (safe "off" until benchmar
 - **`.liquid-glass`**: hold and drag to stretch with elastic falloff, release to spring back. The click after a drag is swallowed.
 - **Haptics** are pluggable: `setHaptics({ trigger(kind) {} })`, e.g. wired to `web-haptics`.
 - **Core**: `Spring` physics, `createPillDragCore`, FLIP `morphGeometry` helpers.
+
+## Components
+
+```js
+import { createBackButton, createToolbar, createSegmentedControl, createToggle, createTabBar, icons } from 'liquid-glass-web';
+
+createToolbar([{ icon: icons.star, label: 'Favourite', onClick() {} }]);
+createTabBar(container, {
+  tabs: [{ id: 'a', label: 'Available', icon: icons.calendar }, { id: 'b', label: 'Campus', icon: icons.map }],
+  onSelect(id, { silent }) {},
+  action: { label: 'Search', icon: icons.search, onClick() {} },   // optional split-off circle
+});
+```
+
+Icons and rich labels accept a Node or a **trusted** HTML/SVG string; plain labels are set as text.
+Programmatic `select()` calls are silent by default; `onSelect` still receives `{ silent: true }` on initial selection.
 
 ## Development
 

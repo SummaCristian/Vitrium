@@ -1,0 +1,91 @@
+/* Sliding "lifted glass" pill shared by the tab bar, segmented control and
+   toggle (behaviour lives in core/pill-drag-core.js).
+
+   Flat fill at rest; the full glass look (rim, stroke, blur) only appears
+   while the pill is lifted, i.e. mid tap or drag. The core toggles
+   `.lg-pill--lifted`. */
+
+.lg-pill {
+  position: absolute;
+  pointer-events: none;
+  border-radius: var(--lg-radius-pill);
+  will-change: transform;
+  transform-origin: center;
+  transition: box-shadow 0.15s ease;
+}
+
+.lg-pill.lg-pill--lifted {
+  box-shadow: var(--lg-shadow-compact);
+}
+
+.lg-pill::after {
+  content: "";
+  position: absolute;
+  inset: -0.5px;
+  border-radius: inherit;
+  padding: 0.5px;
+
+  background: var(--lg-stroke-gradient);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+
+  pointer-events: none;
+}
+
+.lg-pill.lg-pill--lifted::after {
+  opacity: var(--lg-stroke-opacity);
+}
+
+.lg-pill-inner {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: var(--lg-radius-pill);
+
+  background: var(--lg-pill-bg);
+  transition: background 0.15s ease, backdrop-filter 0.15s ease, -webkit-backdrop-filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.lg-pill.lg-pill--lifted .lg-pill-inner {
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  box-shadow:
+    inset 0 1px 0 var(--lg-pill-highlight),
+    inset 0 0 0 1px var(--lg-pill-border);
+}
+
+/* Holds a highlighted duplicate of every cell, counter-translated by the core
+   so each duplicate stays put while the pill (which clips it) slides over. */
+.lg-pill-active-row {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  will-change: transform;
+}
+
+/* Each duplicate is centred from JS on its cell's anchor midpoint rather than
+   flex-flowed, so a sub-pixel width mismatch between the two copies can't
+   shift it inside the pill. Consumers style the content (colour, padding). */
+.lg-pill-active-cell {
+  position: absolute;
+  top: 0;
+  /* The core sets height: 100%; without border-box the cell's padding would
+     push its content down (host apps often lack a global box-sizing reset). */
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+/* Invisible grab target laid over the pill. */
+.lg-pill-hit {
+  position: absolute;
+  pointer-events: auto;
+  touch-action: none;
+  cursor: default;
+  will-change: transform;
+  transform-origin: center;
+}

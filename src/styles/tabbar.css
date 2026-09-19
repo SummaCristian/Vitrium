@@ -1,0 +1,129 @@
+/* Tab bar: a glass pill of tabs with a draggable lifted pill, plus an optional
+   standalone circular action button (e.g. Search) beside it. */
+
+.lg-tabbar {
+  --lg-tab-color: var(--lg-text-muted);
+  --lg-tab-active-color: var(--lg-accent);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 100%;
+
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.lg-tabbar__group {
+  position: relative;
+  min-width: 0;
+}
+
+.lg-tabbar__bar {
+  position: relative;
+  padding: 4px;
+  /* A swipe anywhere on the bar belongs to the pill, not the page behind it. */
+  touch-action: none;
+  border-radius: var(--lg-radius-pill);
+  background: var(--lg-tint);
+  box-shadow: var(--lg-shadow-compact);
+  backdrop-filter: blur(var(--lg-blur-sm));
+  -webkit-backdrop-filter: blur(var(--lg-blur-sm));
+}
+
+.lg-tabbar__bar::after {
+  content: "";
+  position: absolute;
+  inset: -0.5px;
+  border-radius: inherit;
+  padding: 0.5px;
+  background: var(--lg-stroke-gradient);
+  opacity: var(--lg-stroke-opacity);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Tabs live in their own layer so a pill-shaped hole can be clipped out of
+   them without cutting into the bar's own background/blur. */
+.lg-tabbar__items {
+  display: flex;
+  width: 100%;
+}
+
+.lg-tabbar__tab,
+.lg-tabbar .lg-pill-active-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  /* Fluid side padding: full-size on wide screens, tightening on narrow ones
+     so a 5-tab bar plus its action circle still fits a phone. */
+  padding: 0.625rem clamp(0.25rem, 1.6vw, 1.1875rem);
+  font: inherit;
+  font-size: 0.625rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.lg-tabbar__tab {
+  background: none;
+  border: none;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  color: var(--lg-tab-color);
+}
+
+.lg-tabbar .lg-pill-active-cell {
+  color: var(--lg-tab-active-color);
+}
+
+.lg-tabbar__tab:focus-visible {
+  outline: 2px solid var(--lg-tab-active-color);
+  outline-offset: -4px;
+  border-radius: var(--lg-radius-pill);
+}
+
+.lg-tabbar__icon {
+  display: flex;
+  font-size: 1.1rem;
+  pointer-events: none;
+}
+
+.lg-tabbar__icon > svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.lg-tabbar__label {
+  pointer-events: none;
+}
+
+/* Standalone circular action, split off from the tab group. Diameter is set
+   from JS to match the bar's own height. */
+.lg-tabbar__action {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  -webkit-tap-highlight-color: transparent;
+  color: var(--lg-tab-color);
+  will-change: transform;
+}
+
+.lg-tabbar__action:focus-visible {
+  outline: 2px solid var(--lg-tab-active-color);
+  outline-offset: 3px;
+}
+
+.lg-tabbar__action > svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  pointer-events: none;
+}

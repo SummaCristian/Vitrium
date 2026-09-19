@@ -53,8 +53,8 @@ const rubber = (x, give) => (x * give) / (give + Math.abs(x));
 export function createPillDragCore({
   root, items, pill, hit, activeRow,
   cellSelector,
-  activeCellClass = 'pill-active-cell',
-  liftedClass = 'pill--lifted',
+  activeCellClass = 'lg-pill-active-cell',
+  liftedClass = 'lg-pill--lifted',
   tapScale = 1.3,
   trail = TRAIL,
   canSelect,
@@ -224,7 +224,7 @@ export function createPillDragCore({
     updateMask(scMain, scCross);
     onRender?.({ pos: pillPos.value });
   }
-  onSpringFrame(render);
+  const offFrame = onSpringFrame(render);
 
   /* --- Selection --------------------------------------------------- */
   // Tap / programmatic select: lift, slide, settle. With animate:false the
@@ -427,7 +427,17 @@ export function createPillDragCore({
     cells[next].focus();
   });
 
+  // Stops timers and unhooks the springs from the shared loop. Call when the
+  // control is removed, or every rebuild leaks a set of springs.
+  function destroy() {
+    clearTimers();
+    clearTimeout(holdTimer);
+    offFrame();
+    [pillPos, pillMain, crossOff, containerOff, containerCross, scale].forEach(sp => sp.dispose());
+  }
+
   return {
+    destroy,
     refresh,
     select,
     get index() { return index; },

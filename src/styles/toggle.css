@@ -1,0 +1,64 @@
+/* iOS-style switch. The thumb is a pill driven by pill-drag-core. */
+
+.lg-toggle {
+  position: relative;
+  width: 61px;
+  height: 31px;
+  padding: 0;
+  border: none;
+  border-radius: var(--lg-radius-pill);
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--lg-text) 10%, transparent);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--lg-text) 18%, transparent);
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+  -webkit-tap-highlight-color: transparent;
+  /* Horizontal drags belong to the thumb; vertical ones still scroll the page. */
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.lg-toggle.on {
+  background: var(--lg-toggle-on);
+  box-shadow: none;
+}
+
+.lg-toggle:focus-visible {
+  outline: 2px solid var(--lg-accent);
+  outline-offset: 2px;
+}
+
+/* Thumb travel box (61 - 3 - 3 = 55 × 25). The two cells sit at its ends and
+   overlap in the middle: they exist only to give the core its two anchors. */
+.lg-toggle__items {
+  position: absolute;
+  inset: 3px;
+}
+
+.lg-toggle__cell {
+  position: absolute;
+  top: 0;
+  width: 36px;
+  height: 25px;
+  touch-action: pan-y;
+}
+
+.lg-toggle__cell--off { left: 0; }
+.lg-toggle__cell--on { left: 19px; } /* 55 - 36 */
+
+/* Resting thumb: frosted white capsule; gives way to glass while lifted. */
+.lg-toggle .lg-pill-inner {
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.2),
+    0 0.5px 1px rgba(0, 0, 0, 0.1),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.6);
+}
+
+.lg-toggle .lg-pill.lg-pill--lifted .lg-pill-inner {
+  background: var(--lg-pill-bg);
+}
+
+.lg-toggle .lg-pill-hit {
+  touch-action: pan-y;
+}

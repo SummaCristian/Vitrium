@@ -44,9 +44,24 @@
   /* Full shadow stack of a glass surface: hairline outline + rim + drop shadow. */
   --lg-shadow: 0 0 0 0.1px var(--lg-outline), var(--lg-highlight), 0 4px 40px 0 var(--lg-shadow-color);
 
+  /* Compact variant of the shadow stack, for controls (tab bar, segmented
+     control, pill) rather than floating buttons. */
+  --lg-shadow-compact: 0 0 0 0.1px var(--lg-outline), var(--lg-highlight), 0 4px 20px 0 var(--lg-shadow-color);
+
   /* Text on glass. */
   --lg-text: #1d1d1f;
   --lg-text-secondary: #4a4a4f;
+  --lg-text-muted: color-mix(in srgb, var(--lg-text) 55%, transparent);
+
+  /* Accent: active tab colour, focus rings. Override to brand the kit. */
+  --lg-accent: #0a7aff;
+  --lg-toggle-on: #34c759;
+
+  /* Sliding pill (tab bar, segmented control, toggle thumb): flat fill at
+     rest, full glass while lifted. */
+  --lg-pill-bg: color-mix(in srgb, var(--lg-text) 8%, transparent);
+  --lg-pill-highlight: rgba(255, 255, 255, 0.3);
+  --lg-pill-border: rgba(255, 255, 255, 0.1);
 
   /* Motion: press in fast and linear, spring back out with overshoot. */
   --lg-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -79,6 +94,9 @@
   );
   --lg-text: #eaeaea;
   --lg-text-secondary: #cccccc;
+  --lg-accent: #3d9bff;
+  --lg-pill-highlight: rgba(255, 255, 255, 0.08);
+  --lg-pill-border: rgba(255, 255, 255, 0.06);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -103,6 +121,9 @@
     );
     --lg-text: #eaeaea;
     --lg-text-secondary: #cccccc;
+    --lg-accent: #3d9bff;
+    --lg-pill-highlight: rgba(255, 255, 255, 0.08);
+    --lg-pill-border: rgba(255, 255, 255, 0.06);
   }
 }
 

@@ -1,0 +1,66 @@
+/* Glass buttons: toolbar items and the back button. Combine with
+   .lg-glass.lg-glass--circle (material) and .liquid-glass (physics); the
+   factories in components/button.js add all three. */
+
+.lg-button {
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  color: var(--lg-text-secondary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  /* Must restate the liquid-glass spring (translate/scale/filter): a
+     `transition` here would otherwise replace it, and a released deform would
+     snap home instead of springing back. */
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    color 0.2s ease,
+    translate var(--lg-press-out-dur) var(--lg-ease-spring),
+    scale var(--lg-press-out-dur) var(--lg-ease-spring),
+    filter 0.2s ease;
+  /* Adapt native rendering (focus rings, etc.) to the theme. */
+  color-scheme: light dark;
+}
+
+.lg-button:focus-visible {
+  outline: 2px solid var(--lg-accent);
+  outline-offset: 3px;
+}
+
+.lg-button > svg {
+  width: 1.375rem;
+  height: 1.375rem;
+  pointer-events: none;
+}
+
+/* A row of toolbar items (the header's buttons). */
+.lg-toolbar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* ...and the same for the press / drag states, which liquid-glass.css defines
+   at (0,2,0) but .lg-button's own transition above would otherwise shadow. */
+.lg-button.liquid-glass.lg-pressing {
+  transition:
+    background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease,
+    translate var(--lg-press-in-dur) var(--lg-press-in-ease),
+    scale var(--lg-press-in-dur) var(--lg-press-in-ease),
+    filter 0.2s ease;
+}
+
+.lg-button.liquid-glass.lg-dragging {
+  transition:
+    background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease,
+    translate 0s, scale 0s, filter 0.2s ease;
+}

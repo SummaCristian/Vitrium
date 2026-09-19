@@ -125,6 +125,10 @@ function beginPress(el, e) {
   el.addEventListener('pointercancel', onEnd);
 }
 
+// Interactive elements that can sit *inside* a glass surface (a link in a
+// popover). A press that starts on one of those is theirs, not the panel's.
+const INNER_CONTROL = 'a, button, input, select, textarea, [role="button"]';
+
 // Opt a shadow-DOM element in explicitly (delegation can't see across the
 // shadow boundary). Safe to call more than once.
 //
@@ -141,15 +145,16 @@ export function attachLiquidGlass(el, opts = {}) {
   el.classList.add('liquid-glass');
   const { from, exclude } = opts;
   el.addEventListener('pointerdown', (e) => {
+    // A press that starts on a control inside the surface (a link or button in a
+    // popover) is that control's, not the surface's; deforming would capture the
+    // pointer and swallow its click.
+    const inner = e.target.closest(INNER_CONTROL);
+    if (inner && inner !== el && el.contains(inner)) return;
     if (from && !e.target.closest(from)) return;
     if (exclude && e.target.closest(exclude)) return;
     beginPress(el, e);
   });
 }
-
-// Interactive elements that can sit *inside* a glass surface (a link in a
-// popover). A press that starts on one of those is theirs, not the panel's.
-const INNER_CONTROL = 'a, button, input, select, textarea, [role="button"]';
 
 let delegated = false;
 

@@ -59,6 +59,22 @@ body {
 Icons and rich labels accept a Node or a **trusted** HTML/SVG string; plain labels are set as text.
 Programmatic `select()` calls are silent by default; `onSelect` still receives `{ silent: true }` on initial selection.
 
+## Popover
+
+```js
+import { createPopover } from 'liquid-glass-web';
+
+// Click-to-toggle on a trigger:
+const pop = createPopover({ trigger: button, content: node, placement: 'bottom' });
+
+// Or drive one popover yourself, re-anchored to many targets (hover cards):
+const tip = createPopover({ placement: 'top', role: 'tooltip', deform: false });
+block.addEventListener('pointerenter', () => { tip.setContent('Details'); tip.show(block); });
+block.addEventListener('pointerleave', () => tip.hide());
+```
+
+A glass panel with a pointer arrow that follows wherever it ends up and scales in out of it. Positioning uses [floating-ui](https://floating-ui.com) (offset, flip, shift, arrow), a regular dependency, kept current with `autoUpdate`, so it stays attached through scrolling and resizing and flips when it would run off screen. It lives at `<body>` level with fixed positioning. Closed, it's `visibility: hidden`, out of the tab order and the accessibility tree. Keyboard: activating the trigger from the keyboard moves focus into the popover; Escape or tabbing past its last control closes it and returns focus to the trigger. Options: `placement`, `offset`, `shiftPadding`, `arrow`, `role`, `label`, `deform`, `onShow`, `onHide`. Returns `{ el, show(target?), hide(), toggle(), update(), setContent(), isOpen, destroy() }`.
+
 ## Development
 
 ```sh

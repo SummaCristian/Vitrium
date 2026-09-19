@@ -21,3 +21,4 @@ export { createToggle } from './components/toggle.js';
 export { createTabBar } from './components/tabbar.js';
 export { createChipPicker } from './components/chip-picker.js';
 export { createListPicker } from './components/list-picker.js';
+export { createPopover } from './components/popover.js';

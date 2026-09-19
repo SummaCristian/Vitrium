@@ -49,22 +49,15 @@ const TAB_POOL = [
 
 const initialTabs = Math.min(5, Math.max(2, Number(new URLSearchParams(location.search).get('tabs')) || 3));
 const tabbarRoot = document.getElementById('tabbar');
-let tabbar = null;
-function buildTabBar(count) {
-  const previous = tabbar?.value;
-  tabbar?.destroy();
-  const tabs = TAB_POOL.slice(0, count);
-  tabbar = createTabBar(tabbarRoot, {
-    tabs,
-    value: tabs.some(t => t.id === previous) ? previous : tabs[0].id,
-    onSelect: (id, { silent }) => { if (!silent) console.log('tab', id); },
-    action: { label: 'Search', icon: icons.search, onClick: () => console.log('search') },
-  });
-}
+const tabbar = createTabBar(tabbarRoot, {
+  tabs: TAB_POOL.slice(0, initialTabs),
+  onSelect: (id, { silent }) => { if (!silent) console.log('tab', id); },
+  action: { label: 'Search', icon: icons.search, onClick: () => console.log('search') },
+});
+const buildTabBar = (count) => tabbar.setTabs(TAB_POOL.slice(0, count));
 
 createSegmentedControl(document.getElementById('tab-count'), {
   items: [2, 3, 4, 5].map(n => ({ value: n, label: String(n) })),
   value: initialTabs,
   onSelect: (n, { silent }) => { if (!silent) buildTabBar(Number(n)); },
 });
-buildTabBar(initialTabs);

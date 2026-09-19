@@ -37,6 +37,8 @@ createTabBar(container, {
 });
 ```
 
+`tabbar.setTabs(newTabs)` swaps the tab set in place: the bar's width animates, new tabs fade in and the pill springs to the selected tab's new position (selection is kept if that tab survives).
+
 Icons and rich labels accept a Node or a **trusted** HTML/SVG string; plain labels are set as text.
 Programmatic `select()` calls are silent by default; `onSelect` still receives `{ silent: true }` on initial selection.
 

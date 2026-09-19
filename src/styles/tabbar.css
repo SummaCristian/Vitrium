@@ -51,7 +51,9 @@
    them without cutting into the bar's own background/blur. */
 .lg-tabbar__items {
   display: flex;
-  width: 100%;
+  /* Content-sized, not 100% of the bar: while the bar's width is animating
+     (setTabs), the tabs and the pill's anchors must not stretch with it. */
+  width: max-content;
 }
 
 .lg-tabbar__tab,
@@ -126,4 +128,23 @@
   width: 1.25rem;
   height: 1.25rem;
   pointer-events: none;
+}
+
+/* setTabs(): the bar's width is animated from JS-set values. */
+.lg-tabbar__bar--resizing {
+  transition: width var(--lg-morph-dur) var(--lg-ease-morph);
+}
+
+.lg-tabbar__tab--enter {
+  animation: lg-tab-in var(--lg-morph-dur) var(--lg-ease-morph) both;
+}
+
+@keyframes lg-tab-in {
+  from { opacity: 0; scale: 0.6; }
+  to { opacity: 1; scale: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-tabbar__bar--resizing { transition: none; }
+  .lg-tabbar__tab--enter { animation: none; }
 }

@@ -6,6 +6,7 @@ import { mountModalDemo } from './modal-demo.js';
 import { mountControlsDemo } from './controls-demo.js';
 import { createBackButton, createToolbar, createListPicker, createChipPicker, createPopover, createSegmentedControl, createToggle, createTabBar, icons, initLiquidGlass, initBlurCapability, getBlurMode, setBlurMode, applyBlurState, resolveBlurCapability } from '../src/index.js';
 import { hugeicons } from './hugeicons.js';
+import '@fontsource-variable/nunito';
 
 initLiquidGlass();
 initBlurCapability();

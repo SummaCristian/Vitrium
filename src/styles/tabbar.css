@@ -149,6 +149,14 @@
   pointer-events: none;
 }
 
+/* While the group is squashed or stretched to glide between layouts (JS sets
+   --lg-sx / --lg-sy), its content undoes the scale so text and icons keep their
+   shape. */
+.lg-tabbar__group .lg-tabbar__icon,
+.lg-tabbar__group .lg-tabbar__label {
+  scale: calc(1 / var(--lg-sx, 1)) calc(1 / var(--lg-sy, 1));
+}
+
 /* With a prominent tab the bar and the circle spread to opposite sides, held
    in from the viewport's edges by --lg-tabbar-inset. Without one the row
    stays centred. */
@@ -274,10 +282,33 @@
    from the top edge is --lg-tabbar-top-offset (default 20px, plus the safe
    area), and the breathing room the bottom row keeps above its bar moves
    below it. */
-.lg-tabbar--row-top:not(.lg-tabbar--vertical) {
+.lg-tabbar--row-top:not(.lg-tabbar--vertical),
+.lg-tabbar--compact {
   top: calc(var(--lg-tabbar-top-offset, 20px) + env(safe-area-inset-top));
   transform: none;
   padding: 0 var(--lg-tabbar-inset) 0.75rem;
+}
+
+/* ---- Compact layout ---- */
+
+/* compact: true replaces the wide-screen rail with one horizontal bar centred
+   at the top (the iPadOS style). It sits where a top row would, whatever the
+   placement. Tabs show only their label, and the prominent last tab (kept in the
+   bar, not detached) shows only its icon. */
+.lg-tabbar--compact .lg-tabbar__tab,
+.lg-tabbar--compact .lg-pill-active-cell {
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.lg-tabbar--compact .lg-tabbar__tab[data-kind="icon"] {
+  padding-inline: 1rem;
+}
+
+.lg-tabbar--compact .lg-tabbar__icon > svg {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 /* ---- Vertical rail ---- */
@@ -353,6 +384,8 @@
    shadow. */
 .lg-tabbar--vertical .lg-tabbar__bar,
 .lg-tabbar--vertical .lg-pill.lg-pill--lifted,
+.lg-tabbar--compact .lg-tabbar__bar,
+.lg-tabbar--compact .lg-pill.lg-pill--lifted,
 .lg-tabbar--row-top .lg-tabbar__bar,
 .lg-tabbar--row-top .lg-pill.lg-pill--lifted {
   box-shadow: var(--lg-shadow);

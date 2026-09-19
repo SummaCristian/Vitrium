@@ -70,6 +70,17 @@
 //   circle slides into it), that small blob glides to its new corner, and it
 //   expands back into the full layout.
 //
+// Compact layout:
+//   compact: false (default) | true
+//   Replaces the wide-screen rail (so it never touches the narrow-screen row) with
+//   a single horizontal bar centred at the top, like iPadOS. `placement` is
+//   ignored while it shows. The bar is one unified pill: a prominent last tab is
+//   not detached, it stays the bar's last cell and shows only its icon, while every
+//   other tab shows only its label (a tab with no icon keeps its label too). A
+//   `press` tab stays a button there: it never selects, it calls onPress(el).
+//   tabs.setCompact(on, { animate }) changes it later, with the same animated
+//   sequence as setOrientation(); `tabs.compact` reads the option back.
+//
 // Accessibility: the bar is a tablist (with aria-orientation following the
 // layout), and the prominent circle is a real member of it (aria-owns), so a
 // screen reader sees one list of tabs. Roving tabindex: Tab lands on the
@@ -92,6 +103,8 @@ const WIDTH_SPRING = { stiffness: 300, damping: 24, mass: 1 };
 const MOVE = { stiffness: 220, damping: 20, mass: 1 };
 // The collapsed blob's trip across the screen to the other corner: softer, for a longer travel.
 const MOVE_FAR = { stiffness: 170, damping: 21, mass: 1 };
+// The blob's shape change while it glides: critically damped (2*sqrt(k*m)), so it settles without ringing.
+const MOVE_SIZE = { stiffness: 170, damping: 26, mass: 1 };
 const STRETCH_PER_PX_S = 0.00035;   // squash-and-stretch per px/s of speed...
 const STRETCH_MAX = 0.16;           // ...capped, so it stays glass and not a puddle
 
@@ -130,21 +143,29 @@ function resolvePlacement(next, prev = DEFAULT_PLACEMENT) {
   return out;
 }
 
-// Splits a tab list into the bar's tabs and the (optional) prominent one.
-function splitTabs(tabs) {
+// The tab that counts as prominent, if any: the last one, with enough tabs.
+function validProminent(tabs) {
   const last = tabs[tabs.length - 1];
-  const prominent = last?.prominent && tabs.length >= MIN_TABS_FOR_PROMINENT ? last : null;
+  return last?.prominent && tabs.length >= MIN_TABS_FOR_PROMINENT ? last : null;
+}
+
+// Splits a tab list into the bar's tabs and the (optional) prominent one. When
+// `unified` (the compact layout) nothing is detached: the prominent tab stays in
+// the bar as its last cell.
+function splitTabs(tabs, unified = false) {
+  const prominent = validProminent(tabs);
   for (const t of tabs) {
     if (t.prominent && t !== prominent) {
       console.warn(`liquid-glass-web: tab "${t.id}" can't be prominent (it must be the last of at least ${MIN_TABS_FOR_PROMINENT} tabs); ignoring the flag.`);
     }
   }
+  if (unified) return { main: tabs, prominent: null };
   return { main: prominent ? tabs.slice(0, -1) : tabs, prominent };
 }
 
 let tabbarUid = 0;
 
-export function createTabBar(root, { tabs: initialTabs, value, onSelect, action, orientation = 'auto', breakpoint = 600, placement, label } = {}) {
+export function createTabBar(root, { tabs: initialTabs, value, onSelect, action, orientation = 'auto', breakpoint = 600, placement, label, compact = false } = {}) {
   root.classList.add('lg-tabbar');
   const uid = ++tabbarUid;
 
@@ -152,9 +173,20 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
   // currently resolves to (for 'auto', from the viewport width).
   let mode = orientation;
   const wide = window.matchMedia(`(min-width: ${breakpoint}px)`);
-  const resolveVertical = () => mode === 'vertical' || (mode === 'auto' && wide.matches);
-  let vertical = resolveVertical();
+  // `compact` swaps the rail for a unified top row, so `vertical` (the axis) is
+  // only true for a rail that isn't compact.
+  let compactOpt = !!compact;
+  const resolveRail = () => mode === 'vertical' || (mode === 'auto' && wide.matches);
+  const resolveLayout = () => {
+    const rail = resolveRail();
+    return { vertical: rail && !compactOpt, compact: rail && compactOpt };
+  };
+  let { vertical, compact: compactOn } = resolveLayout();
+  // What the tabs show. It follows the layout, except that the orientation
+  // sequence switches it at the start (see orientSequence).
+  let showCompact = compactOn;
   root.classList.toggle('lg-tabbar--vertical', vertical);
+  root.classList.toggle('lg-tabbar--compact', compactOn);
 
   // Placement. `place` is what the caller asked for; the classes on `root` are
   // what's showing. They differ only while a layout change is under way: the
@@ -180,7 +212,8 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
   const sizeProp = () => vertical ? 'height' : 'width';
 
   let allTabs = [...initialTabs];   // what the caller last asked for (the orientation sequence restores it)
-  let { main: mainTabs, prominent } = splitTabs(initialTabs);
+  let { main: mainTabs, prominent } = splitTabs(initialTabs, compactOn);
+  let iconId = validProminent(allTabs)?.id;   // the tab that shows only its icon in the compact layout
   let currentId = null;
   const tabEls = new Map();   // id -> button, reused across setTabs() so persisting tabs don't flicker
 
@@ -195,12 +228,20 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
   group.append(bar, parts.pill, parts.hit);
   root.appendChild(group);
 
-  function createTab({ id, label, icon, panel }) {
+  // What a bar button shows: icon and label, or (compact) just the label, or
+  // just the icon for the prominent tab (which needs an icon to do so).
+  const kindOf = ({ id, icon }) => !showCompact ? 'both' : (id === iconId && icon ? 'icon' : 'label');
+
+  function createTab(tab) {
+    const { id, label, icon, panel } = tab;
+    const kind = kindOf(tab);
     const btn = el('button', 'lg-tabbar__tab', { type: 'button', role: 'tab' });
     btn.dataset.id = id;
+    btn.dataset.kind = kind;
     if (panel) btn.setAttribute('aria-controls', panel);
-    if (icon) btn.appendChild(el('span', 'lg-tabbar__icon')).appendChild(toNode(icon));
-    btn.appendChild(el('span', 'lg-tabbar__label')).textContent = label;
+    if (kind !== 'label' && icon) btn.appendChild(el('span', 'lg-tabbar__icon')).appendChild(toNode(icon));
+    if (kind === 'icon') btn.setAttribute('aria-label', label);
+    else btn.appendChild(el('span', 'lg-tabbar__label')).textContent = label;
     return btn;
   }
 
@@ -226,10 +267,16 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     }
     for (const tab of mainTabs) {
       let btn = tabEls.get(tab.id);
+      let fresh = !btn;
+      if (btn && btn.dataset.kind !== kindOf(tab)) {   // the layout changed what this tab shows: swap it in place, no entrance
+        btn.remove();
+        tabEls.delete(tab.id);
+        btn = undefined;
+      }
       if (!btn) {
         btn = createTab(tab);
         tabEls.set(tab.id, btn);
-        if (enter) {
+        if (enter && fresh) {
           btn.classList.add('lg-tabbar__tab--enter');
           btn.addEventListener('animationend', () => btn.classList.remove('lg-tabbar__tab--enter'), { once: true });
         }
@@ -250,6 +297,9 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     cellSelector: '.lg-tabbar__tab',
     axis: vertical ? 'y' : 'x',
     keyboard: false,   // handled below, across the prominent tab too
+    // A `press` tab in the compact bar is a button, not a selection.
+    canSelect: (i) => !mainTabs[i].press,
+    onReject: (i) => { haptics.trigger('light'); mainTabs[i].onPress?.(tabEls.get(mainTabs[i].id)); },
     onChange(i, { silent }) {
       currentId = mainTabs[i].id;
       markActive();
@@ -302,10 +352,16 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     }
     if (groupMoving()) {
       const [dfx, dfy] = deform2(groupX.v, groupY.v);
+      const sx = groupSX.value * dfx, sy = groupSY.value * dfy;
       group.style.translate = `${groupX.value}px ${groupY.value}px`;
-      group.style.scale = `${groupSX.value * dfx} ${groupSY.value * dfy}`;
+      group.style.scale = `${sx} ${sy}`;
+      // The tabs' content undoes the squash (see tabbar.css), so only the glass morphs.
+      group.style.setProperty('--lg-sx', sx);
+      group.style.setProperty('--lg-sy', sy);
     } else if (group.style.translate || group.style.scale) {
       group.style.translate = group.style.scale = '';
+      group.style.removeProperty('--lg-sx');
+      group.style.removeProperty('--lg-sy');
     }
     if (pBtn && (!circleX.resting || circleMoving)) {
       // A press on the circle owns translate/scale (liquid-glass); don't fight it.
@@ -409,7 +465,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
       const rtl = getComputedStyle(root).direction === 'rtl';
       const onRight = atEnd !== rtl;
       space[atEnd ? 'end' : 'start'] = onRight ? document.documentElement.clientWidth - r.left : r.right;
-    } else if (root.classList.contains('lg-tabbar--row-top')) {
+    } else if (compactOn || root.classList.contains('lg-tabbar--row-top')) {
       space.top = root.getBoundingClientRect().bottom;
     } else {
       // The bottom row is lifted into place by a transform (see tabbar.css), so
@@ -436,6 +492,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
   function select(id, { animate = true, silent = true } = {}) {
     const i = inMain(id);
     if (i !== -1) {
+      if (mainTabs[i].press) return;
       currentId = id;
       markActive();
       core.select(i, { animate, silent });
@@ -504,7 +561,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     const oldCircle = pBtn?.getBoundingClientRect();
     let ghost = null;
 
-    const next = splitTabs(nextTabs);
+    const next = splitTabs(nextTabs, compactOn);
     const oldProminentId = prominent?.id;
     mainTabs = next.main;
     prominent = next.prominent;
@@ -592,6 +649,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
   // set is just remembered: step 3 expands to the latest one.
   function setTabs(nextTabs, opts) {
     allTabs = [...nextTabs];
+    iconId = validProminent(allTabs)?.id;
     if (!orienting) applyTabs(nextTabs, opts);
   }
 
@@ -631,17 +689,25 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
 
   // The layout swap itself: toggle the classes and re-measure. Used directly when
   // not animating, and as step 2 of the sequence.
-  function switchLayout(nextVertical) {
+  function switchLayout(next) {
     // The bar's size animation runs on one property (width in a row, height in
     // a rail); finish it here, or its inline value would be orphaned when the
     // axis flips.
     barAnimating = false;
     barW.set(0);
     bar.style.width = bar.style.height = '';
-    vertical = nextVertical;
+    vertical = next.vertical;
+    compactOn = showCompact = next.compact;
+    // The compact bar is centred, never split: drop the holds the sequence took
+    // for a row with a prominent tab, or the blob would sit at the row's start
+    // until they're released and then jump to the middle.
+    if (compactOn) { holdSplit = false; holdEnd = false; syncLayout(); }
     root.classList.toggle('lg-tabbar--vertical', vertical);
+    root.classList.toggle('lg-tabbar--compact', compactOn);
     applyPlacementClasses();
     items.setAttribute('aria-orientation', vertical ? 'vertical' : 'horizontal');
+    syncMainEls();   // the compact layout shows other content in the tabs
+    markActive();
     sizeTabs();
     core.setAxis(vertical ? 'y' : 'x');
     sizeCircles();
@@ -660,18 +726,21 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
   // The steps overlap rather than run back to back: the move starts as the
   // collapse is about to land, and the expansion starts once the blob is most of
   // the way there, so it grows as it arrives and reads as one motion.
-  async function orientSequence(nextVertical) {
+  async function orientSequence(next) {
     const token = ++orientToken;
     orienting = true;
     holdSplit = root.classList.contains('lg-tabbar--split');
     // A split row keeps its bar at the start; heading for the end, that would
     // mean collapsing toward the wrong side and then crossing over.
-    holdEnd = holdSplit && !vertical && nextVertical && place.rail === 'end';
+    holdEnd = holdSplit && !vertical && next.vertical && place.rail === 'end';
     freezeSpace = true;
     root.classList.add('lg-tabbar--orienting');
 
     // 1. Collapse to the selected tab. (A prominent tab collapses into the bar
-    // as an ordinary tab: it needs at least 3 to be prominent.)
+    // as an ordinary tab: it needs at least 3 to be prominent.) The tab already
+    // shows what the target layout will, so the blob that glides across doesn't
+    // change content mid-flight.
+    showCompact = next.compact;
     const selected = allTabs.find(t => t.id === currentId) ?? allTabs[0];
     applyTabs([{ ...selected, prominent: false }]);
     await until(() => !barAnimating || Math.abs(barW.value - barW.target) < 6);
@@ -679,9 +748,9 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
 
     // 2. Glide the blob to the new corner, and swap layout under it.
     let travel = 0;
-    if (nextVertical !== vertical || !placeMatches()) {
+    if (layoutChanged(next)) {
       const old = group.getBoundingClientRect();
-      switchLayout(nextVertical);
+      switchLayout(next);
       const now = group.getBoundingClientRect();
       const dx = (old.left + old.width / 2) - (now.left + now.width / 2);
       const dy = (old.top + old.height / 2) - (now.top + now.height / 2);
@@ -691,7 +760,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
       groupSX.set(now.width ? old.width / now.width : 1);
       groupSY.set(now.height ? old.height / now.height : 1);
       groupX.to(0, MOVE_FAR); groupY.to(0, MOVE_FAR);
-      groupSX.to(1, MOVE_FAR); groupSY.to(1, MOVE_FAR);
+      groupSX.to(1, MOVE_SIZE); groupSY.to(1, MOVE_SIZE);
       renderMotion();
     }
     freezeSpace = false;
@@ -714,8 +783,11 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     orienting = false;
   }
 
-  function applyOrientation(nextVertical, { animate = true, force = false } = {}) {
-    if (nextVertical === vertical && !orienting && !force) return;
+  // A compact bar ignores the placement, so only the layout itself counts then.
+  const layoutChanged = (next) => next.vertical !== vertical || next.compact !== compactOn || (!next.compact && !placeMatches());
+
+  function applyOrientation(next = resolveLayout(), { animate = true, force = false } = {}) {
+    if (next.vertical === vertical && next.compact === compactOn && !orienting && !force) return;
 
     // Settle anything in flight (a setTabs() animation, or an earlier sequence).
     const wasOrienting = orienting;
@@ -732,17 +804,28 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
       holdEnd = false;
       freezeSpace = false;
       root.classList.remove('lg-tabbar--orienting');
-      if (nextVertical !== vertical || !placeMatches()) switchLayout(nextVertical);
-      if (wasOrienting) applyTabs(allTabs);   // an earlier sequence had collapsed it
+      const compactChanged = next.compact !== compactOn;
+      if (layoutChanged(next)) switchLayout(next);
+      if (wasOrienting || compactChanged) {   // an earlier sequence had collapsed it, or the tabs show other content now
+        applyTabs(allTabs);
+        barAnimating = false;
+        bar.style.width = bar.style.height = '';
+        barW.set(0);
+      }
       syncLayout();
       return;
     }
-    orientSequence(nextVertical);
+    orientSequence(next);
   }
 
   function setOrientation(next, opts) {
     mode = next;
-    applyOrientation(resolveVertical(), opts);
+    applyOrientation(resolveLayout(), opts);
+  }
+
+  function setCompact(on, opts) {
+    compactOpt = !!on;
+    applyOrientation(resolveLayout(), opts);
   }
 
   // Moves the row and/or the rail to another edge. Animated when the layout
@@ -752,13 +835,13 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     const prev = place;
     place = resolvePlacement(next, place);
     if (place.row === prev.row && place.rail === prev.rail && place.railAlign === prev.railAlign) return;
-    const shownEdgeMoved = vertical ? place.rail !== prev.rail || place.railAlign !== prev.railAlign : place.row !== prev.row;
-    if (orienting || shownEdgeMoved) applyOrientation(resolveVertical(), { ...opts, force: true });
+    const shownEdgeMoved = compactOn ? false : vertical ? place.rail !== prev.rail || place.railAlign !== prev.railAlign : place.row !== prev.row;
+    if (orienting || shownEdgeMoved) applyOrientation(resolveLayout(), { ...opts, force: true });
     else applyPlacementClasses();
   }
 
   // 'auto' follows the viewport width.
-  const onWideChange = () => { if (mode === 'auto') applyOrientation(resolveVertical()); };
+  const onWideChange = () => { if (mode === 'auto') applyOrientation(); };
   wide.addEventListener('change', onWideChange);
 
   /* --- Keyboard ------------------------------------------------------------------ */
@@ -769,7 +852,8 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
   root.addEventListener('keydown', (e) => {
     if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
     const tab = e.target.closest?.('[role="tab"]');
-    const order = [...mainTabs, ...(prominent ? [prominent] : [])].map(t => t.id);
+    const all = [...mainTabs, ...(prominent ? [prominent] : [])];
+    const order = all.map(t => t.id);
     const at = tab ? order.indexOf(tab.dataset.id) : -1;
     if (at === -1) return;
 
@@ -789,7 +873,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     e.preventDefault();
     if (next === at) return;
     const target = order[next];
-    if (prominent?.press && target === prominent.id) { tabEls.get(target)?.focus(); return; }   // focus only; Enter/Space presses it
+    if (all.find(t => t.id === target)?.press) { tabEls.get(target)?.focus(); return; }   // focus only; Enter/Space presses it
     haptics.trigger('light');
     select(target, { silent: false });
     tabEls.get(target)?.focus();
@@ -813,6 +897,8 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     setLabel,
     setTabs,
     setOrientation,
+    setCompact,
+    get compact() { return compactOpt; },
     setPlacement,
     get placement() { return { ...place }; },
     get orientation() { return vertical ? 'vertical' : 'horizontal'; },

@@ -52,7 +52,7 @@ x.to(240, { stiffness: ${s.stiffness}, damping: ${s.damping} });`,
       section('Press and stretch', {},
         h('p', {}, 'Any element with the liquid-glass class shrinks slightly when pressed. Hold and drag and it stretches toward the pointer with an elastic falloff, then springs back on release. A drag past 8px counts as a gesture, so the click on release is swallowed and the control does not fire.'),
         h('p', {}, 'It writes to the translate and scale properties rather than transform, so it stacks on top of any transform the element already has.'),
-        h('div', { class: 'card' }, press)),
+        h('div', { class: 'card lg-glass' }, press)),
       section('Reduced motion', {},
         h('p', {}, 'With prefers-reduced-motion on, springs jump straight to their target, the overshoot easing becomes a plain ease and the spring-back is shortened to 0.15s. Press feedback stays, since it tells you the control responded.')),
     ];

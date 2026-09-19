@@ -90,13 +90,14 @@ body {
 .doc-section { display: grid; gap: 16px; scroll-margin-top: calc(var(--lg-tabbar-top-space, 0px) + 24px); }
 section[id].card { scroll-margin-top: calc(var(--lg-tabbar-top-space, 0px) + 24px); }
 .doc-section > p { max-width: 65ch; color: var(--text-color-secondary); }
-.table-card { padding: 0.5rem 1rem; overflow-x: auto; justify-items: stretch; }
+.table-card { padding: 0.5rem 1rem; justify-items: stretch; }
+.table-scroll { overflow-x: auto; }
 
 /* Playground: stage, then options, then the matching code */
 .sub-label { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.55; margin: 8px 0 -8px 4px; }
 .playground { display: grid; gap: 16px; }
-.stage-card { min-height: 180px; place-items: center; justify-items: center; }
-.stage { width: 100%; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: center; min-height: 100px; }
+.stage-card { position: relative; overflow: hidden; min-height: 180px; place-items: center; justify-items: center; }
+.stage { position: relative; z-index: 1; width: 100%; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: center; min-height: 100px; }
 .controls { display: grid; gap: 14px; width: 100%; }
 .control-row { display: grid; grid-template-columns: 9.5rem 1fr; align-items: center; gap: 16px; }
 .control-row > :not(.control-label) { justify-self: start; }
@@ -111,7 +112,7 @@ h3 { font-size: clamp(1.15rem, 1.09rem + 0.3vw, 1.25rem); font-weight: 600; }
 .lede { font-size: 1.2rem; max-width: 34em; opacity: 0.85; }
 .stack { display: grid; gap: 16px; }
 .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-.card { padding: 1.25rem 1.5rem; border-radius: var(--radius-xl); display: grid; justify-items: start; gap: 12px; background: var(--background-color-secondary); box-shadow: var(--shadow); }
+.card { padding: 1.25rem 1.5rem; border-radius: var(--radius-xl); display: grid; justify-items: start; gap: 12px; color: var(--text-color-primary); }
 .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
 .lg-btn { border: 0; font: inherit; cursor: pointer; }
 .lg-btn.pill { padding: 0.7rem 1.4rem; }
@@ -156,13 +157,35 @@ code { font: 0.9em ui-monospace, 'SF Mono', Menlo, monospace; }
 .dep-list { margin: 0; padding-inline-start: 1.2rem; display: grid; gap: 6px; color: var(--text-color-secondary); }
 
 /* Foundation pages */
+/* The demo canvas: no tint or blur (they would hide the backdrop), but it takes the material's shadow
+   token, which is the outline, the lit inner rim and the drop shadow, so its edge matches the glass cards.
+   The colour blobs drift on their own loops: each blob's centre is a registered custom property, which
+   is what lets the browser interpolate it. Different durations keep the pattern from visibly repeating. */
+@property --b1x { syntax: '<percentage>'; inherits: false; initial-value: 18%; }
+@property --b1y { syntax: '<percentage>'; inherits: false; initial-value: 30%; }
+@property --b2x { syntax: '<percentage>'; inherits: false; initial-value: 82%; }
+@property --b2y { syntax: '<percentage>'; inherits: false; initial-value: 35%; }
+@property --b3x { syntax: '<percentage>'; inherits: false; initial-value: 50%; }
+@property --b3y { syntax: '<percentage>'; inherits: false; initial-value: 105%; }
+@property --b4x { syntax: '<percentage>'; inherits: false; initial-value: 60%; }
+@property --b4y { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+/* Each blob wanders inside its own part of the canvas, so no region is ever left bare. */
+@keyframes blob1 { 0%, 100% { --b1x: 15%; --b1y: 30%; } 33% { --b1x: 35%; --b1y: 70%; } 66% { --b1x: 22%; --b1y: 95%; } }
+@keyframes blob2 { 0%, 100% { --b2x: 85%; --b2y: 35%; } 40% { --b2x: 68%; --b2y: 12%; } 70% { --b2x: 92%; --b2y: 80%; } }
+@keyframes blob3 { 0%, 100% { --b3x: 50%; --b3y: 105%; } 35% { --b3x: 32%; --b3y: 85%; } 65% { --b3x: 72%; --b3y: 92%; } }
+@keyframes blob4 { 0%, 100% { --b4x: 55%; --b4y: 0%; } 35% { --b4x: 42%; --b4y: 40%; } 70% { --b4x: 75%; --b4y: 25%; } }
 .stage--backdrop {
+  box-shadow: var(--lg-shadow);
   background:
-    radial-gradient(circle at 18% 30%, #ff7a59 0, transparent 46%),
-    radial-gradient(circle at 82% 35%, #4f8cff 0, transparent 50%),
-    radial-gradient(circle at 50% 105%, #3ce065 0, transparent 52%),
+    radial-gradient(circle at var(--b1x) var(--b1y), #ff7a59 0, transparent 58%),
+    radial-gradient(circle at var(--b2x) var(--b2y), #4f8cff 0, transparent 62%),
+    radial-gradient(circle at var(--b3x) var(--b3y), #3ce065 0, transparent 64%),
+    radial-gradient(circle at var(--b4x) var(--b4y), #c05cff 0, transparent 54%),
     var(--background-color-secondary);
+  animation: blob1 17s ease-in-out infinite, blob2 23s ease-in-out infinite, blob3 29s ease-in-out infinite, blob4 19s ease-in-out infinite;
 }
+.stage--backdrop.paused { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .stage--backdrop { animation: none; } }
 .muted { opacity: 0.5; }
 .swatch-cell { display: inline-flex; align-items: center; gap: 8px; }
 .swatch { flex: none; width: 14px; height: 14px; border-radius: 4px; box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 25%, transparent); }
@@ -177,3 +200,40 @@ table.tokens { table-layout: auto; }
 /* Floating theme switcher, top-right (a menu button on narrow screens). */
 .theme-switcher { position: fixed; z-index: 30; top: 23px; inset-inline-end: 20px; }
 @media (max-width: 960px) { .theme-switcher { top: 16px; inset-inline-end: 16px; } }
+
+/* The glass playground's demo element. At rest it restates the press physics' own transitions
+   (liquid-glass.css) and adds the morph ones, since a `transition` here would otherwise replace them. */
+.glass-demo {
+  display: grid; place-items: center; box-sizing: border-box; font-weight: 600;
+  transition:
+    translate var(--lg-press-out-dur) var(--lg-ease-spring),
+    scale var(--lg-press-out-dur) var(--lg-ease-spring),
+    filter 0.2s ease,
+    width var(--lg-morph-dur) var(--lg-ease-morph),
+    height var(--lg-morph-dur) var(--lg-ease-morph),
+    border-radius var(--lg-morph-dur) var(--lg-ease-morph);
+}
+@media (prefers-reduced-motion: reduce) { .glass-demo { transition: none; } }
+
+/* The scrolling UI behind the glass playground: a feed that slides up forever. It holds the same content
+   twice, so moving it by exactly half its height lands on an identical frame. */
+.ui-layer { position: absolute; inset: 0; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity 0.4s ease;
+  container-type: inline-size; /* the shapes and padding below scale with the card, not the viewport */ }
+.ui-layer.on { opacity: 1; }
+.ui-track { width: min(560px, 100%); margin-inline: auto; padding-inline: clamp(12px, 4cqw, 24px); box-sizing: border-box; animation: ui-scroll 32s linear infinite; }
+.ui-set { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding-block: 12px; }
+@keyframes ui-scroll { to { transform: translateY(-50%); } }
+.ui-layer:not(.on) .ui-track, .stage--backdrop.paused .ui-track { animation-play-state: paused; }
+.ui-row { min-width: 0; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; text-align: start;
+  background: var(--background-color-secondary); box-shadow: var(--shadow); color: var(--text-color-primary); }
+.ui-row strong { font-size: 0.95rem; }
+.ui-row p { font-size: 0.85rem; opacity: 0.7; }
+.ui-dot { flex: none; width: 40px; height: 40px; border-radius: 50%; }
+.ui-shapes { --s: min(64px, 16cqw); display: flex; gap: min(12px, 3cqw); align-items: center; }
+.ui-shapes span { flex: none; display: block; height: var(--s); }
+.ui-circle { width: var(--s); border-radius: 50%; }
+.ui-square { width: var(--s); border-radius: calc(var(--s) * 0.28); }
+.ui-pill { width: calc(var(--s) * 2); border-radius: 999px; }
+.ui-leaf { width: var(--s); border-radius: 50% 50% 50% 12%; }
+.ui-banner { height: 92px; border-radius: 20px; }
+@media (prefers-reduced-motion: reduce) { .ui-track { animation: none; } }

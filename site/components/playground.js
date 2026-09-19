@@ -5,19 +5,22 @@
 import { createSegmentedControl, createToggle } from '../../src/index.js';
 import { h, codeBlock } from '../dom.js';
 
-export function createPlayground({ options, render, code, lang = 'js', stageClass = '' }) {
+// `render(state, stage)` builds the demo. If `patch(state, stage, changedKey)` is given, later option
+// changes call it instead, so the same element can be updated in place (and transition) rather than rebuilt.
+export function createPlayground({ options, render, patch, code, lang = 'js', stageClass = '' }) {
   const state = Object.fromEntries(options.map((o) => [o.key, o.default]));
   const stage = h('div', { class: 'stage' });
   const snippet = h('div');
   const rows = [];
 
-  const update = () => {
-    stage.replaceChildren();
-    render(state, stage);
+  let rendered = false;
+  const update = (changedKey) => {
+    if (patch && rendered) patch(state, stage, changedKey);
+    else { stage.replaceChildren(); render(state, stage); rendered = true; }
     snippet.replaceChildren(codeBlock(code(state), lang));
     for (const { opt, row } of rows) row.hidden = !!opt.when && !opt.when(state);
   };
-  const set = (key, value) => { state[key] = value; update(); };
+  const set = (key, value) => { state[key] = value; update(key); };
 
   const control = (opt) => {
     if (opt.type === 'bool') {
@@ -44,7 +47,7 @@ export function createPlayground({ options, render, code, lang = 'js', stageClas
   }
   update();
   return h('div', { class: 'playground' },
-    h('div', { class: `card stage-card ${stageClass}`.trim() }, stage),
-    h('h3', { class: 'sub-label' }, 'Options'), h('div', { class: 'card' }, panel),
+    h('div', { class: stageClass ? `card stage-card ${stageClass}` : 'card lg-glass stage-card' }, stage),
+    h('h3', { class: 'sub-label' }, 'Options'), h('div', { class: 'card lg-glass' }, panel),
     h('h3', { class: 'sub-label' }, 'Code'), snippet);
 }

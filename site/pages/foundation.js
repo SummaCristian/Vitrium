@@ -15,14 +15,14 @@ export const foundationPages = [glass, tokens, accent, theme, tint, blur, motion
 
 export const foundationById = (id) => foundationPages.find((p) => p.id === id);
 
-const card = (p) => h('a', { class: 'card card-link liquid-glass', href: `#/foundation/${p.id}` }, h('h3', {}, p.title), h('p', {}, p.abstract));
+const card = (p) => h('a', { class: 'card lg-glass card-link liquid-glass', href: `#/foundation/${p.id}` }, h('h3', {}, p.title), h('p', {}, p.abstract));
 
 export const foundation = {
   render(root, [id]) {
     const page = id && foundationById(id);
     if (!page) {
       root.append(
-        h('header', { class: 'doc-head' }, h('h1', {}, 'Foundation'), h('p', { class: 'lede' }, 'The tokens and switches every component builds on.')),
+        h('header', { class: 'doc-head' }, h('h1', {}, 'Foundation'), h('p', { class: 'lede' }, 'Here you will find the design system\'s building blocks, and the principles behind them, as well as details on how to use them in your own projects.')),
         h('div', { class: 'grid' }, foundationPages.map(card)),
       );
       return;

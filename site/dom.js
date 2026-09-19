@@ -66,13 +66,15 @@ export const slug = (text) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').rep
 // A page section: <section id="overview"><h2>Overview</h2>…</section>. The "On this page"
 // list is built from these, so every section a reader can jump to goes through here.
 export function section(title, { card = false } = {}, ...children) {
-  return h('section', { id: slug(title), class: card ? 'card' : 'doc-section' }, h('h2', {}, title), ...children);
+  return h('section', { id: slug(title), class: card ? 'card lg-glass' : 'doc-section' }, h('h2', {}, title), ...children);
 }
 
 // A card holding a table. Cells may be strings or nodes; a row is an array of cells.
 export function table(headers, rows, { class: cls = 'api' } = {}) {
-  return h('div', { class: 'card table-card' },
-    h('table', { class: cls },
-      h('thead', {}, h('tr', {}, headers.map((t) => h('th', {}, t)))),
-      h('tbody', {}, rows.map((r) => h('tr', {}, r.map((c) => h('td', {}, c)))))));
+  // The glass card is the outer box and the table scrolls inside it, so the rim doesn't scroll away.
+  return h('div', { class: 'card lg-glass table-card' },
+    h('div', { class: 'table-scroll' },
+      h('table', { class: cls },
+        h('thead', {}, h('tr', {}, headers.map((t) => h('th', {}, t)))),
+        h('tbody', {}, rows.map((r) => h('tr', {}, r.map((c) => h('td', {}, c))))))));
 }

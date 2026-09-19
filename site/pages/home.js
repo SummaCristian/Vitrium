@@ -13,7 +13,7 @@ export const home = {
           h('a', { class: 'lg-btn pill lg-glass lg-glass--clear liquid-glass', href: '#/components' }, 'Browse components'),
         ),
       ),
-      h('section', { class: 'card liquid-glass' },
+      h('section', { class: 'card lg-glass liquid-glass' },
         h('h2', {}, 'Try it'),
         h('div', { class: 'row' }, seg, createToggle({ value: true, label: 'Demo' }).el, createButton({ icon: icons.star, label: 'Star', tint: '#ff375f' })),
         h('p', {}, 'Press and drag anything. It stretches and springs back.'),

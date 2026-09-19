@@ -4,7 +4,7 @@ import { createSearchOverlay } from './search-overlay.js';
 import { mountExplore } from './explore.js';
 import { mountModalDemo } from './modal-demo.js';
 import { mountControlsDemo } from './controls-demo.js';
-import { createBackButton, createToolbar, createListPicker, createChipPicker, createPopover, createSegmentedControl, createToggle, createTabBar, icons, initLiquidGlass, initBlurCapability, getBlurMode, setBlurMode, applyBlurState, resolveBlurCapability } from '../src/index.js';
+import { createBackButton, setGlassTint, createToolbar, createListPicker, createChipPicker, createPopover, createSegmentedControl, createToggle, createTabBar, icons, initLiquidGlass, initBlurCapability, getBlurMode, setBlurMode, applyBlurState, resolveBlurCapability } from '../src/index.js';
 import { hugeicons } from './hugeicons.js';
 import '@fontsource-variable/nunito';
 
@@ -31,10 +31,17 @@ blurBtn.addEventListener('click', () => {
   renderBlur();
 });
 
+const tintColor = document.getElementById('tint-color');
+const applyTint = () => {
+  document.querySelectorAll('#tinted-row [data-tinted]').forEach((el) => setGlassTint(el, tintColor.value));
+};
+tintColor.addEventListener('input', applyTint);
+applyTint();
+
 document.getElementById('toolbar-row').append(
   createBackButton({ onClick: () => console.log('back') }),
   createToolbar([
-    { icon: icons.star, label: 'Favourite', onClick: () => console.log('fav') },
+    { icon: icons.star, label: 'Favourite', tint: '#ff375f', onClick: () => console.log('fav') },
     { icon: icons.settings, label: 'Settings', onClick: () => console.log('settings') },
   ]),
 );

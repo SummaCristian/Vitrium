@@ -28,6 +28,11 @@
   /* "Clear" variant: lighter tint, shallower blur, for surfaces that should
      stay glassy but get out of the way of what's behind them. */
   --lg-tint-clear: rgba(250, 250, 250, 0.35);
+
+  /* How much of a tint color shows on each material (see .lg-glass--tinted). */
+  --lg-tint-strength: 60%;
+  --lg-tint-strength-clear: 40%;
+  --lg-tint-saturate-clear: 1.8;
   --lg-blur-clear: 8px;
 
   /* 0.5px outside gradient stroke, top to bottom (Figma's "outside stroke"). */

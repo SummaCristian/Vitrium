@@ -2,6 +2,11 @@
 
    .lg-glass          translucent, blurred surface with rim highlight + shadow
    .lg-glass--clear   lighter tint / shallower blur variant
+   .lg-glass--tinted  colored glass: set --lg-glass-tint (any CSS color). The
+                      material decides the strength (--lg-tint-strength,
+                      lighter on --clear), so callers only pass a color.
+                      setGlassTint() in components/glass-tint.js also sets a
+                      legible text color.
    .lg-glass--circle  use on true circles (equal width/height): the stroke ring
                       is masked radially, because the box-corner mask used for
                       pills seams at the cardinal points of a perfect circle.
@@ -22,6 +27,26 @@
   background: var(--lg-tint-clear);
   backdrop-filter: blur(var(--lg-blur-clear));
   -webkit-backdrop-filter: blur(var(--lg-blur-clear));
+}
+
+/* Tinted: the color sits over a thin neutral base so it reads as colored glass
+   (not paint) on both light and dark backdrops. */
+.lg-glass--tinted {
+  background:
+    linear-gradient(color-mix(in srgb, var(--lg-glass-tint, var(--lg-accent)) var(--lg-tint-strength), transparent) 0 0),
+    var(--lg-tint-clear);
+  color: var(--lg-glass-tint-text, #fff);
+}
+
+
+/* Clear glass shows less tint and drops the neutral base, so only the color
+   veils what's behind. */
+.lg-glass--tinted.lg-glass--clear {
+  background: color-mix(in srgb, var(--lg-glass-tint, var(--lg-accent)) var(--lg-tint-strength-clear), transparent);
+  /* Backdrop bleeds through and drags the hue (green over orange goes olive):
+     saturating it keeps the tint reading as itself. */
+  backdrop-filter: blur(var(--lg-blur-clear)) saturate(var(--lg-tint-saturate-clear));
+  -webkit-backdrop-filter: blur(var(--lg-blur-clear)) saturate(var(--lg-tint-saturate-clear));
 }
 
 /* Outside 0.5px gradient stroke without affecting layout: a ring cut out with
@@ -52,4 +77,7 @@
 /* No backdrop-filter support: fall back to a near-opaque tint. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .lg-glass { background: var(--lg-tint); }
+  .lg-glass--tinted {
+    background: color-mix(in srgb, var(--lg-glass-tint, var(--lg-accent)) 90%, var(--lg-tint));
+  }
 }

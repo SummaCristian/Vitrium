@@ -1,0 +1,176 @@
+/* Morph popup: the panel a trigger expands into (core/morph-popup.js).
+   Same shell technique as the tab bar's and chips' morphs: a fixed element whose
+   box (top/left/width/height/border-radius) transitions between the trigger's
+   rect and the panel's, driven from JS. */
+
+.lg-morph-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--lg-z-overlay, 1100);
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.lg-morph-overlay.is-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.lg-morph {
+  --lg-morph-panel-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --lg-morph-panel-dur: 0.42s;   /* keep in sync with MORPH_MS in morph-popup.js */
+
+  position: fixed;
+  z-index: var(--lg-z-popup, 1200);
+  margin: 0;
+  inset: auto;
+  border: 0;
+  padding: 0;
+  display: none;            /* JS sets 'flex' while open */
+  flex-direction: column;
+  box-sizing: border-box;
+  width: var(--lg-morph-width, 208px);
+  max-width: calc(100vw - 16px);
+  overflow: clip;
+  border-radius: 16px;
+  text-align: start;        /* a host page may centre its body text */
+  /* UI chrome, not selectable text. */
+  -webkit-user-select: none;
+  user-select: none;
+
+  background: var(--lg-tint);
+  -webkit-backdrop-filter: blur(var(--lg-blur-md));
+  backdrop-filter: blur(var(--lg-blur-md));
+  color: var(--lg-text);
+  box-shadow:
+    0 0 0 0.1px var(--lg-outline),
+    var(--lg-highlight),
+    0 12px 40px 0 var(--lg-shadow-color);
+
+  /* Morph geometry + the liquid-glass press/drag deform (translate/scale),
+     merged into one declaration: a plain `transition` here would otherwise
+     replace the deform's spring. */
+  translate: 0 0;
+  scale: 1;
+  transition:
+    transform var(--lg-morph-panel-dur) var(--lg-morph-panel-ease),
+    border-radius var(--lg-morph-panel-dur) var(--lg-morph-panel-ease),
+    box-shadow var(--lg-morph-panel-dur) ease,
+    translate var(--lg-press-out-dur) var(--lg-ease-spring),
+    scale var(--lg-press-out-dur) var(--lg-ease-spring),
+    filter 0.2s ease;
+  will-change: transform;
+}
+
+/* Snap down fast on touch, track 1:1 while dragging (mirrors liquid-glass.css). */
+.lg-morph.lg-pressing {
+  transition:
+    border-radius var(--lg-morph-panel-dur) var(--lg-morph-panel-ease),
+    translate var(--lg-press-in-dur) var(--lg-press-in-ease),
+    scale var(--lg-press-in-dur) var(--lg-press-in-ease),
+    filter 0.2s ease;
+}
+
+.lg-morph.lg-dragging {
+  transition:
+    border-radius var(--lg-morph-panel-dur) var(--lg-morph-panel-ease),
+    translate 0s, scale 0s, filter 0.2s ease;
+}
+
+.lg-morph.lg-pressing,
+.lg-morph.lg-dragging {
+  filter: brightness(1.11) saturate(1.35);
+}
+
+.lg-morph:focus-visible {
+  outline: none;
+}
+
+/* Scroll container. Fixed width so it doesn't reflow while the shell scales
+   (the shell's `overflow: clip` hides the rest). Scrolling stays off until the
+   shell has finished expanding: mid-morph the shell is far shorter than its
+   content, and an always-on overflow-y would show a scrollbar for the whole
+   animation. */
+.lg-morph__inner {
+  flex: 1;
+  min-height: 0;
+  width: var(--lg-morph-width, 208px);
+  box-sizing: border-box;
+  padding: 16px;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 0.18s ease,
+    transform 0.32s var(--lg-morph-panel-ease);
+}
+
+.lg-morph--open .lg-morph__inner {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.16s;
+  overflow-y: auto;
+}
+
+.lg-morph__inner::-webkit-scrollbar { width: 6px; }
+.lg-morph__inner::-webkit-scrollbar-thumb { background: var(--lg-text-muted); border-radius: 3px; }
+.lg-morph__inner::-webkit-scrollbar-track { background: transparent; }
+
+/* The panel cross-fades out over the reformed trigger at the end of a close. */
+.lg-morph--closing {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+/* The title bar: the same icon + word as the trigger, a size down. It's also
+   the handle for the press/drag deform. */
+.lg-morph__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 0 10px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--lg-text-muted);
+  cursor: default;
+  touch-action: none;
+}
+
+.lg-morph__title-icon {
+  display: flex;
+}
+
+.lg-morph__title-icon > svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* The trigger is hidden while it's morphed into the panel; when it reforms
+   after a close, its contents fade in (its glass box just swaps for the
+   identical panel). */
+.lg-morph-anim {
+  visibility: hidden;
+}
+
+.lg-morph-content-hidden > * {
+  opacity: 0;
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-morph,
+  .lg-morph.lg-pressing,
+  .lg-morph.lg-dragging,
+  .lg-morph__inner,
+  .lg-morph-overlay {
+    transition: none;
+  }
+  .lg-morph__inner {
+    transform: none;
+  }
+}

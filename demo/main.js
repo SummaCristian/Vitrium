@@ -1,5 +1,5 @@
 import '../src/styles/index.css';
-import { createBackButton, createToolbar, createSegmentedControl, createToggle, createTabBar, icons, initLiquidGlass, initBlurCapability, getBlurMode, setBlurMode, applyBlurState, resolveBlurCapability } from '../src/index.js';
+import { createBackButton, createToolbar, createListPicker, createChipPicker, createSegmentedControl, createToggle, createTabBar, icons, initLiquidGlass, initBlurCapability, getBlurMode, setBlurMode, applyBlurState, resolveBlurCapability } from '../src/index.js';
 
 initLiquidGlass();
 initBlurCapability();
@@ -40,9 +40,9 @@ createSegmentedControl(document.getElementById('seg'), {
 document.getElementById('controls-row').append(createToggle({ value: true, label: 'Demo toggle', onChange: (v) => console.log('toggle', v) }).el);
 
 const TAB_POOL = [
-  { id: 'available', label: 'Available', icon: icons.calendar },
-  { id: 'campus', label: 'Campus', icon: icons.map },
-  { id: 'favourites', label: 'Favourites', icon: icons.star },
+  { id: 'home', label: 'Home', icon: icons.calendar },
+  { id: 'explore', label: 'Explore', icon: icons.map },
+  { id: 'library', label: 'Library', icon: icons.star },
   { id: 'settings', label: 'Settings', icon: icons.settings },
   { id: 'search', label: 'Search', icon: icons.search },
 ];
@@ -85,3 +85,45 @@ createSegmentedControl(document.getElementById('orientation'), {
   value: new URLSearchParams(location.search).get('orientation') || 'auto',
   onSelect: (v, { silent }) => { if (!silent) tabbar.setOrientation(v); },
 });
+
+// Pickers
+const country = createListPicker({
+  label: 'Country',
+  icon: icons.map,
+  name: 'country',
+  sections: [
+    { label: 'Popular', options: [
+      { value: 'us', label: 'United States', description: 'North America' },
+      { value: 'gb', label: 'United Kingdom', description: 'Europe' },
+      { value: 'ca', label: 'Canada', description: 'North America' },
+    ] },
+    { label: 'Other countries', options: [
+      { value: 'au', label: 'Australia' },
+      { value: 'br', label: 'Brazil' },
+      { value: 'fr', label: 'France' },
+      { value: 'de', label: 'Germany' },
+      { value: 'jp', label: 'Japan' },
+    ] },
+  ],
+  value: 'us',
+  onChange: (v) => console.log('country', v),
+});
+
+const custom = createChipPicker({
+  icon: icons.calendar,
+  label: 'Anything',
+  value: 'Custom content',
+  width: 240,
+  content: () => {
+    const box = document.createElement('div');
+    box.innerHTML = '<p style="margin:0 0 12px">Any content goes in the panel: a form, a slider, a calendar.</p>';
+    const b = document.createElement('button');
+    b.textContent = 'Close';
+    b.className = 'lg-btn pill lg-glass liquid-glass';
+    b.addEventListener('click', () => custom.popup.close());
+    box.appendChild(b);
+    return box;
+  },
+});
+
+document.getElementById('pickers-row').append(country.el, custom.el);

@@ -5,6 +5,7 @@ export { Spring, onSpringFrame, wakeSprings } from './core/spring.js';
 export { snapGeometry, morphGeometry, hideInnerBoxInstantly, unhideInnerBox } from './core/flip-morph.js';
 export { attachLiquidGlass, initLiquidGlass } from './core/liquid-glass.js';
 export { createPillDragCore } from './core/pill-drag-core.js';
+export { createMorphPopup } from './core/morph-popup.js';
 export { haptics, setHaptics } from './core/haptics.js';
 export {
   BLUR_MODE_KEY, BLUR_STATE_EVENT,
@@ -18,3 +19,5 @@ export { createButton, createToolbar, createBackButton } from './components/butt
 export { createSegmentedControl } from './components/segmented-control.js';
 export { createToggle } from './components/toggle.js';
 export { createTabBar } from './components/tabbar.js';
+export { createChipPicker } from './components/chip-picker.js';
+export { createListPicker } from './components/list-picker.js';

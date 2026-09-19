@@ -162,6 +162,12 @@ export function initLiquidGlass() {
   document.addEventListener('pointerdown', (e) => {
     const el = e.target.closest?.('.liquid-glass');
     if (!el) return;
+    // An element wired up with attachLiquidGlass() runs its own listener, which
+    // honours its `from` / `exclude` options. Handling it here too would ignore
+    // them: a press on a panel body (say, an option in a list) would start a
+    // deform gesture and capture the pointer, so the click never reaches the
+    // option.
+    if (el._liquidGlassBound) return;
     const inner = e.target.closest(INNER_CONTROL);
     if (inner && inner !== el && el.contains(inner)) return;
     // Same `from` / `exclude` gating as attachLiquidGlass(), via attributes.

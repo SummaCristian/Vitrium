@@ -31,7 +31,7 @@ import { createBackButton, createToolbar, createSegmentedControl, createToggle, 
 
 createToolbar([{ icon: icons.star, label: 'Favourite', onClick() {} }]);
 createTabBar(container, {
-  tabs: [{ id: 'a', label: 'Available', icon: icons.calendar }, { id: 'b', label: 'Campus', icon: icons.map }],
+  tabs: [{ id: 'a', label: 'Home', icon: icons.calendar }, { id: 'b', label: 'Explore', icon: icons.map }],
   onSelect(id, { silent }) {},
   action: { label: 'Search', icon: icons.search, onClick() {} },   // optional split-off circle
 });

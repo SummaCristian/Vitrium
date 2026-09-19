@@ -7,7 +7,12 @@
   <meta name="description" content="A vanilla JS/CSS re-implementation of a Liquid Glass design system for the web." />
 </head>
 <body>
-  <main id="page"></main>
+  <div class="shell" id="shell">
+    <nav id="sidebar" aria-label="Documentation"></nav>
+    <main id="page"></main>
+    <aside id="toc" aria-label="On this page"></aside>
+  </div>
+  <div id="menu-slot"></div>
   <div id="tabbar"></div>
   <script type="module" src="./main.js"></script>
 </body>

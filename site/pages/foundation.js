@@ -1,5 +1,5 @@
 import { setGlassTint, getBlurMode, setBlurMode, applyBlurState, resolveBlurCapability, createSegmentedControl, createToggle, createSlider, createProgress } from '../../src/index.js';
-import { h } from '../dom.js';
+import { h, section } from '../dom.js';
 
 export const foundation = {
   render(root) {
@@ -25,11 +25,11 @@ export const foundation = {
     createSegmentedControl(segHost, { items: [{ value: 'a', label: 'One' }, { value: 'b', label: 'Two' }], value: 'a', selectedColor: 'accent' });
 
     root.append(
-      h('h1', {}, 'Foundation'),
-      h('section', { class: 'card' }, h('h2', {}, 'Accent'), h('p', {}, '--lg-accent is a single token. Change it and everything that follows it updates.'), h('div', { class: 'row' }, accent, resetAccent), samples),
-      h('section', { class: 'card' }, h('h2', {}, 'Theme'), h('p', {}, 'Follows the system; pin it with data-theme.'), theme),
-      h('section', { class: 'card' }, h('h2', {}, 'Blur'), h('p', {}, 'Backdrop blur is benchmarked and can be forced.'), blur),
-      h('section', { class: 'card' }, h('h2', {}, 'Tint'), h('div', { class: 'row' }, tinted, color)),
+      h('header', { class: 'doc-head' }, h('h1', {}, 'Foundation'), h('p', { class: 'lede' }, 'The tokens and switches every component builds on.')),
+      section('Accent', { card: true }, h('p', {}, '--lg-accent is a single token. Change it and everything that follows it updates.'), h('div', { class: 'row' }, accent, resetAccent), samples),
+      section('Theme', { card: true }, h('p', {}, 'Follows the system; pin it with data-theme.'), theme),
+      section('Blur', { card: true }, h('p', {}, 'Backdrop blur is benchmarked and can be forced.'), blur),
+      section('Tint', { card: true }, h('div', { class: 'row' }, tinted, color)),
     );
     createSegmentedControl(theme, {
       items: ['auto', 'light', 'dark'].map((v) => ({ value: v, label: v })), value: document.documentElement.dataset.theme ?? 'auto',

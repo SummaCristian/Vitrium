@@ -10,7 +10,10 @@ const toSvg = (data) => {
   return `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">${body}</svg>`;
 };
 
+const stroke = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">${d}</svg>`;
+
 export const navIcons = {
+  menu: stroke('<path d="M4 7h16M4 12h16M4 17h16"/>'),
   home: toSvg(Home01Icon),
   start: toSvg(BookOpen01Icon),
   foundation: toSvg(Settings02Icon),

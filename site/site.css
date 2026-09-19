@@ -74,12 +74,10 @@ body {
 #sidebar, #toc { margin-inline: -8px; padding-inline: 8px; }
 .side-group { display: grid; gap: 4px; }
 .side-group h3, #toc h3 { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.55; padding: 0 10px 4px; }
-.side-items, .toc-items { display: grid; gap: 2px; }
-.side-link, .toc-link { display: block; padding: 6px 10px; border-radius: var(--radius-sm); text-decoration: none; color: inherit; font-size: 0.95rem; opacity: 0.85; }
-.side-link:hover, .toc-link:hover { background: color-mix(in srgb, currentColor 7%, transparent); }
+.side-items { display: grid; gap: 2px; }
+.side-link { display: block; padding: 6px 10px; border-radius: var(--radius-sm); text-decoration: none; color: inherit; font-size: 0.95rem; opacity: 0.85; }
+.side-link:hover { background: color-mix(in srgb, currentColor 7%, transparent); }
 .side-link.active { background: color-mix(in srgb, var(--lg-accent) 16%, transparent); color: var(--lg-accent); font-weight: 700; opacity: 1; }
-.toc-link { font-size: 0.88rem; border-radius: 0; padding: 4px 10px; border-inline-start: 2px solid color-mix(in srgb, currentColor 12%, transparent); }
-.toc-link.active { color: var(--lg-accent); border-inline-start-color: var(--lg-accent); opacity: 1; }
 .lg-sheet .sidebar { padding: 8px 20px 24px; }
 
 /* Documentation pages */
@@ -305,3 +303,9 @@ table.tokens { table-layout: auto; }
 @media (prefers-reduced-motion: reduce) { .tp-status > span { transition: opacity 0.15s ease; scale: 1 !important; filter: none !important; } }
 .tp-pre { margin: 0; max-height: 9rem; overflow: auto; padding: 8px 10px; border-radius: 10px; font: 0.76rem/1.5 ui-monospace, 'SF Mono', Menlo, monospace; background: color-mix(in srgb, currentColor 7%, transparent); white-space: pre; -webkit-user-select: text; user-select: text; }
 .tp-note { font-size: 0.78rem; opacity: 0.65; }
+
+/* "On this page": a vertical segmented control, as the component ships (centred labels), kept within the column. */
+.toc-seg { width: fit-content; max-width: 100%; font-size: 0.84rem; }
+/* One line per label in both layers (the items and the selected-item overlay share these rules, so they stay identical),
+   with a little less side padding, so even the longest section name fits the column instead of wrapping in one layer only. */
+.toc-seg .lg-seg__item, .toc-seg .lg-pill-active-cell { white-space: nowrap; padding-inline: 0.5rem; }

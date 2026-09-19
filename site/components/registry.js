@@ -24,7 +24,7 @@ export const components = [
       options: [
         { key: 'icon', label: 'Icon', type: 'choice', choices: ['star', 'settings', 'plus'], default: 'star' },
         { key: 'tintMode', label: 'Tint', type: 'choice', choices: ['none', 'custom'], default: 'none' },
-        { key: 'color', label: 'Tint colour', type: 'color', default: '#ff375f', when: (s) => s.tintMode === 'custom' },
+        { key: 'color', label: 'Tint color', type: 'color', default: '#ff375f', when: (s) => s.tintMode === 'custom' },
       ],
       render: (s, stage) => stage.append(createButton({ icon: icons[s.icon], label: 'Demo', tint: s.tintMode === 'custom' ? s.color : undefined })),
       code: (s) => `import { createButton, icons } from 'liquid-glass-web';
@@ -49,14 +49,14 @@ document.body.append(button);`,
     abstract: 'A draggable switch with a springy thumb.',
     overview: [
       'Tap it, press Space, or drag the thumb to either end. The thumb lifts into glass while you hold it and settles on whichever end is nearer when you let go.',
-      'The on-colour defaults to the iOS green. Pass a colour to override it for one toggle, or pass "accent" to follow the system accent so it changes when --lg-accent does.',
+      'The on-color defaults to the iOS green. Pass a color to override it for one toggle, or pass "accent" to follow the system accent so it changes when --lg-accent does.',
     ],
     playground: {
-      description: 'Change the initial state or the on-colour. With accent, the toggle follows the accent picker on the Foundation page.',
+      description: 'Change the initial state or the on-color. With accent, the toggle follows the accent picker on the Foundation page.',
       options: [
         { key: 'value', label: 'Initial state', type: 'bool', default: true },
-        { key: 'colorMode', label: 'On colour', type: 'choice', choices: COLOR_MODES, default: 'default' },
-        { key: 'color', label: 'Custom colour', type: 'color', default: '#ff375f', when: (s) => s.colorMode === 'custom' },
+        { key: 'colorMode', label: 'On color', type: 'choice', choices: COLOR_MODES, default: 'default' },
+        { key: 'color', label: 'Custom color', type: 'color', default: '#ff375f', when: (s) => s.colorMode === 'custom' },
       ],
       render: (s, stage) => stage.append(createToggle({ value: s.value, color: colorOpt(s.colorMode, s.color), label: 'Demo' }).el),
       code: (s) => `import { createToggle } from 'liquid-glass-web';
@@ -69,7 +69,7 @@ document.body.append(toggle.el);`,
     api: [
       ['value', 'boolean', 'Initial state.'],
       ['label', 'string', 'Accessible name.'],
-      ['color', "CSS color | 'accent'", "On-colour of the track. 'accent' follows --lg-accent. Default: --lg-toggle-on (green). Change later with setColor()."],
+      ['color', "CSS color | 'accent'", "On-color of the track. 'accent' follows --lg-accent. Default: --lg-toggle-on (green). Change later with setColor()."],
       ['onChange', '(on: boolean) => void', 'Called when the state changes.'],
     ],
     related: ['segmented-control', 'button'],
@@ -81,14 +81,14 @@ document.body.append(toggle.el);`,
     abstract: 'A sliding-pill picker, horizontal or vertical.',
     overview: [
       'A glass track with a pill that lifts, follows your finger and snaps to the nearest segment. Items hug whatever markup they hold, so they can carry icons as well as labels.',
-      'By default the selected label uses the normal text colour. Opt in to a coloured label with selectedColor, either a CSS colour or "accent".',
+      'By default the selected label uses the normal text color. Opt in to a colored label with selectedColor, either a CSS color or "accent".',
     ],
     playground: {
-      description: 'Switch the orientation, or colour the selected label. With accent, the label follows --lg-accent.',
+      description: 'Switch the orientation, or color the selected label. With accent, the label follows --lg-accent.',
       options: [
         { key: 'orientation', label: 'Orientation', type: 'choice', choices: ['horizontal', 'vertical'], default: 'horizontal' },
         { key: 'colorMode', label: 'Selected text', type: 'choice', choices: COLOR_MODES, default: 'default' },
-        { key: 'color', label: 'Custom colour', type: 'color', default: '#ff375f', when: (s) => s.colorMode === 'custom' },
+        { key: 'color', label: 'Custom color', type: 'color', default: '#ff375f', when: (s) => s.colorMode === 'custom' },
       ],
       render(s, stage) {
         const host = h('div');
@@ -108,7 +108,7 @@ ${lines('  ', `items: [{ value: 'day', label: 'Day' }, { value: 'week', label: '
       ['items', '{ value, label }[]', 'The segments.'],
       ['value', 'any', 'Selected value.'],
       ['orientation', "'horizontal' | 'vertical'", 'Layout. Change later with setOrientation().'],
-      ['selectedColor', "CSS color | 'accent'", "Opt in to coloured text on the selected item. 'accent' follows --lg-accent. Default: normal text colour. Change later with setSelectedColor()."],
+      ['selectedColor', "CSS color | 'accent'", "Opt in to colored text on the selected item. 'accent' follows --lg-accent. Default: normal text color. Change later with setSelectedColor()."],
       ['onSelect', '(value, { silent }) => void', 'Selection callback.'],
     ],
     related: ['toggle', 'button'],

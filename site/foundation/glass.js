@@ -13,10 +13,10 @@ const MORPH_MS = 450;
 const CROSSFADE_MS = 350;
 const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// The text colour setGlassTint would pick, so the printed markup matches what's on screen.
+// The text color setGlassTint would pick, so the printed markup matches what's on screen.
 const tintText = (color) => setGlassTint(document.createElement('div'), color).style.getPropertyValue('--lg-glass-tint-text');
 
-// A fake app feed to scroll behind the glass: rows of text with coloured avatars, rows of shapes, a banner.
+// A fake app feed to scroll behind the glass: rows of text with colored avatars, rows of shapes, a banner.
 // Built twice, back to back, so a -50% slide loops with no visible seam. Purely decorative.
 const MESSAGES = [
   ['Weekend plans', 'Anyone up for a hike on Saturday? Bring water.', 12],
@@ -32,7 +32,7 @@ function buildUi() {
   const row = ([title, body, h0]) => h('div', { class: 'ui-row' },
     h('span', { class: 'ui-dot', style: `background:${hue(h0)}` }),
     h('div', {}, h('strong', {}, title), h('p', {}, body)));
-  // Sizes come from CSS (they scale with the card), so only the colour is set here.
+  // Sizes come from CSS (they scale with the card), so only the color is set here.
   const shapes = (hues) => h('div', { class: 'ui-shapes' },
     h('span', { class: 'ui-circle', style: `background:${hue(hues[0])}` }),
     h('span', { class: 'ui-square', style: `background:${hue(hues[1])}` }),
@@ -91,7 +91,7 @@ export default {
         { key: 'variant', label: 'Variant', type: 'choice', choices: ['regular', 'clear'], default: 'regular' },
         { key: 'shape', label: 'Shape', type: 'choice', choices: ['pill', 'panel', 'circle'], default: 'pill' },
         { key: 'tint', label: 'Tint', type: 'choice', choices: ['none', 'custom'], default: 'none' },
-        { key: 'color', label: 'Tint colour', type: 'color', default: '#0a7aff', when: (s) => s.tint === 'custom' },
+        { key: 'color', label: 'Tint color', type: 'color', default: '#0a7aff', when: (s) => s.tint === 'custom' },
         { key: 'press', label: 'Press physics', type: 'bool', default: true },
         { key: 'ui', label: 'Scrolling UI behind', type: 'bool', default: false },
       ],
@@ -102,7 +102,7 @@ export default {
       },
       patch(s, stage, key) {
         if (key === 'ui') { ui.classList.toggle('on', s.ui); return; }
-        // Dragging the colour picker fires constantly, so that updates live, without a fade.
+        // Dragging the color picker fires constantly, so that updates live, without a fade.
         if (key === 'variant' || key === 'tint') crossfade(stage, s); else apply(s);
       },
       code(s) {
@@ -124,15 +124,15 @@ export default {
     return [
       section('Overview', {},
         h('p', {}, 'Glass is a set of classes, not a component. Put lg-glass on any element to give it the material: a translucent, blurred tint with a lit rim, a thin gradient stroke and a soft drop shadow. Every control in the library is built on it.'),
-        h('p', {}, 'The material reads its colours from tokens, so it follows the theme, and it switches to a near-opaque fallback when backdrop blur is off.')),
+        h('p', {}, 'The material reads its colors from tokens, so it follows the theme, and it switches to a near-opaque fallback when backdrop blur is off.')),
       section('Anatomy', {},
         h('p', {}, 'A glass surface is five layers on one element: the tint, the backdrop blur, an inner rim highlight made from inset shadows, a 0.5px gradient stroke drawn outside the edge, and a drop shadow. On displays with HDR headroom the rim goes brighter than white.')),
-      section('Playground', {}, h('p', {}, 'The colourful backdrop is only here so the blur has something to work on.'), playground),
+      section('Playground', {}, h('p', {}, 'The colorful backdrop is only here so the blur has something to work on.'), playground),
       section('Classes', {},
         table(['Class', 'What it does'], [
           [h('code', {}, 'lg-glass'), 'The material.'],
           [h('code', {}, 'lg-glass--clear'), 'A lighter tint and shallower blur, for surfaces that should stay out of the way of what is behind them.'],
-          [h('code', {}, 'lg-glass--tinted'), 'Coloured glass. Set --lg-glass-tint, or call setGlassTint(), which also picks a legible text colour.'],
+          [h('code', {}, 'lg-glass--tinted'), 'Colored glass. Set --lg-glass-tint, or call setGlassTint(), which also picks a legible text color.'],
           [h('code', {}, 'lg-glass--circle'), 'Required on true circles, where the stroke ring has to be masked radially.'],
           [h('code', {}, 'liquid-glass'), 'Adds the press-and-stretch physics. See Motion.'],
         ])),

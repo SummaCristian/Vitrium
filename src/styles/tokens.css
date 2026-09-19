@@ -58,7 +58,7 @@
   --lg-text-secondary: #4a4a4f;
   --lg-text-muted: color-mix(in srgb, var(--lg-text) 55%, transparent);
 
-  /* Accent: active tab colour, focus rings. Override to brand the kit. */
+  /* Accent: active tab color, focus rings. Override to brand the kit. */
   --lg-accent: #0a7aff;
   --lg-toggle-on: #34c759;
   --lg-danger: #ff3b30;

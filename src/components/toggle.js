@@ -5,7 +5,7 @@
 import { createPillDragCore } from '../core/pill-drag-core.js';
 import { createPillParts, el } from './dom.js';
 
-// `color` is the track's on-colour: any CSS color, or 'accent' to follow the
+// `color` is the track's on-color: any CSS color, or 'accent' to follow the
 // system accent (--lg-accent, so it updates when the accent does). Omit it for
 // the default (--lg-toggle-on). setColor() changes it later; null restores the default.
 //

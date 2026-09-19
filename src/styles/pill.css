@@ -70,7 +70,7 @@
 
 /* Each duplicate is centred from JS on its cell's anchor midpoint rather than
    flex-flowed, so a sub-pixel width mismatch between the two copies can't
-   shift it inside the pill. Consumers style the content (colour, padding). */
+   shift it inside the pill. Consumers style the content (color, padding). */
 .lg-pill-active-cell {
   position: absolute;
   top: 0;

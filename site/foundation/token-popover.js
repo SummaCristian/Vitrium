@@ -1,15 +1,15 @@
-// The popover behind a click on a token value: the full value, a bigger preview, and for colours the
+// The popover behind a click on a token value: the full value, a bigger preview, and for colors the
 // equivalent HEX / RGB / HSL. One popover is shared by every cell and re-anchored to whichever was clicked.
 import { createPopover } from '../../src/index.js';
 import { h, copyText } from '../dom.js';
 
-const COLOUR = /^(#[0-9a-f]{3,8}$|rgba?\(|hsla?\(|color-mix\(|color\()/i;
-export const isColour = (v) => COLOUR.test(v) && CSS.supports('color', v);
+const COLOR = /^(#[0-9a-f]{3,8}$|rgba?\(|hsla?\(|color-mix\(|color\()/i;
+export const isColor = (v) => COLOR.test(v) && CSS.supports('color', v);
 
-// ---- colour maths -------------------------------------------------------------------------------
+// ---- color maths -------------------------------------------------------------------------------
 
-// Resolve any CSS colour (including color-mix and var()) to [r, g, b, a] by letting the browser compute it.
-function resolveColour(value) {
+// Resolve any CSS color (including color-mix and var()) to [r, g, b, a] by letting the browser compute it.
+function resolveColor(value) {
   const probe = h('span', { style: `color:${value};position:fixed;visibility:hidden` });
   document.body.append(probe);
   const c = getComputedStyle(probe).color;
@@ -28,14 +28,14 @@ function toHsl(r, g, b) {
   return [Math.round(((hue * 60) + 360) % 360), Math.round(sat * 100), Math.round(l * 100)];
 }
 
-// The colour as one short, complete string (HEX, with alpha when it has any), for a table cell. Pass a value whose
+// The color as one short, complete string (HEX, with alpha when it has any), for a table cell. Pass a value whose
 // token references are already filled in; one that still has a var() would resolve against the page's current theme.
-export function shortColour(value) {
-  return /var\(/.test(value) ? null : colourFormats(value)[0][1];
+export function shortColor(value) {
+  return /var\(/.test(value) ? null : colorFormats(value)[0][1];
 }
 
-function colourFormats(value) {
-  const [r, g, b, a] = resolveColour(value);
+function colorFormats(value) {
+  const [r, g, b, a] = resolveColor(value);
   const [R, G, B] = [r, g, b].map((n) => Math.round(Math.min(255, Math.max(0, n))));
   const alpha = Math.round(a * 1000) / 1000;
   const hex = (n) => n.toString(16).padStart(2, '0');
@@ -100,7 +100,7 @@ function preview(name, value, theme, surface) {
   if (/^--lg-blur/.test(name) && /^[\d.]+px$/.test(value)) {
     return h('div', { class: 'tp-checker tp-checker--blur' }, h('div', { class: 'tp-blur' }, h('div', { class: 'tp-blur-back', style: `filter:blur(${value})` })));
   }
-  if (isColour(value)) return h('div', { class: 'tp-checker' }, h('div', { class: 'tp-swatch', style: `background:${value}` }));
+  if (isColor(value)) return h('div', { class: 'tp-checker' }, h('div', { class: 'tp-swatch', style: `background:${value}` }));
   if (/gradient\(/.test(value)) return h('div', { class: 'tp-checker' }, h('div', { class: 'tp-swatch', style: `background:${value}` }));
   // A shadow or highlight: the element wearing it is made of the glass tint (--lg-tint) of its own theme, whichever
   // theme the page shows, so a pale rim isn't lost on a light surface. It sits on the checkerboard like the other previews.
@@ -154,17 +154,17 @@ function copyRow(label, text) {
 }
 
 function content({ name, theme, value, resolved = value, surface = 'transparent' }) {
-  const colour = isColour(resolved);
-  const formats = colour ? colourFormats(resolved) : null;
+  const color = isColor(resolved);
+  const formats = color ? colorFormats(resolved) : null;
   const shown = pretty(value);
   return h('div', { class: 'tp' },
     h('div', { class: 'tp-head' }, h('code', {}, name), h('span', { class: 'tp-theme' }, theme)),
     preview(name, resolved, theme, surface),
     h('div', { class: 'tp-rows' },
       ...(formats ?? []).map(([label, text]) => copyRow(label, text)),
-      copyRow(colour ? 'CSS' : 'Value', value),
+      copyRow(color ? 'CSS' : 'Value', value),
       copyRow('var()', `var(${name})`)),
-    !colour && shown !== value ? h('pre', { class: 'tp-pre' }, shown) : null,
+    !color && shown !== value ? h('pre', { class: 'tp-pre' }, shown) : null,
     /var\(/.test(value) ? h('p', { class: 'tp-note' }, `Refers to other tokens; previewed with their ${theme.toLowerCase()} values.`) : null);
 }
 

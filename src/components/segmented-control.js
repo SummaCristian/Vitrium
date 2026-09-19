@@ -12,9 +12,9 @@
 // setOrientation(), which morphs between the two layouts (pass
 // { animate: false } to snap).
 //
-// `selectedColor` opts into coloured text for the selected item: any CSS color,
+// `selectedColor` opts into colored text for the selected item: any CSS color,
 // or 'accent' to follow the system accent (--lg-accent, so it updates when the
-// accent does). Omit it for the default text colour. setSelectedColor() changes
+// accent does). Omit it for the default text color. setSelectedColor() changes
 // it later; null restores the default.
 import { createPillDragCore } from '../core/pill-drag-core.js';
 import { layoutMorph } from '../core/layout-morph.js';

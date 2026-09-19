@@ -1,7 +1,7 @@
 // The token reference is generated from src/styles/tokens.css, so it can't drift from the real values.
 import css from '../../src/styles/tokens.css?raw';
 import { h, section, table, codeBlock, copyText } from '../dom.js';
-import { isColour, shortColour, toggleTokenPopover } from './token-popover.js';
+import { isColor, shortColor, toggleTokenPopover } from './token-popover.js';
 
 const block = (start) => {
   const i = css.indexOf(start);
@@ -18,7 +18,7 @@ const dark = declarations(block(':root[data-theme="dark"] {'));
 const GROUPS = [
   ['Material', /^--lg-(tint|outline|shadow|specular|highlight|stroke|blur)/],
   ['Text', /^--lg-text/],
-  ['Colour', /^--lg-(accent|toggle-on|danger)$/],
+  ['Color', /^--lg-(accent|toggle-on|danger)$/],
   ['Sliding pill', /^--lg-pill/],
   ['Motion', /^--lg-(ease|press|morph)/],
   ['Shape', /^--lg-radius/],
@@ -28,8 +28,8 @@ const NOTES = {
   '--lg-tint': 'Fill of a regular glass surface.',
   '--lg-tint-clear': 'Fill of the clear variant.',
   '--lg-outline': 'Hairline outline around the surface.',
-  '--lg-shadow-color': 'Colour of the drop shadow.',
-  '--lg-specular': 'Rim highlight colour. Brighter than white on HDR displays.',
+  '--lg-shadow-color': 'Color of the drop shadow.',
+  '--lg-specular': 'Rim highlight color. Brighter than white on HDR displays.',
   '--lg-highlight': 'Inset shadows that light the rim.',
   '--lg-shadow': 'Full shadow stack of a floating surface.',
   '--lg-shadow-compact': 'Smaller shadow stack, for controls.',
@@ -39,14 +39,14 @@ const NOTES = {
   '--lg-blur-md': 'Default backdrop blur.',
   '--lg-blur-lg': 'Large backdrop blur.',
   '--lg-blur-clear': 'Blur of the clear variant.',
-  '--lg-tint-strength': 'How much of a tint colour shows on regular glass.',
+  '--lg-tint-strength': 'How much of a tint color shows on regular glass.',
   '--lg-tint-strength-clear': 'How much shows on clear glass.',
   '--lg-tint-saturate-clear': 'Saturation boost that keeps tinted clear glass from drifting in hue.',
   '--lg-text': 'Text on glass.',
   '--lg-text-secondary': 'Secondary text on glass.',
   '--lg-text-muted': 'Muted text, such as unselected labels.',
   '--lg-accent': 'Selection, focus rings, fills. Override it to brand the kit.',
-  '--lg-toggle-on': 'On-colour of the toggle track.',
+  '--lg-toggle-on': 'On-color of the toggle track.',
   '--lg-danger': 'Destructive actions.',
   '--lg-pill-bg': 'Resting fill of a sliding pill.',
   '--lg-pill-highlight': 'Highlight on the lifted pill.',
@@ -99,11 +99,11 @@ const cell = (name, theme, value) => {
     return h('span', { class: 'muted' }, 'same');
   }
   const resolved = resolveTheme(value, theme);
-  // A colour shows as its HEX, which is short enough to always fit; anything else shows as written and may wrap.
-  const colour = isColour(resolved);
-  const hex = colour && shortColour(resolved);
+  // A color shows as its HEX, which is short enough to always fit; anything else shows as written and may wrap.
+  const color = isColor(resolved);
+  const hex = color && shortColor(resolved);
   const code = h('code', { class: hex ? 'token-value token-value--hex' : 'token-value' }, hex || value);
-  const inner = colour ? [h('span', { class: 'swatch', style: `background:${resolved}` }), code] : [code];
+  const inner = color ? [h('span', { class: 'swatch', style: `background:${resolved}` }), code] : [code];
   const btn = h('button', { class: 'token-btn', type: 'button', 'aria-haspopup': 'dialog', title: value }, ...inner);
   btn.addEventListener('click', (e) => toggleTokenPopover(btn, { name, theme, value, resolved, surface: resolveTheme('var(--lg-tint)', theme) }, { fromKeyboard: e.detail === 0 }));
   return btn;
@@ -119,7 +119,7 @@ export default {
     return [
       section('Overview', {},
         h('p', {}, 'Everything is a custom property on :root, prefixed --lg-, so you can retheme by overriding any of them. The values below are read straight from the stylesheet.'),
-        h('p', {}, 'A dark value of "same" means the token does not change with the theme. Click any value to see it in full, with a larger preview and, for colours, its HEX, RGB and HSL forms.')),
+        h('p', {}, 'A dark value of "same" means the token does not change with the theme. Click any value to see it in full, with a larger preview and, for colors, its HEX, RGB and HSL forms.')),
       ...groups.map(([title, list]) => section(title, {},
         table(['Token', 'Purpose', 'Light', 'Dark'],
           list.map((n) => [nameCell(n), NOTES[n] ?? '', cell(n, 'Light', light.get(n)), cell(n, 'Dark', dark.get(n))]),

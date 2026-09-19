@@ -41,6 +41,19 @@ createTabBar(container, {
 
 `tabbar.setTabs(newTabs)` swaps the tab set in place: the bar's width animates, new tabs fade in and the pill springs to the selected tab's new position (selection is kept if that tab survives).
 
+**Fixed placement.** The tab bar is a fixed component, like a native tab bar. On narrow screens it's a row pinned to the bottom of the viewport, with the same offsets that keep it clear of Safari's dynamic toolbar and safe area (anchored off `100dvh`, lifted by 28px plus `env(safe-area-inset-bottom)`). On wide screens it's a vertical rail pinned to the top-start corner. Only the controls take pointer events, so the page behind the gaps stays interactive. Move the rail with `--lg-tabbar-rail-top` and `--lg-tabbar-rail-start` (both default `20px`), e.g. to clear a header.
+
+**Making room for it.** The component keeps two CSS variables up to date on `<html>`: `--lg-tabbar-bottom-space` (the row's height plus its clearance, `0px` for the rail) and `--lg-tabbar-start-space` (the rail's inline offset plus its width, `0px` for the row). Use them so content clears the bar:
+
+```css
+body {
+  padding-bottom: var(--lg-tabbar-bottom-space, 0px);
+  padding-inline-start: var(--lg-tabbar-start-space, 0px);
+}
+```
+
+**Orientation:** `orientation: 'auto' | 'horizontal' | 'vertical'` (default `'auto'`) and `breakpoint` (px, default `600`). In `'auto'` the bar is a rail when the viewport is at least `breakpoint` wide (it's viewport-fixed, so that's the width it lives in). `tabbar.setOrientation(mode, { animate })` changes it later, and `tabbar.orientation` reads the resolved value. Animated, it's a three-step sequence, with the steps overlapping so it reads as one motion, built from the same motions as `setTabs()`: the bar collapses to the size of the selected tab (the prominent circle slides into it), that small blob glides to its new corner, and it expands back into the full layout. The reserved-space variables update once, at the moment it starts to move, so the page doesn't reflow during the collapse.
+
 Icons and rich labels accept a Node or a **trusted** HTML/SVG string; plain labels are set as text.
 Programmatic `select()` calls are silent by default; `onSelect` still receives `{ silent: true }` on initial selection.
 

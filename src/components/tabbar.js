@@ -20,8 +20,30 @@
 // LAST tab can be prominent, and only when there are at least 3 tabs (so the
 // bar keeps at least two); otherwise the flag is ignored with a console warning.
 //
-// tabs.setTabs(newTabs) swaps the tab set in place, animating the bar's width
-// and springing the pill to its new anchor.
+// tabs.setTabs(newTabs) swaps the tab set in place, animating the bar's size
+// along its axis and springing the pill to its new anchor.
+//
+// It's a fixed component, like a native tab bar: a row pinned to the bottom of
+// the viewport, or (wide screens) a vertical rail pinned to the top-start
+// corner. The page reserves room for it through two CSS variables the
+// component keeps up to date on <html>:
+//   --lg-tabbar-bottom-space   the row's height + its clearance (0px for the rail)
+//   --lg-tabbar-start-space    the rail's inline offset + width      (0px for the row)
+//   body { padding-bottom: var(--lg-tabbar-bottom-space, 0px);
+//          padding-inline-start: var(--lg-tabbar-start-space, 0px); }
+// Set --lg-tabbar-rail-top / --lg-tabbar-rail-start to position the rail (e.g.
+// below a header).
+//
+// Orientation:
+//   orientation: 'auto' (default) | 'horizontal' | 'vertical'
+//   breakpoint:  px (default 600). In 'auto' the bar is a vertical rail when the
+//                viewport is at least this wide (the bar is viewport-fixed, so
+//                that's the width it lives in).
+//   tabs.setOrientation(mode, { animate }) changes it later (animate: false
+//   snaps). Animated, it's a three-step sequence built from the same motions as
+//   setTabs(): the bar collapses to the size of the selected tab (the prominent
+//   circle slides into it), that small blob glides to its new corner, and it
+//   expands back into the full layout.
 //
 // `icon` is a Node or trusted SVG/HTML string; `label` is set as text.
 import { createPillDragCore } from '../core/pill-drag-core.js';
@@ -30,19 +52,32 @@ import { Spring, onSpringFrame } from '../core/spring.js';
 import { haptics } from '../core/haptics.js';
 import { createPillParts, el, toNode } from './dom.js';
 
-// Spring for the bar's width when the tab set changes size.
+// Spring for the bar's size along its axis when the tab set changes size.
 const WIDTH_SPRING = { stiffness: 300, damping: 24, mass: 1 };
 
 // Spring for the bar / circle sliding to their new places when the layout changes.
 const MOVE = { stiffness: 220, damping: 20, mass: 1 };
+// The collapsed blob's trip across the screen to the other corner: softer, for a longer travel.
+const MOVE_FAR = { stiffness: 170, damping: 21, mass: 1 };
 const STRETCH_PER_PX_S = 0.00035;   // squash-and-stretch per px/s of speed...
 const STRETCH_MAX = 0.16;           // ...capped, so it stays glass and not a puddle
 
-// Stretch along the direction of travel (x), squash across it. Same recipe as
-// the liquid-glass press deform, driven by the spring's own velocity.
-const deform = (spring) => {
+// Stretch along the direction of travel, squash across it. Same recipe as the
+// liquid-glass press deform, driven by the spring's own velocity.
+const deform = (spring, vertical) => {
   const s = Math.min(Math.abs(spring.v) * STRETCH_PER_PX_S, STRETCH_MAX);
-  return `${(1 + s).toFixed(4)} ${(1 - s * 0.5).toFixed(4)}`;
+  const along = (1 + s).toFixed(4), across = (1 - s * 0.5).toFixed(4);
+  return vertical ? `${across} ${along}` : `${along} ${across}`;
+};
+
+// 2D version, for the group's glide: stretch along the direction of travel,
+// squash across it.
+const deform2 = (vx, vy) => {
+  const speed = Math.hypot(vx, vy);
+  if (!speed) return [1, 1];
+  const s = Math.min(speed * STRETCH_PER_PX_S, STRETCH_MAX);
+  const ux = Math.abs(vx) / speed, uy = Math.abs(vy) / speed;
+  return [1 + s * ux - 0.5 * s * uy, 1 + s * uy - 0.5 * s * ux];
 };
 
 const MIN_TABS_FOR_PROMINENT = 3;
@@ -59,9 +94,25 @@ function splitTabs(tabs) {
   return { main: prominent ? tabs.slice(0, -1) : tabs, prominent };
 }
 
-export function createTabBar(root, { tabs: initialTabs, value, onSelect, action } = {}) {
+export function createTabBar(root, { tabs: initialTabs, value, onSelect, action, orientation = 'auto', breakpoint = 600 } = {}) {
   root.classList.add('lg-tabbar');
 
+  // Orientation. `mode` is what the caller asked for; `vertical` is what it
+  // currently resolves to (for 'auto', from the viewport width).
+  let mode = orientation;
+  const wide = window.matchMedia(`(min-width: ${breakpoint}px)`);
+  const resolveVertical = () => mode === 'vertical' || (mode === 'auto' && wide.matches);
+  let vertical = resolveVertical();
+  root.classList.toggle('lg-tabbar--vertical', vertical);
+
+  // Main-axis helpers, so the sliding and sizing code reads the same either way.
+  const startOf = (r) => vertical ? r.top : r.left;
+  const endOf = (r) => vertical ? r.bottom : r.right;
+  const sizeOf = (r) => vertical ? r.height : r.width;
+  const mainT = (v) => vertical ? `0 ${v}px` : `${v}px 0`;
+  const sizeProp = () => vertical ? 'height' : 'width';
+
+  let allTabs = [...initialTabs];   // what the caller last asked for (the orientation sequence restores it)
   let { main: mainTabs, prominent } = splitTabs(initialTabs);
   let currentId = null;
   const tabEls = new Map();   // id -> button, reused across setTabs() so persisting tabs don't flicker
@@ -81,6 +132,19 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action 
     if (icon) btn.appendChild(el('span', 'lg-tabbar__icon')).appendChild(toNode(icon));
     btn.appendChild(el('span', 'lg-tabbar__label')).textContent = label;
     return btn;
+  }
+
+  // Keeps the lens inside the bar's rounded ends. Its corner radius is half its
+  // shorter side, so a tab narrower than it is tall (a short label like "Info")
+  // gives a smaller radius than the bar's full-pill one, and the corners poke
+  // out. In a row, give every tab a minimum width equal to the tallest tab. (In a
+  // rail, the CSS aspect-ratio does the equivalent.)
+  function sizeTabs() {
+    const tabsInBar = Array.from(items.children);
+    for (const t of tabsInBar) t.style.minWidth = '';
+    if (vertical || !tabsInBar.length) return;
+    const h = Math.max(...tabsInBar.map(t => t.offsetHeight));
+    if (h) for (const t of tabsInBar) t.style.minWidth = h + 'px';
   }
 
   // Sync the bar's buttons to `mainTabs`: keep existing ones, create new ones
@@ -114,6 +178,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action 
   const core = createPillDragCore({
     root: group, items, ...parts,
     cellSelector: '.lg-tabbar__tab',
+    axis: vertical ? 'y' : 'x',
     onChange(i, { silent }) {
       currentId = mainTabs[i].id;
       markActive();
@@ -127,47 +192,67 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action 
   // Layout-change motion. groupX / circleX are the offsets (px) the group and
   // the prominent circle still have to travel to reach their laid-out spot; a
   // spring brings each to 0 and its velocity drives the deform.
+  // The group's offset is 2D (the bar can also cross the screen when the
+  // orientation changes), plus a scale for the size change between layouts.
   const groupX = new Spring(0);
+  const groupY = new Spring(0);
+  const groupSX = new Spring(1);
+  const groupSY = new Spring(1);
   const circleX = new Spring(0);
+  const groupMoving = () => !(groupX.resting && groupY.resting && groupSX.resting && groupSY.resting);
+  let ghostsActive = 0;
   let circleMoving = false;
 
-  // The bar's own width, animated by a spring (not a CSS transition) so it
-  // shares one clock with the sliding above, and its overshoot is real physics.
-  // The tabs inside keep their natural size, so nothing needs re-measuring
-  // until it settles; refreshing every frame just churns the DOM.
-  // Fractional used width (offsetWidth rounds, which would leave a sub-pixel
-  // step when the inline width is cleared); unaffected by the group's deform.
-  const barWidth = () => parseFloat(getComputedStyle(bar).width) || 0;
+  // The bar's own size along its axis (width in a row, height in a rail),
+  // animated by a spring (not a CSS transition) so it shares one clock with the
+  // sliding above, and its overshoot is real physics. The tabs inside keep their
+  // natural size, so nothing needs re-measuring until it settles; refreshing
+  // every frame just churns the DOM.
+  // Fractional used size (offsetWidth rounds, which would leave a sub-pixel
+  // step when the inline size is cleared); unaffected by the group's deform.
+  const barSize = () => parseFloat(getComputedStyle(bar)[sizeProp()]) || 0;
   const barW = new Spring(0);
   let barAnimating = false;
+  let freezeSpace = false;   // hold the page's reserved space steady while the orientation sequence collapses
 
-  const offFrame = onSpringFrame(() => {
+  // Writes the current spring state to the DOM. Registered as a frame callback,
+  // and also called by hand right after a step of the orientation sequence sets
+  // springs up mid-frame: without that, the frame that follows would paint the
+  // new layout once before the offsets that keep it visually in place land.
+  function renderMotion() {
     if (barAnimating) {
       if (barW.resting) {
         barAnimating = false;
-        bar.style.width = '';
+        bar.style.width = bar.style.height = '';
         core.refresh();
       } else {
-        bar.style.width = `${barW.value}px`;
+        bar.style[sizeProp()] = `${barW.value}px`;
       }
     }
-    if (!groupX.resting || group.style.translate) {
-      group.style.translate = groupX.resting ? '' : `${groupX.value}px 0`;
-      group.style.scale = groupX.resting ? '' : deform(groupX);
+    if (groupMoving()) {
+      const [dfx, dfy] = deform2(groupX.v, groupY.v);
+      group.style.translate = `${groupX.value}px ${groupY.value}px`;
+      group.style.scale = `${groupSX.value * dfx} ${groupSY.value * dfy}`;
+    } else if (group.style.translate || group.style.scale) {
+      group.style.translate = group.style.scale = '';
     }
     if (pBtn && (!circleX.resting || circleMoving)) {
       // A press on the circle owns translate/scale (liquid-glass); don't fight it.
       const pressed = pBtn.classList.contains('lg-pressing') || pBtn.classList.contains('lg-dragging');
       if (!pressed) {
-        pBtn.style.translate = circleX.resting ? '' : `${circleX.value}px 0`;
-        pBtn.style.scale = circleX.resting ? '' : deform(circleX);
+        pBtn.style.translate = circleX.resting ? '' : mainT(circleX.value);
+        pBtn.style.scale = circleX.resting ? '' : deform(circleX, vertical);
       }
       circleMoving = !circleX.resting;
+      pBtn.classList.toggle('lg-tabbar__prominent--moving', circleMoving && !pressed);
     }
-  });
+  }
+  const offFrame = onSpringFrame(renderMotion);
 
   // With a prominent tab the row is laid out space-between (see tabbar.css).
-  const syncLayout = () => root.classList.toggle('lg-tabbar--split', !!pBtn);
+  // (Held on through the orientation sequence's collapse, so the bar shrinks in place.)
+  let holdSplit = false;
+  const syncLayout = () => root.classList.toggle('lg-tabbar--split', !!pBtn || holdSplit);
 
   function fillProminent() {
     pBtn.dataset.id = prominent.id;
@@ -212,19 +297,40 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action 
 
   /* --- Sizing --------------------------------------------------------------- */
   function sizeCircles() {
-    const h = bar.offsetHeight;
-    if (!h) return;
-    if (actionBtn) actionBtn.style.width = actionBtn.style.height = h + 'px';
-    if (pBtn) pBtn.style.width = pBtn.style.height = h + 'px';
+    // The circles are as thick as the bar: its height in a row, its width in a rail.
+    const t = vertical ? bar.offsetWidth : bar.offsetHeight;
+    if (!t) return;
+    if (actionBtn) actionBtn.style.width = actionBtn.style.height = t + 'px';
+    if (pBtn) pBtn.style.width = pBtn.style.height = t + 'px';
     // Exposed so sheets etc. can make their corners concentric with the bar.
-    root.style.setProperty('--lg-tabbar-height', h + 'px');
+    root.style.setProperty('--lg-tabbar-height', bar.offsetHeight + 'px');
+    root.style.setProperty('--lg-tabbar-width', bar.offsetWidth + 'px');
+  }
+
+  // Tell the page how much room the fixed bar takes, so its content can clear it.
+  function syncPageSpace() {
+    if (freezeSpace) return;
+    const de = document.documentElement.style;
+    if (vertical) {
+      const cs = getComputedStyle(root);
+      const offset = parseFloat(cs.insetInlineStart) || parseFloat(cs.left) || 0;
+      de.setProperty('--lg-tabbar-bottom-space', '0px');
+      de.setProperty('--lg-tabbar-start-space', `${offset + root.offsetWidth}px`);
+    } else {
+      // Its own height, the 28px clearance under it, and the safe area (see tabbar.css).
+      de.setProperty('--lg-tabbar-bottom-space', `calc(${root.offsetHeight}px + 28px + env(safe-area-inset-bottom))`);
+      de.setProperty('--lg-tabbar-start-space', '0px');
+    }
   }
 
   const ro = new ResizeObserver(() => {
+    sizeTabs();
     sizeCircles();
+    syncPageSpace();
     if (!barAnimating) core.refresh();
   });
   ro.observe(bar);
+  ro.observe(root);
 
   /* --- Selection ------------------------------------------------------------- */
   const inMain = (id) => mainTabs.findIndex(t => t.id === id);
@@ -251,6 +357,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action 
     if (!btn) return;
     const labelEl = btn.querySelector('.lg-tabbar__label');
     if (labelEl) labelEl.textContent = label; else btn.setAttribute('aria-label', label);
+    sizeTabs();
     core.refresh();
   }
 
@@ -269,19 +376,22 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action 
     return g;
   }
 
-  function launchGhost(node, rect, targetLeft) {
+  function launchGhost(node, rect, targetStart) {
     const sp = new Spring(0);
-    const dx = targetLeft - rect.left;
+    const dx = targetStart - startOf(rect);
+    const vert = vertical;   // fixed for this ghost's flight
     let stop = () => {};
-    const done = () => { stop(); sp.dispose(); node.remove(); };
+    ghostsActive++;
+    let over = false;
+    const done = () => { if (over) return; over = true; ghostsActive--; stop(); sp.dispose(); node.remove(); };
     stop = onSpringFrame(() => {
       const p = dx ? Math.max(0, Math.min(1, sp.value / dx)) : 1;
-      node.style.translate = `${sp.value}px 0`;
-      node.style.scale = deform(sp);
+      node.style.translate = vert ? `0 ${sp.value}px` : `${sp.value}px 0`;
+      node.style.scale = deform(sp, vert);
       node.style.opacity = String(1 - Math.max(0, (p - 0.35) / 0.65));   // fades out over the last two thirds
-      if (sp.resting) done();
+      if (sp.resting || p >= 0.97) done();   // (invisible by then; don't wait on the spring's tail)
     });
-    sp.to(dx, { stiffness: 200, damping: 22, mass: 1 });
+    sp.to(dx, { stiffness: 260, damping: 24, mass: 1 });
     setTimeout(done, 1500);   // safety net
   }
 
@@ -290,9 +400,9 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action 
   // new tabs fade in, and the pill springs to the selected tab's new anchor.
   // The selection is kept if that tab still exists; otherwise the first tab is
   // selected and onSelect fires (non-silent).
-  function setTabs(nextTabs, { value: nextValue } = {}) {
+  function applyTabs(nextTabs, { value: nextValue } = {}) {
     const previousId = nextValue ?? currentId;
-    const oldW = barWidth();
+    const oldSize = barSize();
     const oldGroup = group.getBoundingClientRect();   // for the glide below
     const oldCircle = pBtn?.getBoundingClientRect();
     let ghost = null;
@@ -314,17 +424,18 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action 
       }
     }
     syncMainEls({ enter: true });
+    sizeTabs();
     const circleIsNew = prominent && !pBtn;
     if (circleIsNew) buildProminent({ enter: true });
 
-    // Measure the new natural width, then spring from the old one to it.
-    bar.style.width = '';
-    const newW = barWidth();
-    if (oldW && newW && oldW !== newW) {
+    // Measure the new natural size, then spring from the old one to it.
+    bar.style.width = bar.style.height = '';
+    const newSize = barSize();
+    if (oldSize && newSize && oldSize !== newSize) {
       barAnimating = true;
-      bar.style.width = oldW + 'px';   // start value, in place before the next paint
-      barW.set(oldW);
-      barW.to(newW, WIDTH_SPRING);
+      bar.style[sizeProp()] = oldSize + 'px';   // start value, in place before the next paint
+      barW.set(oldSize);
+      barW.to(newSize, WIDTH_SPRING);
     } else {
       barAnimating = false;
     }
@@ -333,24 +444,32 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action 
     core.refresh();
 
     // The layout may have switched between centred and split (or the bar's
-    // width changed while centred), which moves the group. Put it back where it
+    // size changed while centred), which moves the group. Put it back where it
     // was and let a spring carry it home, deforming as it goes.
     const groupNow = group.getBoundingClientRect();
-    const dx = oldGroup.left - groupNow.left;
-    if (Math.abs(dx) > 0.5) {
+    const dx = oldGroup.left - groupNow.left, dy = oldGroup.top - groupNow.top;
+    if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
       // Rects include any offset still in flight, so the new offset stacks on it.
-      groupX.set(groupX.value + dx);
-      groupX.to(0, MOVE);
+      // Shift the value directly (not set()) so a glide already under way keeps
+      // its velocity instead of stopping dead.
+      groupX.value += dx;
+      groupY.value += dy;
+      groupX.to(0, groupMoving() ? MOVE_FAR : MOVE);
+      groupY.to(0, groupMoving() ? MOVE_FAR : MOVE);
     }
 
     // The circle emerges from the bar's edge...
     if (circleIsNew) {
       const r = pBtn.getBoundingClientRect();
-      circleX.set((oldGroup.right - r.width * 0.6) - (r.left - circleX.value));
+      circleX.set((endOf(oldGroup) - sizeOf(r) * 0.6) - (startOf(r) - circleX.value));
       circleX.to(0, MOVE);
     }
-    // ...and, leaving, slides back into it.
-    if (ghost) launchGhost(ghost, oldCircle, groupNow.right - oldCircle.width * 0.6);
+    // ...and, leaving, slides into where the bar's end will be once it has
+    // settled at its new size (not where it was, which is about to move).
+    if (ghost) {
+      const finalEnd = startOf(groupNow) + (newSize || sizeOf(groupNow));
+      launchGhost(ghost, oldCircle, finalEnd - sizeOf(oldCircle) * 0.6);
+    }
 
     // Put the selection back: same tab if it survived, else the first bar tab.
     const mi = inMain(previousId);
@@ -367,11 +486,168 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action 
       markActive();
       core.select(0, { animate: true, silent: false });
     }
+
+    renderMotion();
   }
+
+  // Replace the tab set (see applyTabs). During an orientation sequence the new
+  // set is just remembered: step 3 expands to the latest one.
+  function setTabs(nextTabs, opts) {
+    allTabs = [...nextTabs];
+    if (!orienting) applyTabs(nextTabs, opts);
+  }
+
+  /* --- Orientation ------------------------------------------------------------ */
+  // Resolves once every spring involved (bar size, group glide, circle, ghosts)
+  // has come to rest. Checked first, since with nothing running no frame fires.
+  // "Settled" means visually still: within a pixel of its target and barely
+  // moving. Springs ring far below that before they formally come to rest, and
+  // waiting for the tail would make each step of the sequence drag.
+  const near = (sp, tol) => Math.abs(sp.value - sp.target) < tol && Math.abs(sp.v) < 40;
+  const isSettled = () => (!barAnimating || near(barW, 1))
+    && near(groupX, 1) && near(groupY, 1) && near(groupSX, 0.01) && near(groupSY, 0.01)
+    && near(circleX, 1) && ghostsActive === 0;
+
+  function settled(maxMs = 3000) {
+    if (isSettled()) return Promise.resolve();
+    return new Promise(resolve => {
+      let off = () => {}, timer = 0;
+      const finish = () => { off(); clearTimeout(timer); resolve(); };
+      off = onSpringFrame(() => { if (isSettled()) finish(); });
+      timer = setTimeout(finish, maxMs);   // safety net
+    });
+  }
+
+  // Resolves as soon as `cond()` holds (checked now, then every animation frame).
+  // The orientation sequence uses this to start each step while the previous one
+  // is still finishing, so the three read as one motion.
+  function until(cond, maxMs = 3000) {
+    if (cond()) return Promise.resolve();
+    return new Promise(resolve => {
+      let off = () => {}, timer = 0;
+      const finish = () => { off(); clearTimeout(timer); resolve(); };
+      off = onSpringFrame(() => { if (cond()) finish(); });
+      timer = setTimeout(finish, maxMs);
+    });
+  }
+
+  // The layout swap itself: toggle the class and re-measure. Used directly when
+  // not animating, and as step 2 of the sequence.
+  function switchLayout(nextVertical) {
+    // The bar's size animation runs on one property (width in a row, height in
+    // a rail); finish it here, or its inline value would be orphaned when the
+    // axis flips.
+    barAnimating = false;
+    barW.set(0);
+    bar.style.width = bar.style.height = '';
+    vertical = nextVertical;
+    root.classList.toggle('lg-tabbar--vertical', vertical);
+    sizeTabs();
+    core.setAxis(vertical ? 'y' : 'x');
+    sizeCircles();
+    syncPageSpace();
+  }
+
+  let orienting = false, orientToken = 0;
+
+  // Row <-> rail, in three steps that reuse the motions of setTabs():
+  //   1. collapse: the bar shrinks to just the selected tab (the size spring),
+  //      and the prominent circle slides into it (the ghost), all in place;
+  //   2. that small blob glides to its new corner, stretching along the way,
+  //      and swaps layout on the move;
+  //   3. expand: the full tab set comes back (tabs fade in, the circle emerges).
+  // The steps overlap rather than run back to back: the move starts as the
+  // collapse is about to land, and the expansion starts once the blob is most of
+  // the way there, so it grows as it arrives and reads as one motion.
+  async function orientSequence(nextVertical) {
+    const token = ++orientToken;
+    orienting = true;
+    holdSplit = root.classList.contains('lg-tabbar--split');
+    freezeSpace = true;
+    root.classList.add('lg-tabbar--orienting');
+
+    // 1. Collapse to the selected tab. (A prominent tab collapses into the bar
+    // as an ordinary tab: it needs at least 3 to be prominent.)
+    const selected = allTabs.find(t => t.id === currentId) ?? allTabs[0];
+    applyTabs([{ ...selected, prominent: false }]);
+    await until(() => !barAnimating || Math.abs(barW.value - barW.target) < 6);
+    if (token !== orientToken) return;
+
+    // 2. Glide the blob to the new corner, and swap layout under it.
+    let travel = 0;
+    if (nextVertical !== vertical) {
+      const old = group.getBoundingClientRect();
+      switchLayout(nextVertical);
+      const now = group.getBoundingClientRect();
+      const dx = (old.left + old.width / 2) - (now.left + now.width / 2);
+      const dy = (old.top + old.height / 2) - (now.top + now.height / 2);
+      travel = Math.hypot(dx, dy);
+      groupX.set(dx);
+      groupY.set(dy);
+      groupSX.set(now.width ? old.width / now.width : 1);
+      groupSY.set(now.height ? old.height / now.height : 1);
+      groupX.to(0, MOVE_FAR); groupY.to(0, MOVE_FAR);
+      groupSX.to(1, MOVE_FAR); groupSY.to(1, MOVE_FAR);
+      renderMotion();
+    }
+    freezeSpace = false;
+    syncPageSpace();
+    await until(() => Math.hypot(groupX.value, groupY.value) < Math.max(8, travel * 0.3));
+    if (token !== orientToken) return;
+
+    // 3. Expand back into the full layout, while still arriving.
+    holdSplit = false;
+    root.classList.remove('lg-tabbar--orienting');
+    if (actionBtn) {
+      actionBtn.classList.add('lg-tabbar__action--enter');
+      actionBtn.addEventListener('animationend', () => actionBtn.classList.remove('lg-tabbar__action--enter'), { once: true });
+    }
+    applyTabs(allTabs);
+    syncLayout();
+    await settled();
+    if (token !== orientToken) return;
+    orienting = false;
+  }
+
+  function applyOrientation(nextVertical, { animate = true } = {}) {
+    if (nextVertical === vertical && !orienting) return;
+
+    // Settle anything in flight (a setTabs() animation, or an earlier sequence).
+    const wasOrienting = orienting;
+    orientToken++;
+    barAnimating = false;
+    bar.style.width = bar.style.height = '';
+    barW.set(0); groupX.set(0); groupY.set(0); groupSX.set(1); groupSY.set(1); circleX.set(0);
+    for (const node of [group, pBtn]) if (node) node.style.translate = node.style.scale = '';
+
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!animate || reduced) {
+      orienting = false;
+      holdSplit = false;
+      freezeSpace = false;
+      root.classList.remove('lg-tabbar--orienting');
+      if (nextVertical !== vertical) switchLayout(nextVertical);
+      if (wasOrienting) applyTabs(allTabs);   // an earlier sequence had collapsed it
+      syncLayout();
+      return;
+    }
+    orientSequence(nextVertical);
+  }
+
+  function setOrientation(next, opts) {
+    mode = next;
+    applyOrientation(resolveVertical(), opts);
+  }
+
+  // 'auto' follows the viewport width.
+  const onWideChange = () => { if (mode === 'auto') applyOrientation(resolveVertical()); };
+  wide.addEventListener('change', onWideChange);
 
   /* --- Init ---------------------------------------------------------------------- */
   syncMainEls();
+  sizeTabs();
   if (prominent) buildProminent();
+  syncPageSpace();
   const all = [...mainTabs, ...(prominent ? [prominent] : [])];
   currentId = all.some(t => t.id === value) ? value : mainTabs[0].id;
   markActive();
@@ -382,11 +658,21 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action 
     select,
     setLabel,
     setTabs,
+    setOrientation,
+    get orientation() { return vertical ? 'vertical' : 'horizontal'; },
     refresh(opts) { core.refresh(opts); },
     destroy() {
+      orientToken++;
+      wide.removeEventListener('change', onWideChange);
+      const de = document.documentElement.style;
+      de.removeProperty('--lg-tabbar-bottom-space');
+      de.removeProperty('--lg-tabbar-start-space');
       offFrame();
       barW.dispose();
       groupX.dispose();
+      groupY.dispose();
+      groupSX.dispose();
+      groupSY.dispose();
       circleX.dispose();
       ro.disconnect();
       core.destroy();

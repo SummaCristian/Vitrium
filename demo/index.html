@@ -17,6 +17,9 @@
     }
     @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) body { background-color: #0b0b0d; } }
     :root[data-theme="dark"] body { background-color: #0b0b0d; }
+    /* The tab bar is fixed; it publishes the room it takes, and the page clears it. */
+    body { padding-bottom: var(--lg-tabbar-bottom-space, 0px); padding-inline-start: var(--lg-tabbar-start-space, 0px); box-sizing: border-box;
+           transition: padding 0.5s var(--lg-ease-morph); }
     main { max-width: 720px; margin: 0 auto; padding: 48px 16px; display: grid; gap: 32px; }
     h1, h2 { margin: 0; }
     .row { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
@@ -55,6 +58,7 @@
 
     <h2>Tab bar</h2>
     <section class="row"><span>Tabs:</span><div id="tab-count"></div><span>Prominent last:</span><span id="prominent-toggle"></span></section>
+    <section class="row"><span>Orientation:</span><div id="orientation"></div></section>
     <div id="tabbar"></div>
 
     <section class="row" aria-label="Environment">

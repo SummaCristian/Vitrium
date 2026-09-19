@@ -55,6 +55,7 @@ const currentTabs = () => TAB_POOL.slice(0, tabCount).map((t, i) => ({ ...t, pro
 
 const tabbar = createTabBar(tabbarRoot, {
   tabs: currentTabs(),
+  orientation: new URLSearchParams(location.search).get('orientation') || 'auto',
   onSelect: (id, { silent }) => { if (!silent) console.log('tab', id); },
 });
 
@@ -77,4 +78,10 @@ let segVertical = true;
 document.getElementById('seg-flip').addEventListener('click', () => {
   segVertical = !segVertical;
   segV.setOrientation(segVertical ? 'vertical' : 'horizontal');
+});
+
+createSegmentedControl(document.getElementById('orientation'), {
+  items: ['auto', 'horizontal', 'vertical'].map(v => ({ value: v, label: v })),
+  value: new URLSearchParams(location.search).get('orientation') || 'auto',
+  onSelect: (v, { silent }) => { if (!silent) tabbar.setOrientation(v); },
 });

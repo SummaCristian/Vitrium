@@ -10,8 +10,15 @@
 //   'lens'       translate + scale, so a box also morphs between the two sizes
 //                (the pill lens)
 //   'box'        animate the element's own width/height (and border-radius)
-//                from old to new. Assumes its top-left corner stays put, so use
-//                it on the container that holds the others
+//                from old to new, anchored at its top-left corner (which also
+//                glides if the layout moves it)
+// Targets may be nested (a cell inside a bar inside a group): a child's glide
+// is corrected for its parent target's own motion, so each still travels from
+// where it visibly was to where it visibly ends up.
+//
+// The elements must not have a CSS `transition` on translate/scale while it
+// runs (this writes them every frame); .liquid-glass, for one, has a spring on
+// them and needs `transition: none` for the duration.
 // Translation uses the independent `translate` / `scale` properties, so it
 // composes with any `transform` the element already has.
 //
@@ -37,9 +44,10 @@ export function layoutMorph(targets, apply, { onDone, config = CONFIG } = {}) {
     const box = b.mode === 'box';
     return {
       ...b,
-      // Centres, so a lens scales about its middle (transform-origin: center).
-      dx: (b.r.left + b.r.width / 2) - (r1.left + r1.width / 2),
-      dy: (b.r.top + b.r.height / 2) - (r1.top + r1.height / 2),
+      // Centres, so a lens scales about its middle (transform-origin: center);
+      // top-left for a box, which is resized from that corner.
+      dx: box ? b.r.left - r1.left : (b.r.left + b.r.width / 2) - (r1.left + r1.width / 2),
+      dy: box ? b.r.top - r1.top : (b.r.top + b.r.height / 2) - (r1.top + r1.height / 2),
       sx: r1.width ? b.r.width / r1.width : 1,
       sy: r1.height ? b.r.height / r1.height : 1,
       w1: r1.width, h1: r1.height,
@@ -48,6 +56,18 @@ export function layoutMorph(targets, apply, { onDone, config = CONFIG } = {}) {
       keep: { boxSizing: b.el.style.boxSizing, borderRadius: b.el.style.borderRadius },
     };
   });
+
+  // Correct each target's glide for the translation its parent already applies.
+  // Every target's *total* visible shift is k * its own delta (by construction),
+  // so a child only has to subtract its NEAREST target ancestor's delta; that one
+  // already includes everything above it.
+  for (const it of items) {
+    const ancestors = items.filter(a => a !== it && a.el.contains(it.el));
+    // Nearest = the one no other ancestor sits inside of.
+    const parent = ancestors.find(a => !ancestors.some(o => o !== a && a.el.contains(o.el)));
+    it.edx = it.dx - (parent?.dx ?? 0);
+    it.edy = it.dy - (parent?.dy ?? 0);
+  }
 
   // Border-box sizing so the interpolated width/height match the measured boxes.
   for (const it of items) if (it.mode === 'box') it.el.style.boxSizing = 'border-box';
@@ -84,9 +104,8 @@ export function layoutMorph(targets, apply, { onDone, config = CONFIG } = {}) {
         it.el.style.width = `${it.w1 + k * (it.r.width - it.w1)}px`;
         it.el.style.height = `${it.h1 + k * (it.r.height - it.h1)}px`;
         it.el.style.borderRadius = `${Math.max(0, it.radius1 + k * (it.radius - it.radius1))}px`;
-        continue;
       }
-      it.el.style.translate = `${k * it.dx}px ${k * it.dy}px`;
+      it.el.style.translate = `${k * it.edx}px ${k * it.edy}px`;
       if (it.mode === 'lens') it.el.style.scale = `${1 + k * (it.sx - 1)} ${1 + k * (it.sy - 1)}`;
     }
     if (sp.resting) finish(true);

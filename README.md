@@ -75,6 +75,42 @@ block.addEventListener('pointerleave', () => tip.hide());
 
 A glass panel with a pointer arrow that follows wherever it ends up and scales in out of it. Positioning uses [floating-ui](https://floating-ui.com) (offset, flip, shift, arrow), a regular dependency, kept current with `autoUpdate`, so it stays attached through scrolling and resizing and flips when it would run off screen. It lives at `<body>` level with fixed positioning. Closed, it's `visibility: hidden`, out of the tab order and the accessibility tree. Keyboard: activating the trigger from the keyboard moves focus into the popover; Escape or tabbing past its last control closes it and returns focus to the trigger. Options: `placement`, `offset`, `shiftPadding`, `arrow`, `role`, `label`, `deform`, `onShow`, `onHide`. Returns `{ el, show(target?), hide(), toggle(), update(), setContent(), isOpen, destroy() }`.
 
+## Sheet
+
+```js
+import { createSheet } from 'liquid-glass-web';
+
+const sheet = createSheet({
+  label: 'Places',
+  header, content, footer,                     // Node or trusted HTML; header/footer are pinned overlays
+  detents: [{ id: 'peek', size: 192 }, { id: 'half', size: 0.5 }, { id: 'full', size: 0.85 }],
+  responsive: [{ minWidth: 600, width: 420, align: 'end', margin: { inline: 20 } }],
+  onDetentChange(id) {}, onResize(px) {},
+});
+sheet.setDetent('half');
+```
+
+A glass sheet that resizes between detents. This is the **persistent** presentation: it stays on screen, doesn't block what's behind it, and isn't dismissed. (A modal presentation with a scrim, focus trap and dismissal comes next.)
+
+- **Detents** are `{ id, size }`, where `size` is a fraction of the available height (`0.5`; `1` = all of it), pixels (`> 1`), `'full'`, or `'content'`.
+- **Gestures:** below the largest detent, a drag anywhere on the sheet resizes it (mouse, pen or touch), snapping to the nearest detent on release or the next one in the direction of a fast flick. Wheel and trackpad bursts resize it too, with flings. The grabber is a focusable `separator` (Up/Down/Home/End; Enter cycles). Focus moving into the content expands it.
+- **Content scrolls natively** (momentum, scrollbar, find-in-page, keyboard) once the sheet is at its largest detent. Pulling it down while it's scrolled to the top collapses the sheet. Because scrolling is native, a *touch* gesture picks resize or scroll once, on its first movement, and continuing past the largest detent takes a second drag; wheel gestures hand off in both directions mid-burst.
+- **Safe area:** the bottom margin is `margin.bottom` **plus** `env(safe-area-inset-bottom)`, on a fixed frame the detents are measured from. `env()` is only non-zero if the page opts in with `<meta name="viewport" content="..., viewport-fit=cover">`, so set that on iOS. The tab bar uses the same inset (its 28px clearance plus the safe area), leaving the sheet 8px lower so it wraps around it.
+- **Layout:** stretched across the bottom by default, or a fixed-width panel (`width`, `align`); `responsive` overrides them per breakpoint. `margin` sets the clearance from the viewport (the bottom also clears the safe area).
+- **Look:** the clear material below the largest detent and the regular one at it (`material`), squash/stretch from the resize velocity (`deform`), and a corner radius that eases from 38.7px at the smallest detent to 28px at the largest (a fixed-width panel stays at 28px). Override it, and the side inset, with `geometry: { radius: [min, max] | number, inset: [min, max] }`, interpolated across the travel (e.g. to sit concentric with something around the collapsed sheet).
+- **Outputs:** `onResize(px)` with the live height, `onDetentChange(id)`, and `sheet.height`, `sheet.detent`, `sheet.isGesturing`, `sheet.detentHeight(id)`, `sheet.scrollTop`.
+
+The "resize or scroll?" logic is pure and lives in `core/sheet-physics.js` (exported as `sheetPhysics`).
+
+## Testing
+
+```sh
+npm run test:unit   # Vitest: the pure physics
+npm run test:e2e    # Playwright: real mouse, wheel, touch and keyboard against the demo
+```
+
+The demo (`npm run dev`) is one page: the **Explore** tab shows the sheet over a busy backdrop, with the tab bar above it. The e2e suite uses the system Chrome and reuses a dev server already running on port 5173 (it starts, and later stops, its own otherwise).
+
 ## Development
 
 ```sh

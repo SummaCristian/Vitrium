@@ -1,4 +1,5 @@
 import '../src/styles/index.css';
+import { mountExplore } from './explore.js';
 import { createBackButton, createToolbar, createListPicker, createChipPicker, createPopover, createSegmentedControl, createToggle, createTabBar, icons, initLiquidGlass, initBlurCapability, getBlurMode, setBlurMode, applyBlurState, resolveBlurCapability } from '../src/index.js';
 
 initLiquidGlass();
@@ -53,11 +54,25 @@ let tabCount = initialTabs;
 let prominentOn = new URLSearchParams(location.search).get('prominent') !== '0';
 const currentTabs = () => TAB_POOL.slice(0, tabCount).map((t, i) => ({ ...t, prominent: prominentOn && i === tabCount - 1 }));
 
+// Tab navigation: Explore shows the sheet demo; every other tab shows the components page.
+const explore = mountExplore(document.getElementById('panel-explore'));
+function showTab(id) {
+  const isExplore = id === 'explore';
+  document.getElementById('panel-home').hidden = isExplore;
+  document.getElementById('panel-explore').hidden = !isExplore;
+  document.body.dataset.tab = id;
+  if (isExplore) explore.show(); else explore.hide();
+}
+const startTab = new URLSearchParams(location.search).get('tab');
+
 const tabbar = createTabBar(tabbarRoot, {
   tabs: currentTabs(),
   orientation: new URLSearchParams(location.search).get('orientation') || 'auto',
-  onSelect: (id, { silent }) => { if (!silent) console.log('tab', id); },
+  value: TAB_POOL.slice(0, initialTabs).some(t => t.id === startTab) ? startTab : undefined,
+  onSelect: (id, { silent }) => { showTab(id); if (!silent) console.log('tab', id); },
 });
+
+showTab(tabbar.value);
 
 createSegmentedControl(document.getElementById('tab-count'), {
   items: [2, 3, 4, 5].map(n => ({ value: n, label: String(n) })),
@@ -175,3 +190,5 @@ for (let i = 1; i <= 8; i++) {
   b.addEventListener('blur', () => hoverTip.hide());
   blocks.appendChild(b);
 }
+
+window.sheet = explore.sheet;   // for the tests and for poking at it in the console

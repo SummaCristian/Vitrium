@@ -20,10 +20,15 @@
   "scripts": {
     "dev": "vite demo",
     "build:demo": "vite build demo --outDir ../demo-dist --emptyOutDir",
-    "preview": "vite preview demo --outDir ../demo-dist"
+    "preview": "vite preview demo --outDir ../demo-dist",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
-    "vite": "^8.3.0"
+    "@playwright/test": "^1.63.0",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
   },
   "repository": {
     "type": "git",

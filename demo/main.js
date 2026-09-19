@@ -117,11 +117,16 @@ const custom = createChipPicker({
   content: () => {
     const box = document.createElement('div');
     box.innerHTML = '<p style="margin:0 0 12px">Any content goes in the panel: a form, a slider, a calendar.</p>';
-    const b = document.createElement('button');
-    b.textContent = 'Close';
-    b.className = 'lg-btn pill lg-glass liquid-glass';
-    b.addEventListener('click', () => custom.popup.close());
-    box.appendChild(b);
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:8px';
+    for (const [text, action] of [['Reset', () => console.log('reset')], ['Close', () => custom.popup.close()]]) {
+      const b = document.createElement('button');
+      b.textContent = text;
+      b.className = 'lg-btn pill lg-glass liquid-glass';
+      b.addEventListener('click', action);
+      row.appendChild(b);
+    }
+    box.appendChild(row);
     return box;
   },
 });

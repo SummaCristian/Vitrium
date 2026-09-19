@@ -15,6 +15,10 @@
 // animates it to rest: no layout or paint per frame. The trigger is hidden for
 // the duration (`.lg-morph-anim`) and its contents fade back in on close.
 //
+// A `dialog` panel traps keyboard focus while open (Tab and Shift+Tab cycle its
+// controls; focus that escapes is pulled back), since it declares itself modal.
+// Other roles, like a listbox, close on Tab instead, the way a select does.
+//
 // Every open/close bumps a sequence number, and every deferred step (rAF,
 // transitionend, cleanup timer) re-checks it, so a fast close-then-open can't
 // tear the freshly opened panel back down.
@@ -31,6 +35,11 @@ const reduceMotion = typeof matchMedia === 'function'
 let uid = 0;
 const GEOMETRY_PROPS = ['left', 'top', 'width', 'height', 'borderRadius', 'transform'];
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+const FOCUSABLE = [
+  'a[href]', 'button:not([disabled])', 'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])', 'textarea:not([disabled])', '[tabindex]:not([tabindex="-1"])',
+].join(',');
 
 function div(className, attrs) {
   const node = document.createElement('div');
@@ -177,6 +186,30 @@ export function createMorphPopup({
     for (const p of GEOMETRY_PROPS) panel.style[p] = '';
   }
 
+  // The panel's tabbable controls, in DOM order (skipping anything not rendered).
+  const focusables = () => Array.from(panel.querySelectorAll(FOCUSABLE))
+    .filter(node => node.getClientRects().length > 0);
+
+  // Focus trap (dialogs only). Tab at the last control wraps to the first,
+  // Shift+Tab at the first (or on the panel itself) wraps to the last.
+  function trapTab(e) {
+    if (e.key !== 'Tab' || role !== 'dialog') return;
+    const nodes = focusables();
+    if (!nodes.length) { e.preventDefault(); panel.focus(); return; }
+    const first = nodes[0], last = nodes[nodes.length - 1];
+    const active = document.activeElement;
+    if (e.shiftKey && (active === first || active === panel)) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus(); }
+    else if (!panel.contains(active)) { e.preventDefault(); first.focus(); }
+  }
+
+  // Focus that lands outside the open dialog anyway (a script, a click on
+  // something the overlay doesn't cover) is pulled back in.
+  function pullFocusBack(e) {
+    if (role !== 'dialog' || !isOpen || host.contains(e.target)) return;
+    (focusables()[0] ?? panel).focus({ preventScroll: true });
+  }
+
   function afterOpen() {
     if (!isOpen) return;
     panel.focus({ preventScroll: true });
@@ -187,6 +220,7 @@ export function createMorphPopup({
     if (isOpen) return;
     const mySeq = beginOp();
     isOpen = true;
+    if (role === 'dialog') document.addEventListener('focusin', pullFocusBack);
     trigger.setAttribute('aria-expanded', 'true');
     haptics.trigger('light');
     lockScroll();
@@ -242,6 +276,7 @@ export function createMorphPopup({
     if (!isOpen) return;
     const mySeq = beginOp();
     isOpen = false;
+    document.removeEventListener('focusin', pullFocusBack);
     trigger.setAttribute('aria-expanded', 'false');
     onClose?.();
 
@@ -308,6 +343,7 @@ export function createMorphPopup({
   const toggle = () => (isOpen ? close() : open());
 
   overlay.addEventListener('click', close);
+  panel.addEventListener('keydown', trapTab);
   panel.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { e.preventDefault(); close(); }
   });
@@ -315,6 +351,7 @@ export function createMorphPopup({
   function destroy() {
     beginOp();
     isOpen = false;
+    document.removeEventListener('focusin', pullFocusBack);
     unlockScroll();
     trigger.classList.remove('lg-morph-anim', 'lg-morph-content-hidden');
     trigger.setAttribute('aria-expanded', 'false');

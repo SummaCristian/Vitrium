@@ -2,11 +2,9 @@
 import { createTextField } from '../src/index.js';
 import { h } from './dom.js';
 import { components } from './components/registry.js';
+import { foundationPages } from './pages/foundation.js';
 
-const guides = [
-  { title: 'Get started', href: '#/start' },
-  { title: 'Foundation', href: '#/foundation' },
-];
+const guides = [{ title: 'Get started', href: '#/start' }];
 
 const groupsOf = () => {
   const groups = new Map();
@@ -30,6 +28,7 @@ export function buildSidebar({ onNavigate } = {}) {
 
   const tree = [
     group('Guides', guides.map((g) => link(g.title, g.href))),
+    group('Foundation', [link('Overview', '#/foundation'), ...foundationPages.map((p) => link(p.title, `#/foundation/${p.id}`))]),
     group('Components', [link('All components', '#/components')]),
     ...groupsOf().map(([name, items]) => group(name, items.map((c) => link(c.title, `#/components/${c.id}`)))),
   ];

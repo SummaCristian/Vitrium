@@ -5,7 +5,7 @@
 import { createSegmentedControl, createToggle } from '../../src/index.js';
 import { h, codeBlock } from '../dom.js';
 
-export function createPlayground({ options, render, code }) {
+export function createPlayground({ options, render, code, lang = 'js', stageClass = '' }) {
   const state = Object.fromEntries(options.map((o) => [o.key, o.default]));
   const stage = h('div', { class: 'stage' });
   const snippet = h('div');
@@ -14,7 +14,7 @@ export function createPlayground({ options, render, code }) {
   const update = () => {
     stage.replaceChildren();
     render(state, stage);
-    snippet.replaceChildren(codeBlock(code(state)));
+    snippet.replaceChildren(codeBlock(code(state), lang));
     for (const { opt, row } of rows) row.hidden = !!opt.when && !opt.when(state);
   };
   const set = (key, value) => { state[key] = value; update(); };
@@ -44,7 +44,7 @@ export function createPlayground({ options, render, code }) {
   }
   update();
   return h('div', { class: 'playground' },
-    h('div', { class: 'card stage-card' }, stage),
+    h('div', { class: `card stage-card ${stageClass}`.trim() }, stage),
     h('h3', { class: 'sub-label' }, 'Options'), h('div', { class: 'card' }, panel),
     h('h3', { class: 'sub-label' }, 'Code'), snippet);
 }

@@ -5,11 +5,14 @@ import { initLiquidGlass, initBlurCapability, createTabBar, createButton, create
 import { createRouter } from './router.js';
 import { navIcons } from './icons.js';
 import { buildSidebar, buildToc } from './nav.js';
+import { initTheme } from './theme.js';
+import { mountThemeSwitcher } from './theme-switcher.js';
 import { home } from './pages/home.js';
 import { start } from './pages/start.js';
 import { foundation } from './pages/foundation.js';
 import { componentsPage } from './pages/components.js';
 
+initTheme();
 initLiquidGlass();
 initBlurCapability();
 
@@ -60,4 +63,5 @@ tabbar = createTabBar(document.getElementById('tabbar'), {
   onSelect: (id, { silent }) => { if (!silent) location.hash = `#/${id}`; },
 });
 
+mountThemeSwitcher(document.getElementById('theme-slot'));
 router.render();

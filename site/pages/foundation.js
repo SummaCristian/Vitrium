@@ -1,43 +1,38 @@
-import { setGlassTint, getBlurMode, setBlurMode, applyBlurState, resolveBlurCapability, createSegmentedControl, createToggle, createSlider, createProgress } from '../../src/index.js';
-import { h, section } from '../dom.js';
+import { h } from '../dom.js';
+import glass from '../foundation/glass.js';
+import tokens from '../foundation/tokens.js';
+import accent from '../foundation/accent.js';
+import theme from '../foundation/theme.js';
+import tint from '../foundation/tint.js';
+import blur from '../foundation/blur.js';
+import motion from '../foundation/motion.js';
+import layout from '../foundation/layout.js';
+
+// One file per page in site/foundation/. Each exports { id, title, abstract, sections() }, where
+// sections() returns the page's `section(...)` blocks (they feed "On this page").
+// Add a page by creating a file there and listing it here, in the order it should appear.
+export const foundationPages = [glass, tokens, accent, theme, tint, blur, motion, layout];
+
+export const foundationById = (id) => foundationPages.find((p) => p.id === id);
+
+const card = (p) => h('a', { class: 'card card-link liquid-glass', href: `#/foundation/${p.id}` }, h('h3', {}, p.title), h('p', {}, p.abstract));
 
 export const foundation = {
-  render(root) {
-    const theme = h('div'); const blur = h('div');
-    const tinted = h('button', { class: 'lg-btn pill lg-glass liquid-glass' }, 'Tinted');
-    const color = h('input', { type: 'color', value: '#0a7aff', 'aria-label': 'Tint colour' });
-    const apply = () => setGlassTint(tinted, color.value);
-    color.addEventListener('input', apply); apply();
-
-    // Accent: one token, --lg-accent, drives selection, toggles, sliders and progress. An inline
-    // value on <html> beats the theme's own, so it holds across light/dark; Reset drops it.
-    const root_ = document.documentElement;
-    const currentAccent = () => getComputedStyle(root_).getPropertyValue('--lg-accent').trim();
-    const accent = h('input', { type: 'color', value: root_.style.getPropertyValue('--lg-accent').trim() || currentAccent(), 'aria-label': 'Accent colour' });
-    accent.addEventListener('input', () => root_.style.setProperty('--lg-accent', accent.value));
-    const resetAccent = h('button', { class: 'lg-btn pill lg-glass liquid-glass', type: 'button' }, 'Reset');
-    resetAccent.addEventListener('click', () => { root_.style.removeProperty('--lg-accent'); accent.value = currentAccent(); });
-    const samples = h('div', { class: 'row' });
-    const sliderHost = h('div', { style: 'width: 200px' });
-    const segHost = h('div');
-    samples.append(segHost, createToggle({ value: true, color: 'accent', label: 'Sample toggle' }).el, sliderHost, h('div', { style: 'width: 160px' }, createProgress({ value: 0.6, label: 'Sample progress' }).el));
-    sliderHost.append(createSlider({ value: 40, label: 'Sample slider' }).el);
-    createSegmentedControl(segHost, { items: [{ value: 'a', label: 'One' }, { value: 'b', label: 'Two' }], value: 'a', selectedColor: 'accent' });
-
+  render(root, [id]) {
+    const page = id && foundationById(id);
+    if (!page) {
+      root.append(
+        h('header', { class: 'doc-head' }, h('h1', {}, 'Foundation'), h('p', { class: 'lede' }, 'The tokens and switches every component builds on.')),
+        h('div', { class: 'grid' }, foundationPages.map(card)),
+      );
+      return;
+    }
     root.append(
-      h('header', { class: 'doc-head' }, h('h1', {}, 'Foundation'), h('p', { class: 'lede' }, 'The tokens and switches every component builds on.')),
-      section('Accent', { card: true }, h('p', {}, '--lg-accent is a single token. Change it and everything that follows it updates.'), h('div', { class: 'row' }, accent, resetAccent), samples),
-      section('Theme', { card: true }, h('p', {}, 'Follows the system; pin it with data-theme.'), theme),
-      section('Blur', { card: true }, h('p', {}, 'Backdrop blur is benchmarked and can be forced.'), blur),
-      section('Tint', { card: true }, h('div', { class: 'row' }, tinted, color)),
+      h('header', { class: 'doc-head' },
+        h('p', { class: 'crumbs' }, h('a', { href: '#/foundation' }, 'Foundation')),
+        h('h1', {}, page.title),
+        h('p', { class: 'lede' }, page.abstract)),
+      ...page.sections(),
     );
-    createSegmentedControl(theme, {
-      items: ['auto', 'light', 'dark'].map((v) => ({ value: v, label: v })), value: document.documentElement.dataset.theme ?? 'auto',
-      onSelect(v, { silent }) { if (silent) return; if (v === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = v; },
-    });
-    createSegmentedControl(blur, {
-      items: ['auto', 'on', 'off'].map((v) => ({ value: v, label: v })), value: getBlurMode(),
-      onSelect(v, { silent }) { if (silent) return; setBlurMode(v); applyBlurState(resolveBlurCapability()); },
-    });
   },
 };

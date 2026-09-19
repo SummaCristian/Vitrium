@@ -68,3 +68,11 @@ export const slug = (text) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').rep
 export function section(title, { card = false } = {}, ...children) {
   return h('section', { id: slug(title), class: card ? 'card' : 'doc-section' }, h('h2', {}, title), ...children);
 }
+
+// A card holding a table. Cells may be strings or nodes; a row is an array of cells.
+export function table(headers, rows, { class: cls = 'api' } = {}) {
+  return h('div', { class: 'card table-card' },
+    h('table', { class: cls },
+      h('thead', {}, h('tr', {}, headers.map((t) => h('th', {}, t)))),
+      h('tbody', {}, rows.map((r) => h('tr', {}, r.map((c) => h('td', {}, c)))))));
+}

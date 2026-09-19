@@ -5,6 +5,7 @@ import { mountExplore } from './explore.js';
 import { mountModalDemo } from './modal-demo.js';
 import { mountControlsDemo } from './controls-demo.js';
 import { createBackButton, createToolbar, createListPicker, createChipPicker, createPopover, createSegmentedControl, createToggle, createTabBar, icons, initLiquidGlass, initBlurCapability, getBlurMode, setBlurMode, applyBlurState, resolveBlurCapability } from '../src/index.js';
+import { hugeicons } from './hugeicons.js';
 
 initLiquidGlass();
 initBlurCapability();
@@ -45,11 +46,11 @@ createSegmentedControl(document.getElementById('seg'), {
 document.getElementById('controls-row').append(createToggle({ value: true, label: 'Demo toggle', onChange: (v) => console.log('toggle', v) }).el);
 
 const TAB_POOL = [
-  { id: 'home', label: 'Home', icon: icons.calendar },
-  { id: 'explore', label: 'Explore', icon: icons.map },
-  { id: 'library', label: 'Library', icon: icons.star },
-  { id: 'settings', label: 'Settings', icon: icons.settings },
-  { id: 'search', label: 'Search', icon: icons.search },
+  { id: 'home', label: 'Home', icon: hugeicons.home },
+  { id: 'explore', label: 'Explore', icon: hugeicons.explore },
+  { id: 'library', label: 'Library', icon: hugeicons.library },
+  { id: 'settings', label: 'Settings', icon: hugeicons.settings },
+  { id: 'search', label: 'Search', icon: hugeicons.search },
 ];
 
 const initialTabs = Math.min(5, Math.max(2, Number(new URLSearchParams(location.search).get('tabs')) || 3));

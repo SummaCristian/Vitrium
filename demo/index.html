@@ -18,7 +18,8 @@
     @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) body { background-color: #0b0b0d; } }
     :root[data-theme="dark"] body { background-color: #0b0b0d; }
     /* The tab bar is fixed; it publishes the room it takes, and the page clears it. */
-    body { padding-bottom: var(--lg-tabbar-bottom-space, 0px); padding-inline-start: var(--lg-tabbar-start-space, 0px); box-sizing: border-box;
+    body { padding-top: var(--lg-tabbar-top-space, 0px); padding-bottom: var(--lg-tabbar-bottom-space, 0px);
+           padding-inline: var(--lg-tabbar-start-space, 0px) var(--lg-tabbar-end-space, 0px); box-sizing: border-box;
            transition: padding 0.5s var(--lg-ease-morph); }
     /* `main { display: grid }` below would otherwise beat the browser's own [hidden] rule. */
     [hidden] { display: none !important; }
@@ -113,6 +114,7 @@
     <h2>Tab bar</h2>
     <section class="row"><span>Tabs:</span><div id="tab-count"></div><span>Prominent last:</span><span id="prominent-toggle"></span></section>
     <section class="row"><span>Orientation:</span><div id="orientation"></div></section>
+    <section class="row"><span>Row:</span><div id="place-row"></div><span>Rail:</span><div id="place-rail"></div><span>Align:</span><div id="place-align"></div></section>
     <section class="row" aria-label="Environment">
       <button class="lg-btn pill lg-glass liquid-glass" id="theme">Theme: auto</button>
       <button class="lg-btn pill lg-glass liquid-glass" id="blur">Blur: auto</button>

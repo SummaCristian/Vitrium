@@ -3,9 +3,11 @@
 
    It is a fixed component, like a native tab bar: pinned to the bottom of the
    viewport as a row on narrow screens, and to the top-start corner as a
-   vertical rail on wide ones. The page reserves room for it through
-   --lg-tabbar-bottom-space and --lg-tabbar-start-space, which the component
-   keeps up to date on <html>. */
+   vertical rail on wide ones (the `placement` option moves the row to the top
+   and the rail to the end). The page reserves room for it through
+   --lg-tabbar-{top,bottom,start,end}-space, which the component keeps up to
+   date on <html> (only the occupied side is non-zero). Each edge's clearance
+   is set with --lg-tabbar-{top,bottom,start,end}-offset. */
 
 .lg-tabbar {
   --lg-tab-color: var(--lg-text-muted);
@@ -26,12 +28,12 @@
      true viewport edge without enough raw clearance to render into. The
      safe-area-inset-bottom term is 0 in-browser, and the real home-indicator
      inset in standalone/PWA mode, where it would otherwise sit closer to the
-     true edge than intended. */
+     true edge than intended. --lg-tabbar-bottom-offset replaces the 28px. */
   position: fixed;
   left: 0;
   right: 0;
   top: 100dvh;
-  transform: translateY(calc(-100% - 28px - env(safe-area-inset-bottom)));
+  transform: translateY(calc(-100% - var(--lg-tabbar-bottom-offset, 28px) - env(safe-area-inset-bottom)));
   z-index: 20;
 
   display: flex;
@@ -154,6 +156,12 @@
   justify-content: space-between;
 }
 
+/* Held for the collapse of a row that's leaving for a rail at the end: the bar
+   gathers at the row's end (the vertical layout below resets this). */
+.lg-tabbar--gather-end {
+  justify-content: flex-end;
+}
+
 /* Prominent tab: a detached glass circle, no sliding pill. Selected = tinted
    icon. Diameter is set from JS to match the bar's own height. */
 .lg-tabbar__prominent {
@@ -260,15 +268,32 @@
   .lg-tabbar__tab--enter { animation: none; }
 }
 
+/* ---- Row at the top ---- */
+
+/* placement.row = 'top': the mirror image of the bottom row. Its clearance
+   from the top edge is --lg-tabbar-top-offset (default 20px, plus the safe
+   area), and the breathing room the bottom row keeps above its bar moves
+   below it. */
+.lg-tabbar--row-top:not(.lg-tabbar--vertical) {
+  top: calc(var(--lg-tabbar-top-offset, 20px) + env(safe-area-inset-top));
+  transform: none;
+  padding: 0 var(--lg-tabbar-inset) 0.75rem;
+}
+
 /* ---- Vertical rail ---- */
 
-/* Pinned to the top-start corner instead of the bottom. Set
-   --lg-tabbar-rail-top (default 20px) to clear a header, and
-   --lg-tabbar-rail-start (default 20px) to move it off the edge. */
+/* Pinned to the top-start corner instead of the bottom (placement.rail =
+   'end' pins it to the top-end corner). Set --lg-tabbar-top-offset (default
+   20px) to clear a header, and --lg-tabbar-start-offset /
+   --lg-tabbar-end-offset (default 20px) to move it off the edge it sits on.
+   placement.railAlign = 'center' centres it on the viewport, and 'bottom'
+   anchors it to the bottom edge (--lg-tabbar-bottom-offset).
+   --lg-tabbar-rail-top and --lg-tabbar-rail-start are older names for the
+   top and start offsets and still work. */
 .lg-tabbar--vertical {
   inset: auto;
-  inset-inline-start: var(--lg-tabbar-rail-start, 20px);
-  top: var(--lg-tabbar-rail-top, 20px);
+  inset-inline-start: var(--lg-tabbar-start-offset, var(--lg-tabbar-rail-start, 20px));
+  top: var(--lg-tabbar-top-offset, var(--lg-tabbar-rail-top, 20px));
   transform: none;
 
   flex-direction: column;
@@ -276,6 +301,23 @@
   justify-content: flex-start;
   gap: 1rem;
   padding: 0;
+}
+
+.lg-tabbar--vertical.lg-tabbar--rail-end {
+  inset-inline-start: auto;
+  inset-inline-end: var(--lg-tabbar-end-offset, 20px);
+}
+
+.lg-tabbar--vertical.lg-tabbar--align-center {
+  top: 50dvh;
+  transform: translateY(-50%);
+}
+
+/* Anchored the way the bottom row is (off 100dvh, lifted by its own height),
+   so it tracks Safari's dynamic toolbar and clears the safe area. */
+.lg-tabbar--vertical.lg-tabbar--align-bottom {
+  top: 100dvh;
+  transform: translateY(calc(-100% - var(--lg-tabbar-bottom-offset, 28px) - env(safe-area-inset-bottom)));
 }
 
 .lg-tabbar--vertical .lg-tabbar__items {
@@ -306,10 +348,13 @@
   aspect-ratio: 1;
 }
 
-/* Not near the viewport's bottom edge here, so the safe-area shadow shrink
-   (0 4px 20px) isn't needed: use the full glass shadow. */
+/* Not near the viewport's bottom edge here (a rail, or a row at the top), so
+   the safe-area shadow shrink (0 4px 20px) isn't needed: use the full glass
+   shadow. */
 .lg-tabbar--vertical .lg-tabbar__bar,
-.lg-tabbar--vertical .lg-pill.lg-pill--lifted {
+.lg-tabbar--vertical .lg-pill.lg-pill--lifted,
+.lg-tabbar--row-top .lg-tabbar__bar,
+.lg-tabbar--row-top .lg-pill.lg-pill--lifted {
   box-shadow: var(--lg-shadow);
 }
 

@@ -25,14 +25,33 @@
 //
 // It's a fixed component, like a native tab bar: a row pinned to the bottom of
 // the viewport, or (wide screens) a vertical rail pinned to the top-start
-// corner. The page reserves room for it through two CSS variables the
-// component keeps up to date on <html>:
-//   --lg-tabbar-bottom-space   the row's height + its clearance (0px for the rail)
-//   --lg-tabbar-start-space    the rail's inline offset + width      (0px for the row)
+// corner. The page reserves room for it through four CSS variables the
+// component keeps up to date on <html>; only the side the bar occupies is
+// non-zero:
+//   --lg-tabbar-bottom-space   the row's height + its clearance (bottom row)
+//   --lg-tabbar-top-space      the same, for a row at the top
+//   --lg-tabbar-start-space    the rail's inline offset + width (rail at the start)
+//   --lg-tabbar-end-space      the same, for a rail at the end
 //   body { padding-bottom: var(--lg-tabbar-bottom-space, 0px);
-//          padding-inline-start: var(--lg-tabbar-start-space, 0px); }
-// Set --lg-tabbar-rail-top / --lg-tabbar-rail-start to position the rail (e.g.
-// below a header).
+//          padding-top: var(--lg-tabbar-top-space, 0px);
+//          padding-inline-start: var(--lg-tabbar-start-space, 0px);
+//          padding-inline-end: var(--lg-tabbar-end-space, 0px); }
+// Going the other way, --lg-tabbar-{top,bottom,start,end}-offset set the bar's
+// clearance from the edge it sits on (e.g. --lg-tabbar-top-offset to clear a
+// header). Defaults: 28px bottom, 20px for the others. Call tabs.refresh()
+// after changing them so the published space follows.
+//
+// Placement:
+//   placement: { row: 'bottom' | 'top', rail: 'start' | 'end',
+//                railAlign: 'top' | 'center' | 'bottom' }
+//   (defaults: row at the bottom, rail at the start, top-aligned; every key may
+//   be omitted.) railAlign is where the rail sits along its side: from the top
+//   (--lg-tabbar-top-offset), centred in the viewport, or from the bottom
+//   (--lg-tabbar-bottom-offset plus the safe area).
+//   tabs.setPlacement(partial, { animate }) changes it later. If the layout on
+//   screen has to move, it's animated with the same three-step sequence as
+//   setOrientation() (collapse, glide to the new edge, expand); a change to the
+//   layout that isn't showing is just remembered.
 //
 // Orientation:
 //   orientation: 'auto' (default) | 'horizontal' | 'vertical'
@@ -90,6 +109,21 @@ const deform2 = (vx, vy) => {
 
 const MIN_TABS_FOR_PROMINENT = 3;
 
+const DEFAULT_PLACEMENT = { row: 'bottom', rail: 'start', railAlign: 'top' };
+const EDGES = { row: ['bottom', 'top'], rail: ['start', 'end'], railAlign: ['top', 'center', 'bottom'] };
+
+// Merges a (partial) placement onto `prev`, ignoring values that don't apply.
+function resolvePlacement(next, prev = DEFAULT_PLACEMENT) {
+  const out = { ...prev };
+  for (const key of ['row', 'rail', 'railAlign']) {
+    const v = next?.[key];
+    if (v === undefined) continue;
+    if (EDGES[key].includes(v)) out[key] = v;
+    else console.warn(`liquid-glass-web: placement.${key} must be ${EDGES[key].map(e => `'${e}'`).join(' or ')}, got '${v}'; ignoring it.`);
+  }
+  return out;
+}
+
 // Splits a tab list into the bar's tabs and the (optional) prominent one.
 function splitTabs(tabs) {
   const last = tabs[tabs.length - 1];
@@ -104,7 +138,7 @@ function splitTabs(tabs) {
 
 let tabbarUid = 0;
 
-export function createTabBar(root, { tabs: initialTabs, value, onSelect, action, orientation = 'auto', breakpoint = 600, label } = {}) {
+export function createTabBar(root, { tabs: initialTabs, value, onSelect, action, orientation = 'auto', breakpoint = 600, placement, label } = {}) {
   root.classList.add('lg-tabbar');
   const uid = ++tabbarUid;
 
@@ -115,6 +149,22 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
   const resolveVertical = () => mode === 'vertical' || (mode === 'auto' && wide.matches);
   let vertical = resolveVertical();
   root.classList.toggle('lg-tabbar--vertical', vertical);
+
+  // Placement. `place` is what the caller asked for; the classes on `root` are
+  // what's showing. They differ only while a layout change is under way: the
+  // swap happens mid-sequence, in switchLayout().
+  let place = resolvePlacement(placement);
+  const applyPlacementClasses = () => {
+    root.classList.toggle('lg-tabbar--row-top', place.row === 'top');
+    root.classList.toggle('lg-tabbar--rail-end', place.rail === 'end');
+    root.classList.toggle('lg-tabbar--align-center', place.railAlign === 'center');
+    root.classList.toggle('lg-tabbar--align-bottom', place.railAlign === 'bottom');
+  };
+  const placeMatches = () => root.classList.contains('lg-tabbar--row-top') === (place.row === 'top')
+    && root.classList.contains('lg-tabbar--rail-end') === (place.rail === 'end')
+    && root.classList.contains('lg-tabbar--align-center') === (place.railAlign === 'center')
+    && root.classList.contains('lg-tabbar--align-bottom') === (place.railAlign === 'bottom');
+  applyPlacementClasses();
 
   // Main-axis helpers, so the sliding and sizing code reads the same either way.
   const startOf = (r) => vertical ? r.top : r.left;
@@ -267,7 +317,14 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
   // With a prominent tab the row is laid out space-between (see tabbar.css).
   // (Held on through the orientation sequence's collapse, so the bar shrinks in place.)
   let holdSplit = false;
-  const syncLayout = () => root.classList.toggle('lg-tabbar--split', !!pBtn || holdSplit);
+  // ...or, when the bar is heading for a rail at the end, gathered at the row's
+  // end instead, so it collapses toward where it's going and doesn't first
+  // back away from it (see orientSequence).
+  let holdEnd = false;
+  const syncLayout = () => {
+    root.classList.toggle('lg-tabbar--split', (!!pBtn || holdSplit) && !holdEnd);
+    root.classList.toggle('lg-tabbar--gather-end', holdEnd);
+  };
 
   function fillProminent() {
     pBtn.dataset.id = prominent.id;
@@ -327,20 +384,28 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     root.style.setProperty('--lg-tabbar-width', bar.offsetWidth + 'px');
   }
 
-  // Tell the page how much room the fixed bar takes, so its content can clear it.
+  // Tell the page how much room the fixed bar takes, so its content can clear
+  // it. All four sides are published; only the one the bar sits on is non-zero.
   function syncPageSpace() {
     if (freezeSpace) return;
-    const de = document.documentElement.style;
+    const space = { top: 0, bottom: 0, start: 0, end: 0 };
     if (vertical) {
-      const cs = getComputedStyle(root);
-      const offset = parseFloat(cs.insetInlineStart) || parseFloat(cs.left) || 0;
-      de.setProperty('--lg-tabbar-bottom-space', '0px');
-      de.setProperty('--lg-tabbar-start-space', `${offset + root.offsetWidth}px`);
+      // Distance from the edge the rail sits on to its far side. Start/end are
+      // logical, so map them to the physical edge first.
+      const r = root.getBoundingClientRect();
+      const atEnd = root.classList.contains('lg-tabbar--rail-end');
+      const rtl = getComputedStyle(root).direction === 'rtl';
+      const onRight = atEnd !== rtl;
+      space[atEnd ? 'end' : 'start'] = onRight ? document.documentElement.clientWidth - r.left : r.right;
+    } else if (root.classList.contains('lg-tabbar--row-top')) {
+      space.top = root.getBoundingClientRect().bottom;
     } else {
-      // Its own height, the 28px clearance under it, and the safe area (see tabbar.css).
-      de.setProperty('--lg-tabbar-bottom-space', `calc(${root.offsetHeight}px + 28px + env(safe-area-inset-bottom))`);
-      de.setProperty('--lg-tabbar-start-space', '0px');
+      // The bottom row is lifted into place by a transform (see tabbar.css), so
+      // its resolved translation is exactly its height + clearance + safe area.
+      space.bottom = -new DOMMatrix(getComputedStyle(root).transform).m42;
     }
+    const de = document.documentElement.style;
+    for (const side in space) de.setProperty(`--lg-tabbar-${side}-space`, `${space[side]}px`);
   }
 
   const ro = new ResizeObserver(() => {
@@ -487,7 +552,8 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     // ...and, leaving, slides into where the bar's end will be once it has
     // settled at its new size (not where it was, which is about to move).
     if (ghost) {
-      const finalEnd = startOf(groupNow) + (newSize || sizeOf(groupNow));
+      // (Gathered at the end, the bar's far edge stays put as it shrinks.)
+      const finalEnd = holdEnd ? endOf(groupNow) : startOf(groupNow) + (newSize || sizeOf(groupNow));
       launchGhost(ghost, oldCircle, finalEnd - sizeOf(oldCircle) * 0.6);
     }
 
@@ -551,7 +617,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     });
   }
 
-  // The layout swap itself: toggle the class and re-measure. Used directly when
+  // The layout swap itself: toggle the classes and re-measure. Used directly when
   // not animating, and as step 2 of the sequence.
   function switchLayout(nextVertical) {
     // The bar's size animation runs on one property (width in a row, height in
@@ -562,6 +628,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     bar.style.width = bar.style.height = '';
     vertical = nextVertical;
     root.classList.toggle('lg-tabbar--vertical', vertical);
+    applyPlacementClasses();
     items.setAttribute('aria-orientation', vertical ? 'vertical' : 'horizontal');
     sizeTabs();
     core.setAxis(vertical ? 'y' : 'x');
@@ -571,7 +638,8 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
 
   let orienting = false, orientToken = 0;
 
-  // Row <-> rail, in three steps that reuse the motions of setTabs():
+  // Row <-> rail (or the same layout on the opposite edge), in three steps that
+  // reuse the motions of setTabs():
   //   1. collapse: the bar shrinks to just the selected tab (the size spring),
   //      and the prominent circle slides into it (the ghost), all in place;
   //   2. that small blob glides to its new corner, stretching along the way,
@@ -584,6 +652,9 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     const token = ++orientToken;
     orienting = true;
     holdSplit = root.classList.contains('lg-tabbar--split');
+    // A split row keeps its bar at the start; heading for the end, that would
+    // mean collapsing toward the wrong side and then crossing over.
+    holdEnd = holdSplit && !vertical && nextVertical && place.rail === 'end';
     freezeSpace = true;
     root.classList.add('lg-tabbar--orienting');
 
@@ -596,7 +667,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
 
     // 2. Glide the blob to the new corner, and swap layout under it.
     let travel = 0;
-    if (nextVertical !== vertical) {
+    if (nextVertical !== vertical || !placeMatches()) {
       const old = group.getBoundingClientRect();
       switchLayout(nextVertical);
       const now = group.getBoundingClientRect();
@@ -618,6 +689,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
 
     // 3. Expand back into the full layout, while still arriving.
     holdSplit = false;
+    holdEnd = false;
     root.classList.remove('lg-tabbar--orienting');
     if (actionBtn) {
       actionBtn.classList.add('lg-tabbar__action--enter');
@@ -630,8 +702,8 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     orienting = false;
   }
 
-  function applyOrientation(nextVertical, { animate = true } = {}) {
-    if (nextVertical === vertical && !orienting) return;
+  function applyOrientation(nextVertical, { animate = true, force = false } = {}) {
+    if (nextVertical === vertical && !orienting && !force) return;
 
     // Settle anything in flight (a setTabs() animation, or an earlier sequence).
     const wasOrienting = orienting;
@@ -645,9 +717,10 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     if (!animate || reduced) {
       orienting = false;
       holdSplit = false;
+      holdEnd = false;
       freezeSpace = false;
       root.classList.remove('lg-tabbar--orienting');
-      if (nextVertical !== vertical) switchLayout(nextVertical);
+      if (nextVertical !== vertical || !placeMatches()) switchLayout(nextVertical);
       if (wasOrienting) applyTabs(allTabs);   // an earlier sequence had collapsed it
       syncLayout();
       return;
@@ -658,6 +731,18 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
   function setOrientation(next, opts) {
     mode = next;
     applyOrientation(resolveVertical(), opts);
+  }
+
+  // Moves the row and/or the rail to another edge. Animated when the layout
+  // that's showing has to move; otherwise (only the hidden layout's edge
+  // changed) it's just remembered, and takes effect when that layout appears.
+  function setPlacement(next, opts) {
+    const prev = place;
+    place = resolvePlacement(next, place);
+    if (place.row === prev.row && place.rail === prev.rail && place.railAlign === prev.railAlign) return;
+    const shownEdgeMoved = vertical ? place.rail !== prev.rail || place.railAlign !== prev.railAlign : place.row !== prev.row;
+    if (orienting || shownEdgeMoved) applyOrientation(resolveVertical(), { ...opts, force: true });
+    else applyPlacementClasses();
   }
 
   // 'auto' follows the viewport width.
@@ -712,14 +797,17 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     setLabel,
     setTabs,
     setOrientation,
+    setPlacement,
+    get placement() { return { ...place }; },
     get orientation() { return vertical ? 'vertical' : 'horizontal'; },
-    refresh(opts) { core.refresh(opts); },
+    // Re-measures the bar; also republishes the reserved-space variables (call
+    // it after changing an --lg-tabbar-*-offset).
+    refresh(opts) { core.refresh(opts); syncPageSpace(); },
     destroy() {
       orientToken++;
       wide.removeEventListener('change', onWideChange);
       const de = document.documentElement.style;
-      de.removeProperty('--lg-tabbar-bottom-space');
-      de.removeProperty('--lg-tabbar-start-space');
+      for (const side of ['top', 'bottom', 'start', 'end']) de.removeProperty(`--lg-tabbar-${side}-space`);
       offFrame();
       barW.dispose();
       groupX.dispose();

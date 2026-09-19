@@ -41,14 +41,19 @@ createTabBar(container, {
 
 `tabbar.setTabs(newTabs)` swaps the tab set in place: the bar's width animates, new tabs fade in and the pill springs to the selected tab's new position (selection is kept if that tab survives).
 
-**Fixed placement.** The tab bar is a fixed component, like a native tab bar. On narrow screens it's a row pinned to the bottom of the viewport, with the same offsets that keep it clear of Safari's dynamic toolbar and safe area (anchored off `100dvh`, lifted by 28px plus `env(safe-area-inset-bottom)`). On wide screens it's a vertical rail pinned to the top-start corner. Only the controls take pointer events, so the page behind the gaps stays interactive. Move the rail with `--lg-tabbar-rail-top` and `--lg-tabbar-rail-start` (both default `20px`), e.g. to clear a header.
+**Fixed placement.** The tab bar is a fixed component, like a native tab bar. On narrow screens it's a row pinned to the bottom of the viewport, with the same offsets that keep it clear of Safari's dynamic toolbar and safe area (anchored off `100dvh`, lifted by `--lg-tabbar-bottom-offset`, default 28px, plus `env(safe-area-inset-bottom)`). On wide screens it's a vertical rail pinned to the top-start corner. Only the controls take pointer events, so the page behind the gaps stays interactive.
 
-**Making room for it.** The component keeps two CSS variables up to date on `<html>`: `--lg-tabbar-bottom-space` (the row's height plus its clearance, `0px` for the rail) and `--lg-tabbar-start-space` (the rail's inline offset plus its width, `0px` for the row). Use them so content clears the bar:
+**Choosing the edge.** `placement: { row: 'bottom' | 'top', rail: 'start' | 'end', railAlign: 'top' | 'center' | 'bottom' }` (defaults `'bottom'`, `'start'` and `'top'`; every key may be omitted) picks the edge each layout sits on (`railAlign` is where the rail sits along its side: from the top, centred in the viewport, or from the bottom), and `tabbar.setPlacement({ row: 'top' })` changes it later, reading back through `tabbar.placement`. When the layout on screen has to move, it animates with the same collapse, glide and expand sequence as `setOrientation()` (`{ animate: false }` snaps); a change to the layout that isn't showing is remembered until it appears. The orientation logic (`orientation`, `breakpoint`) still decides row or rail, so the two options combine: for instance a top row on phones and an end rail on desktop.
+
+**Offsets.** Each edge's clearance is a CSS variable: `--lg-tabbar-bottom-offset` (default `28px`; also the rail's distance from the bottom when `railAlign` is `'bottom'`), `--lg-tabbar-top-offset` (default `20px`; it applies to a top row and to the rail's distance from the top, e.g. to clear a header), and `--lg-tabbar-start-offset` / `--lg-tabbar-end-offset` (default `20px`, the rail's distance from the edge it sits on). `--lg-tabbar-rail-top` and `--lg-tabbar-rail-start` still work as older names for the top and start offsets. Call `tabbar.refresh()` after changing an offset so the published space below follows.
+
+**Making room for it.** The component keeps four CSS variables up to date on `<html>`, one per side: `--lg-tabbar-bottom-space`, `--lg-tabbar-top-space`, `--lg-tabbar-start-space` and `--lg-tabbar-end-space`. Only the side the bar occupies is non-zero, and it's the bar's size plus its clearance from that edge, so other UI (a header, a footer, a side panel) can read them too. Use them so content clears the bar:
 
 ```css
 body {
+  padding-top: var(--lg-tabbar-top-space, 0px);
   padding-bottom: var(--lg-tabbar-bottom-space, 0px);
-  padding-inline-start: var(--lg-tabbar-start-space, 0px);
+  padding-inline: var(--lg-tabbar-start-space, 0px) var(--lg-tabbar-end-space, 0px);
 }
 ```
 

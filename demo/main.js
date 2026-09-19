@@ -70,6 +70,7 @@ const startTab = new URLSearchParams(location.search).get('tab');
 const tabbar = createTabBar(tabbarRoot, {
   tabs: currentTabs(),
   orientation: new URLSearchParams(location.search).get('orientation') || 'auto',
+  placement: { row: new URLSearchParams(location.search).get('row') || undefined, rail: new URLSearchParams(location.search).get('rail') || undefined, railAlign: new URLSearchParams(location.search).get('align') || undefined },
   value: TAB_POOL.slice(0, initialTabs).some(t => t.id === startTab) ? startTab : undefined,
   onSelect: (id, { silent }) => { showTab(id); if (!silent) console.log('tab', id); },
 });
@@ -102,6 +103,14 @@ createSegmentedControl(document.getElementById('orientation'), {
   value: new URLSearchParams(location.search).get('orientation') || 'auto',
   onSelect: (v, { silent }) => { if (!silent) tabbar.setOrientation(v); },
 });
+
+for (const [id, key, edges] of [['place-row', 'row', ['bottom', 'top']], ['place-rail', 'rail', ['start', 'end']], ['place-align', 'railAlign', ['top', 'center', 'bottom']]]) {
+  createSegmentedControl(document.getElementById(id), {
+    items: edges.map(v => ({ value: v, label: v })),
+    value: tabbar.placement[key],
+    onSelect: (v, { silent }) => { if (!silent) tabbar.setPlacement({ [key]: v }); },
+  });
+}
 
 // Pickers
 const country = createListPicker({

@@ -1,16 +1,21 @@
-import { createSheet } from '../src/index.js';
+import { createSheet, createListPicker } from '../src/index.js';
 
 // The Explore tab: a busy, interactive backdrop standing in for a map, with the persistent
 // sheet over it. The sheet must not block the backdrop.
 export function mountExplore(root) {
   root.innerHTML = `
     <div id="backdrop">
-      <button class="marker" id="m1" style="left: 12%; top: 18%">A</button>
-      <button class="marker" id="m2" style="left: 70%; top: 24%">B</button>
-      <button class="marker" id="m3" style="left: 42%; top: 40%">C</button>
+      <button class="marker" id="m1" style="left: 12%; top: 34%">A</button>
+      <button class="marker" id="m2" style="left: 70%; top: 30%">B</button>
+      <button class="marker" id="m3" style="left: 42%; top: 46%">C</button>
     </div>
     <div id="readout">
       detent <b id="detent-out">-</b> &middot; height <b id="height-out">-</b> &middot; markers <b id="marker-count">0</b> &middot; header <b id="header-count">0</b>
+    </div>
+    <div id="controls">
+      <fieldset><legend>Places sheet</legend>
+        <div id="side-slot"></div>
+      </fieldset>
     </div>`;
   const $ = (id) => document.getElementById(id);
   let markerCount = 0;
@@ -54,13 +59,22 @@ export function mountExplore(root) {
       { id: 'half', size: 0.5 },
       { id: 'full', size: 0.85 },
     ],
-    responsive: [{ minWidth: 600, width: 420, align: 'end', margin: { inline: 20 } }],
+    responsive: [{ minWidth: 600, width: 420, margin: { inline: 20 } }],
     material: params.get('material') || 'auto',
     onDetentChange: (id) => { $('detent-out').textContent = id; },
     onResize: (px) => { $('height-out').textContent = String(Math.round(px)); },
   });
   $('detent-out').textContent = sheet.detent;
   $('height-out').textContent = String(Math.round(sheet.height));
+
+  // Each sheet has its own side and settings.
+  const sidePicker = createListPicker({
+    label: 'Preferred side (desktop)', value: 'end',
+    options: [{ value: 'end', label: 'End' }, { value: 'center', label: 'Center' }, { value: 'start', label: 'Start' }],
+    onChange: (v) => sheet.setSide(v),
+  });
+  sidePicker.el.id = 'side-picker';
+  $('side-slot').appendChild(sidePicker.el);
 
   sheet.setHidden(true);
   return {

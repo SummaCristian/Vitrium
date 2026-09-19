@@ -7,7 +7,7 @@
 .lg-sheet-shield {
   position: fixed;
   inset: 0;
-  z-index: calc(var(--lg-z-sheet, 900) - 1);
+  z-index: calc(var(--lg-z-sheet, 900) - 2);
   pointer-events: none;
 }
 
@@ -17,9 +17,36 @@
 
 /* setHidden() uses the `hidden` attribute; these elements set `position`, not `display`, but say so anyway. */
 .lg-sheet-shield[hidden],
+.lg-sheet-scrim[hidden],
 .lg-sheet-frame[hidden] {
   display: none;
 }
+
+/* The dimming layer behind a modal sheet. The element's own opacity follows the
+   fade-in, per frame; the dim fades in and out separately (`is-blocking`), so a
+   sheet that lets the page stay usable at small detents doesn't dim it then. */
+.lg-sheet-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--lg-z-sheet, 900) - 1);
+  pointer-events: none;
+  opacity: 0;
+}
+
+.lg-sheet-scrim__dim {
+  position: absolute;
+  inset: 0;
+  background: var(--lg-scrim, rgb(0 0 0 / 0.32));
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.lg-sheet-scrim.is-blocking { pointer-events: auto; }
+.lg-sheet-scrim--clear .lg-sheet-scrim__dim { display: none; }
+.lg-sheet-scrim.is-blocking .lg-sheet-scrim__dim { opacity: 1; }
+
+/* A dismissed sheet is fully off screen: out of the tab order and the accessibility tree too. */
+.lg-sheet-frame.is-offscreen { visibility: hidden; }
 
 /* The region the sheet may occupy: the viewport minus the margins. Its height is
    what the detents' fractions are fractions of. */
@@ -63,9 +90,13 @@
   right: auto;
 }
 
-.lg-sheet[data-layout="panel"][data-align="end"] { right: calc(var(--lg-sheet-inline, 8px) + var(--lg-sheet-inset, 0px)); }
-.lg-sheet[data-layout="panel"][data-align="start"] { left: calc(var(--lg-sheet-inline, 8px) + var(--lg-sheet-inset, 0px)); }
-.lg-sheet[data-layout="panel"][data-align="center"] { left: 50%; translate: -50% 0; }
+/* Logical, so start/end follow the writing direction. Centering with auto margins
+   rather than a transform keeps the sheet transform-free. */
+.lg-sheet[data-layout="panel"][data-side="end"] { inset-inline-end: calc(var(--lg-sheet-inline, 8px) + var(--lg-sheet-inset, 0px)); }
+.lg-sheet[data-layout="panel"][data-side="start"] { inset-inline-start: calc(var(--lg-sheet-inline, 8px) + var(--lg-sheet-inset, 0px)); }
+.lg-sheet[data-layout="panel"][data-side="center"] { inset-inline: 0; margin-inline: auto; }
+
+.lg-sheet:focus { outline: none; }
 
 .lg-sheet__glass {
   position: absolute;

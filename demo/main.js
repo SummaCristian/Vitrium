@@ -1,5 +1,6 @@
 import '../src/styles/index.css';
 import { mountExplore } from './explore.js';
+import { mountModalDemo } from './modal-demo.js';
 import { createBackButton, createToolbar, createListPicker, createChipPicker, createPopover, createSegmentedControl, createToggle, createTabBar, icons, initLiquidGlass, initBlurCapability, getBlurMode, setBlurMode, applyBlurState, resolveBlurCapability } from '../src/index.js';
 
 initLiquidGlass();
@@ -54,14 +55,15 @@ let tabCount = initialTabs;
 let prominentOn = new URLSearchParams(location.search).get('prominent') !== '0';
 const currentTabs = () => TAB_POOL.slice(0, tabCount).map((t, i) => ({ ...t, prominent: prominentOn && i === tabCount - 1 }));
 
-// Tab navigation: Explore shows the sheet demo; every other tab shows the components page.
+// Tab navigation: Explore shows the persistent sheet demo; every other tab shows the components page (with the modal sheet demo).
 const explore = mountExplore(document.getElementById('panel-explore'));
+const modalDemo = mountModalDemo(document.getElementById('modal-demo'));
 function showTab(id) {
   const isExplore = id === 'explore';
   document.getElementById('panel-home').hidden = isExplore;
   document.getElementById('panel-explore').hidden = !isExplore;
   document.body.dataset.tab = id;
-  if (isExplore) explore.show(); else explore.hide();
+  if (isExplore) { explore.show(); modalDemo.hide(); } else { explore.hide(); modalDemo.show(); }
 }
 const startTab = new URLSearchParams(location.search).get('tab');
 
@@ -191,4 +193,5 @@ for (let i = 1; i <= 8; i++) {
   blocks.appendChild(b);
 }
 
-window.sheet = explore.sheet;   // for the tests and for poking at it in the console
+window.sheet = explore.sheet;
+window.modalSheet = modalDemo.modalSheet;   // for the tests and for poking at it in the console

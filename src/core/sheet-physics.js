@@ -236,3 +236,15 @@ export function createWheelArbiter({ flingVelocity = DEFAULTS.flingVelocity, now
     get velocity() { return vel; },
   };
 }
+
+// Whether releasing a drag that pulled the sheet below its smallest detent should
+// dismiss it. `pulled` is how far past the smallest detent it was dragged (px),
+// `height` the smallest detent's height, `velocity` the release velocity (px/ms,
+// + = moving down). A long enough pull dismisses; so does any quick downward flick
+// that had started to leave; a short, slow pull springs back.
+export function shouldDismiss({ pulled, height, velocity, flingVelocity = DEFAULTS.flingVelocity }) {
+  if (pulled <= 1) return false;
+  if (velocity < -flingVelocity) return false;               // flicked back up
+  if (velocity > flingVelocity && pulled > 8) return true;
+  return pulled > Math.max(56, height * 0.33);
+}

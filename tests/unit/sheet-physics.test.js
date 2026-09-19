@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   rubber, withGive, resolveDetents, nearestDetent, nextDetent, flungDetent,
-  createDragArbiter, createWheelArbiter, DEFAULTS,
+  createDragArbiter, createWheelArbiter, shouldDismiss, DEFAULTS,
 } from '../../src/core/sheet-physics.js';
 
 // A clock the tests advance by hand.
@@ -263,5 +263,22 @@ describe('wheel arbiter', () => {
     expect(w.committed).toBe(true);
     w.settled();
     expect(w.tick({ ...base, deltaY: 10 }).action).toBe('resize');
+  });
+});
+
+describe('shouldDismiss', () => {
+  const base = { height: 192, velocity: 0 };
+  it('springs back from a short slow pull', () => {
+    expect(shouldDismiss({ ...base, pulled: 30 })).toBe(false);
+  });
+  it('dismisses after a long pull', () => {
+    expect(shouldDismiss({ ...base, pulled: 80 })).toBe(true);
+  });
+  it('dismisses on a quick downward flick', () => {
+    expect(shouldDismiss({ ...base, pulled: 20, velocity: 1 })).toBe(true);
+  });
+  it('does not dismiss when flicked back up, or when nothing was pulled', () => {
+    expect(shouldDismiss({ ...base, pulled: 100, velocity: -1 })).toBe(false);
+    expect(shouldDismiss({ ...base, pulled: 0, velocity: 2 })).toBe(false);
   });
 });

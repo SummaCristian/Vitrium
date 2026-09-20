@@ -23,6 +23,7 @@
 //
 // Returns { el, value, set(v, { silent }), setDisabled(bool), destroy() }.
 import { Spring, onSpringFrame } from '../core/spring.js';
+import { isLifted, applyLift } from '../core/lift.js';
 import { rubber } from '../core/sheet-physics.js';
 import { clamp, snapToStep, toFraction, fromFraction } from '../core/value-math.js';
 import { el } from './dom.js';
@@ -115,13 +116,13 @@ export function createSlider({
     thumbs.forEach((t) => {
       const v = fresh ? 0 : (t.pos.value - t.lastPos) / dt;
       t.lastPos = t.pos.value;
-      const lifted = t.scale.value > 1.001;
+      const lifted = isLifted(t.scale.value);
       const target = lifted ? Math.min(Math.abs(v) * STRETCH_GAIN, STRETCH_MAX) : 0;
       t.stretch = lifted ? t.stretch + (target - t.stretch) * 0.3 : 0;
       const s = t.scale.value;
       t.node.style.transform = `translate(${dir * t.pos.value}px, ${t.cross.value}px)`;
       t.pill.style.transform = `scale(${s * (1 + t.stretch)}, ${s * (1 - 0.5 * t.stretch)})`;
-      t.pill.classList.toggle('lg-pill--lifted', lifted || (keyboardFocus && document.activeElement === t.node));
+      applyLift(t.pill, s, TAP_SCALE, { held: keyboardFocus && document.activeElement === t.node });
       t.node.style.zIndex = lifted ? '1' : '';
     });
 

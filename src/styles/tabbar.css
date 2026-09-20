@@ -383,11 +383,8 @@
    the safe-area shadow shrink (0 4px 20px) isn't needed: use the full glass
    shadow. */
 .lg-tabbar--vertical .lg-tabbar__bar,
-.lg-tabbar--vertical .lg-pill.lg-pill--lifted,
 .lg-tabbar--compact .lg-tabbar__bar,
-.lg-tabbar--compact .lg-pill.lg-pill--lifted,
-.lg-tabbar--row-top .lg-tabbar__bar,
-.lg-tabbar--row-top .lg-pill.lg-pill--lifted {
+.lg-tabbar--row-top .lg-tabbar__bar {
   box-shadow: var(--lg-shadow);
 }
 

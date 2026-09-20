@@ -11,11 +11,19 @@
   border-radius: var(--lg-radius-pill);
   will-change: transform;
   transform-origin: center;
-  transition: box-shadow 0.15s ease, opacity 0.15s ease;
+  transition: opacity 0.15s ease;
+
+  /* Elevation, 0 (resting) to 1 (fully lifted): set every frame by the core from
+     the scale spring, so the drop shadow rises and settles with the scale and
+     reads as a change in height. It is never transitioned itself. */
+  --lg-lift: 0;
+  --lg-lift-drop: 0 calc(6px * var(--lg-lift)) calc(24px * var(--lg-lift)) 0
+    color-mix(in srgb, var(--lg-shadow-color-strong) calc(var(--lg-lift) * 100%), transparent);
+  box-shadow: var(--lg-lift-drop);
 }
 
 .lg-pill.lg-pill--lifted {
-  box-shadow: var(--lg-shadow-compact);
+  box-shadow: 0 0 0 0.1px var(--lg-outline), var(--lg-highlight), var(--lg-lift-drop);
 }
 
 .lg-pill::after {

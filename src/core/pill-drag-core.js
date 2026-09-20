@@ -20,6 +20,7 @@
 // Measurement uses offset* (not getBoundingClientRect) so it stays correct
 // while an ancestor is mid-transform, e.g. a modal mid morph-open.
 import { Spring, onSpringFrame } from './spring.js';
+import { isLifted, applyLift } from './lift.js';
 
 const RAIL_GIVE = 11;             // elastic px the pill can be pulled past the end anchors
 const CROSS_GIVE = 5;             // elastic px the pill can be pulled off its rail
@@ -33,7 +34,6 @@ const TRAIL = {
 const DRAG_OVERSHOOT = 8;
 const HOLD_MS = 130;              // press-and-hold before an unselected cell grabs the pill
 const ENGAGE_MOVE = 6;            // ...or this much finger travel, whichever comes first
-const LIFT_THRESHOLD = 1.001;
 
 // Asymptotic rubber-band (approaches ±give, never past it).
 const rubber = (x, give) => (x * give) / (give + Math.abs(x));
@@ -219,7 +219,7 @@ export function createPillDragCore({
     lastMainVal = pillPos.value;
     lastCrossVal = crossOff.value;
 
-    const lifted = scale.value > LIFT_THRESHOLD;
+    const lifted = isLifted(scale.value);
     const speed = Math.hypot(vMain, vCross);
     const targetStretch = lifted ? Math.min(speed * STRETCH_GAIN, STRETCH_MAX) : 0;
     smoothStretch = lifted ? smoothStretch + (targetStretch - smoothStretch) * 0.3 : 0;
@@ -242,9 +242,8 @@ export function createPillDragCore({
     pill.style.opacity = index >= 0 ? '1' : '0';
     // With no selection the hit overlay must not sit on top of a cell and eat its clicks.
     hit.style.pointerEvents = index >= 0 ? '' : 'none';
-    // Full glass look only while lifted; flat at rest. Checking scale.value
-    // (not scale.resting) also covers reduced-motion, where to() snaps.
-    pill.classList.toggle(liftedClass, lifted);
+    // Full glass look only while lifted; flat at rest.
+    applyLift(pill, s, tapScale, { liftedClass });
     activeRow.style.transform = vertical
       ? `translateY(${-pillPos.value}px) translateX(${-crossOff.value}px)`
       : `translateX(${-pillPos.value}px) translateY(${-crossOff.value}px)`;

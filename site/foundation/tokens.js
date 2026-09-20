@@ -29,6 +29,7 @@ const NOTES = {
   '--lg-tint-clear': 'Fill of the clear variant.',
   '--lg-outline': 'Hairline outline around the surface.',
   '--lg-shadow-color': 'Color of the drop shadow.',
+  '--lg-shadow-color-strong': 'Stronger drop shadow color. A lifted lens fades it in as it rises.',
   '--lg-specular': 'Rim highlight color. Brighter than white on HDR displays.',
   '--lg-highlight': 'Inset shadows that light the rim.',
   '--lg-shadow': 'Full shadow stack of a floating surface.',

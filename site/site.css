@@ -64,6 +64,10 @@ body {
 /* The button that folds the sidebar: at the top right of the sidebar when it is open, and (the same element, moved there and
    animated across) in the top-left corner of the window when it is folded. */
 .sidebar-head { display: flex; justify-content: flex-end; align-items: center; min-height: 2.5rem; }
+.sidebar-head, .sidebar-search { position: sticky; z-index: 2; }
+.sidebar-head { top: 0; }
+.sidebar-search { top: 0; }
+#sidebar .sidebar-search { top: 56px; }
 .sidebar-toggle { width: 2.5rem; height: 2.5rem; }
 .sidebar-toggle > svg { width: 1.25rem; height: 1.25rem; }
 #sidebar-slot { position: fixed; z-index: 30; top: 25px; inset-inline-start: 28px; }
@@ -596,7 +600,7 @@ body.sheet-preview h1, body.sheet-preview p { color: #fff; text-shadow: 0 1px 4p
 .cart-total { font-weight: 700; justify-content: space-between; }
 
 /* Progress page */
-.progress-host { width: min(100%, 420px); }
+.progress-host { width: min(100%, 420px); display: flex; justify-content: center; }
 .progress-stack { width: 100%; }
 .progress-kinds { display: grid; gap: 18px; width: 100%; }
 .progress-kinds > div { display: grid; gap: 8px; }

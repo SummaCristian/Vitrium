@@ -68,7 +68,7 @@ export function buildSidebar({ onNavigate } = {}) {
   };
 
   const tree = h('ul', { class: 'tree' }, treeData().map((n) => build(n, 0, [])));
-  root.append(search.el, h('nav', { 'aria-label': 'Documentation' }, tree));
+  root.append(h('div', { class: 'sidebar-search' }, search.el), h('nav', { 'aria-label': 'Documentation' }, tree));
 
   // Show each branch as open or folded. Folded ones are taken out of the tab order and the accessibility tree (`inert`),
   // since they are only clipped to zero height. While filtering, every branch with a match is held open.

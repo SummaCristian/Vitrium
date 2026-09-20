@@ -419,3 +419,15 @@ html.zoom-lock { overflow: hidden; }
 code.ic { font: 0.88em ui-monospace, 'SF Mono', Menlo, monospace; padding: 0.12em 0.4em; border-radius: 6px; white-space: nowrap;
   color: var(--text-color-primary); background: color-mix(in srgb, currentColor 8%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 10%, transparent); }
+
+/* List <-> detail: the card and the pane morph into each other (see router.js); the rest of the page cross-fades. */
+::view-transition-group(page-zoom) { animation-duration: 0.5s; animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); overflow: hidden; border-radius: var(--radius-xl); }
+/* Normal blending instead of the default additive cross-fade, which brightens wherever the two snapshots overlap. */
+::view-transition-old(page-zoom), ::view-transition-new(page-zoom) { animation-duration: 0.5s; animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); animation-fill-mode: both; mix-blend-mode: normal; }
+/* Closing a long page: the box starts page-sized, so the card's snapshot is stretched (huge and blurry) until it shrinks.
+   The page fades out first and the card only fades in once it's gone. */
+:root[data-zoom="close"]::view-transition-old(page-zoom) { animation: page-zoom-out 0.2s ease-out both; }
+:root[data-zoom="close"]::view-transition-new(page-zoom) { animation: page-zoom-in 0.25s ease-out 0.2s both; }
+@keyframes page-zoom-out { to { opacity: 0; } }
+@keyframes page-zoom-in { from { opacity: 0; } }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.25s; }

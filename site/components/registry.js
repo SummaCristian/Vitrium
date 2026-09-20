@@ -5,6 +5,7 @@ import sliderPage from './slider.js';
 import chipPickerPage from './chip-picker.js';
 import listPickerPage from './list-picker.js';
 import alertPage from './alert.js';
+import menuPage from './menu.js';
 import popoverPage from './popover.js';
 import tabbarPage from './tabbar.js';
 import sheetPage from './sheet.js';
@@ -74,6 +75,14 @@ export const components = [
     abstract: 'A fixed glass bar of tabs, as a row, a rail or one compact bar.',
     page: tabbarPage,
     related: ['segmented-control', 'button'],
+  },
+  {
+    id: 'menu',
+    group: 'Overlays',
+    title: 'Menu',
+    abstract: 'A button that morphs into a list of actions.',
+    page: menuPage,
+    related: ['popover', 'list-picker'],
   },
   {
     id: 'alert',

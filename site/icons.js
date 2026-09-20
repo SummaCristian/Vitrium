@@ -11,6 +11,11 @@ import Calendar01Icon from '@hugeicons/core-free-icons/Calendar01Icon';
 import LeftToRightListBulletIcon from '@hugeicons/core-free-icons/LeftToRightListBulletIcon';
 import GridViewIcon from '@hugeicons/core-free-icons/GridViewIcon';
 import MapIcon from '@hugeicons/core-free-icons/MapIcon';
+import PencilEdit01Icon from '@hugeicons/core-free-icons/PencilEdit01Icon';
+import Copy01Icon from '@hugeicons/core-free-icons/Copy01Icon';
+import Share01Icon from '@hugeicons/core-free-icons/Share01Icon';
+import Delete02Icon from '@hugeicons/core-free-icons/Delete02Icon';
+import MoreHorizontalIcon from '@hugeicons/core-free-icons/MoreHorizontalIcon';
 
 export const toSvg = (data) => {
   const body = data.map(([tag, { key, ...attrs }]) =>
@@ -39,4 +44,9 @@ export const demoIcons = {
   list: { svg: toSvg(LeftToRightListBulletIcon), name: 'LeftToRightListBulletIcon' },
   grid: { svg: toSvg(GridViewIcon), name: 'GridViewIcon' },
   map: { svg: toSvg(MapIcon), name: 'MapIcon' },
+  edit: { svg: toSvg(PencilEdit01Icon), name: 'PencilEdit01Icon' },
+  copy: { svg: toSvg(Copy01Icon), name: 'Copy01Icon' },
+  share: { svg: toSvg(Share01Icon), name: 'Share01Icon' },
+  trash: { svg: toSvg(Delete02Icon), name: 'Delete02Icon' },
+  more: { svg: toSvg(MoreHorizontalIcon), name: 'MoreHorizontalIcon' },
 };

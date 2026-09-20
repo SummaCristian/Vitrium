@@ -553,3 +553,12 @@ body.sheet-preview h1, body.sheet-preview p { color: #fff; text-shadow: 0 1px 4p
 .detent-box--1 { fill: color-mix(in srgb, var(--lg-accent) 14%, transparent); }
 .detent-box--2 { fill: color-mix(in srgb, var(--lg-accent) 18%, transparent); }
 .wire-text { font-size: 7px; fill: currentColor; opacity: 0.75; }
+
+/* Slider page */
+.slider-host { width: min(100%, 420px); }
+.slider-stack { width: 100%; }
+.slider-with-ticks { position: relative; width: min(100%, 420px); display: grid; gap: 2px; }
+.slider-ticks { position: relative; height: 1.2rem; margin-top: -6px; }
+.slider-ticks span { position: absolute; top: 0; left: calc(var(--lg-slider-thumb-w, 38px) / 2 + (100% - var(--lg-slider-thumb-w, 38px)) * var(--f)); translate: -50% 0; font-size: 0.75rem; opacity: 0.6; }
+.slider-thick { --lg-slider-track-h: 12px; }
+.slider-tinted { --lg-accent: #ff375f; }

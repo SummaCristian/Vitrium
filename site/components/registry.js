@@ -1,6 +1,7 @@
 import buttonPage from './button.js';
 import togglePage from './toggle.js';
 import segmentedControlPage from './segmented-control.js';
+import sliderPage from './slider.js';
 import popoverPage from './popover.js';
 import tabbarPage from './tabbar.js';
 import sheetPage from './sheet.js';
@@ -30,6 +31,14 @@ export const components = [
     abstract: 'A sliding-pill picker, horizontal or vertical.',
     page: segmentedControlPage,
     related: ['toggle', 'button'],
+  },
+  {
+    id: 'slider',
+    group: 'Controls',
+    title: 'Slider',
+    abstract: 'A glass lens on a track, for one value or a range.',
+    page: sliderPage,
+    related: ['toggle', 'segmented-control'],
   },
   {
     id: 'popover',

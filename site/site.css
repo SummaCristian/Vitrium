@@ -615,3 +615,53 @@ body.sheet-preview h1, body.sheet-preview p { color: #fff; text-shadow: 0 1px 4p
 .btn-progress.on { width: 16px; margin-right: 8px; opacity: 1; }
 .progress-tinted { --lg-accent: #ff375f; display: flex; align-items: center; gap: 16px; width: 100%; }
 .progress-thick .lg-progress--linear { height: 12px; }
+
+/* Core page */
+.core-panels { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); width: 100%; }
+.core-panel { padding: 0 0 14px; border-radius: 22px; display: grid; gap: 8px; justify-items: center; text-align: center; }
+.core-panel p { margin: 0; font-size: 0.85rem; opacity: 0.8; padding: 0 12px; }
+.core-grip { width: 100%; padding: 10px 0; font-weight: 700; border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent); cursor: grab; }
+.core-note { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 14px; border: 0; font: inherit; background: color-mix(in srgb, currentColor 8%, transparent); color: inherit; resize: none; }
+.dial { position: relative; display: inline-block; padding: 4px; border-radius: 999px; }
+.dial__items { position: relative; display: flex; }
+.dial__cell, .dial .lg-pill-active-cell { display: flex; align-items: center; justify-content: center; box-sizing: border-box; padding: 8px 20px; font: inherit; font-weight: 700; }
+.dial__cell { border: 0; background: none; color: var(--lg-text-muted); cursor: pointer; touch-action: none; }
+.dial .lg-pill-active-cell { color: var(--lg-accent); white-space: nowrap; }
+.dial__cell:focus-visible { outline: 2px solid var(--lg-accent); outline-offset: -3px; border-radius: 999px; }
+.core-calc { gap: 14px; }
+.core-input { display: grid; gap: 6px; width: 100%; justify-items: start; }   /* controls keep their own width */
+.core-input > .lg-slider { justify-self: stretch; max-width: 420px; }
+.core-viz-controls .core-input { min-width: 0; }
+.core-input > span { font-size: 0.8rem; font-weight: 700; opacity: 0.65; }
+.core-out { display: flex; flex-wrap: wrap; gap: 8px; }
+.core-chip { display: grid; gap: 2px; padding: 8px 14px; border-radius: 14px; background: color-mix(in srgb, currentColor 8%, transparent); font-size: 0.85rem; }
+.core-chip span { font-family: ui-monospace, 'SF Mono', Menlo, monospace; opacity: 0.8; }
+.core-viz-row { display: flex; flex-wrap: wrap; gap: 20px 28px; align-items: center; justify-content: center; width: 100%; }
+.core-viz-controls { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; flex: 0 1 420px; min-width: 0; justify-items: start; }   /* not growing: the controls and the drawing sit together, centered */
+.core-viz-controls > .core-input { justify-items: start; }
+.viz-slot { flex: 0 1 300px; min-width: 0; display: flex; justify-content: center; }
+.viz-slot > * { width: 100%; }
+.viz-stack { display: grid; gap: 6px; }
+.viz svg { display: block; width: 100%; height: auto; overflow: visible; }
+.viz--detents { max-width: 300px; }
+.viz--math, .viz--curve, .viz--rail { max-width: 340px; }
+.viz-screen { fill: color-mix(in srgb, currentColor 5%, transparent); stroke: color-mix(in srgb, currentColor 25%, transparent); stroke-width: 1; }
+.viz-sheet { fill: color-mix(in srgb, var(--lg-accent) 14%, transparent); }
+.viz-line { stroke: color-mix(in srgb, currentColor 35%, transparent); stroke-width: 1; }
+.viz-line--on { stroke: var(--lg-accent); stroke-width: 1.6; }
+.viz-release { stroke: currentColor; stroke-width: 1; stroke-dasharray: 3 2; opacity: 0.7; }
+.viz-text { font-size: 7.5px; font-weight: 700; fill: currentColor; opacity: 0.8; }
+.viz-text--on { fill: var(--lg-accent); opacity: 1; }
+.viz-sub { font-size: 6.5px; fill: currentColor; opacity: 0.6; }
+.viz-axis { stroke: color-mix(in srgb, currentColor 30%, transparent); stroke-width: 1; stroke-dasharray: 3 3; }
+.viz-axis--solid { stroke-dasharray: none; }
+.viz-curve { fill: none; stroke: var(--lg-accent); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.viz-drop { stroke: color-mix(in srgb, currentColor 35%, transparent); stroke-width: 1; stroke-dasharray: 2 2; }
+.viz-dot { fill: var(--lg-accent); stroke: var(--background-color-secondary); stroke-width: 1.5; }
+.viz-dot--ghost { fill: none; stroke: currentColor; stroke-dasharray: 2 2; opacity: 0.7; }
+.viz-rail { fill: var(--lg-accent); opacity: 0.85; }
+.viz-rail--faint { fill: currentColor; opacity: 0.14; }
+.viz-stretch { stroke: var(--lg-accent); stroke-width: 2; opacity: 0.45; }
+.viz-tick { stroke: color-mix(in srgb, currentColor 55%, transparent); stroke-width: 1; }
+.viz-tick--off { stroke: var(--lg-danger); stroke-width: 1.4; }
+.viz-fill { fill: var(--lg-accent); }

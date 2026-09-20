@@ -229,3 +229,39 @@ test.describe('guides', () => {
     await expect(page.locator('main h1').first()).toHaveText('Using a framework');
   });
 });
+
+test.describe('core', () => {
+  test('a control built on the pill core selects by tap and by arrow key, and moves its pill', async ({ page }) => {
+    await open(page, 'foundation/core', '.dial');
+    const dial = page.locator('.dial');
+    await dial.scrollIntoViewIfNeeded();
+    const pill = dial.locator('.lg-pill');
+    const before = await pill.boundingBox();
+    const xl = await dial.locator('.dial__cell[data-value="XL"]').boundingBox();
+    await page.mouse.click(xl.x + xl.width / 2, xl.y + xl.height / 2);
+    await page.waitForTimeout(900);
+    await expect(dial.locator('.dial__cell.active')).toHaveText('XL');
+    expect((await pill.boundingBox()).x).toBeGreaterThan(before.x + 40);
+    await page.keyboard.press('ArrowLeft');
+    await expect(dial.locator('.dial__cell.active')).toHaveText('L');
+  });
+
+  test('a morph popup made from the exported pieces opens, takes focus and closes on Escape', async ({ page }) => {
+    await open(page, 'foundation/core', '.dial');
+    await page.getByRole('button', { name: 'Add a note' }).click();
+    await expect(page.locator('.lg-morph.lg-morph--open')).toHaveCount(1);
+    await expect(page.locator('.core-note')).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.lg-morph.lg-morph--open')).toHaveCount(0);
+  });
+
+  test('the detent calculator resolves detents and merges ones that meet', async ({ page }) => {
+    await open(page, 'foundation/core', '.dial');
+    const calc = page.locator('#sheet-physics .core-calc').first();
+    await calc.scrollIntoViewIfNeeded();
+    // Each detent is a line on the drawing of the screen.
+    await expect(calc.locator('.viz--detents .viz-line')).toHaveCount(3);
+    await calc.locator('.lg-seg__item[data-value="two that meet"]').click();
+    await expect(calc.locator('.viz--detents .viz-line')).toHaveCount(2);
+  });
+});

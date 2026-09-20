@@ -4,6 +4,7 @@
 //   option: { key, label, type: 'bool' | 'choice' | 'color', default, choices?, when?(state) }
 import { createSegmentedControl, createToggle } from '../../src/index.js';
 import { h, codeBlock } from '../dom.js';
+import { fitSegmented } from './fit.js';
 
 // `render(state, stage)` builds the demo. If `patch(state, stage, changedKey)` is given, later option
 // changes call it instead, so the same element can be updated in place (and transition) rather than rebuilt.
@@ -32,10 +33,10 @@ export function createPlayground({ options, render, patch, code, lang = 'js', st
       return input;
     }
     const host = h('div');
-    createSegmentedControl(host, {
+    fitSegmented(host, createSegmentedControl(host, {
       items: opt.choices.map((c) => ({ value: c, label: String(c) })), value: opt.default, selectedColor: 'accent',
       onSelect: (v, { silent }) => { if (!silent) set(opt.key, v); },
-    });
+    }));
     return host;
   };
 

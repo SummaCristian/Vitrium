@@ -28,11 +28,17 @@ export function swapIcon(el, next) {
 export function crossfade(el, container, apply) {
   if (reduceMotion()) { apply(); return; }
   const ghost = el.cloneNode(true);
-  Object.assign(ghost.style, { position: 'absolute', left: `${el.offsetLeft}px`, top: `${el.offsetTop}px`, margin: '0', pointerEvents: 'none', transition: 'none' });
+  const box = container.getBoundingClientRect();
+  const before = el.getBoundingClientRect();
+  Object.assign(ghost.style, { position: 'absolute', left: `${before.left - box.left}px`, top: `${before.top - box.top}px`, width: `${before.width}px`, height: `${before.height}px`, margin: '0', boxSizing: 'border-box', pointerEvents: 'none', transition: 'none' });
   ghost.removeAttribute('id');
   ghost.setAttribute('aria-hidden', 'true');
   container.append(ghost);
   apply();
+  // If the change resized the element, keep the old look centered on the new one so the two fade in place.
+  const after = el.getBoundingClientRect();
+  ghost.style.left = `${after.left + after.width / 2 - box.left - before.width / 2}px`;
+  ghost.style.top = `${after.top + after.height / 2 - box.top - before.height / 2}px`;
   const opts = { duration: FADE_MS, easing: 'ease', fill: 'both' };
   ghost.animate([{ opacity: 1 }, { opacity: 0 }], opts).finished.then(() => ghost.remove());
   el.animate([{ opacity: 0 }, { opacity: 1 }], opts).finished.then((a) => a.cancel());

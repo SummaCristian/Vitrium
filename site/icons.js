@@ -8,6 +8,9 @@ import Settings01Icon from '@hugeicons/core-free-icons/Settings01Icon';
 import Add01Icon from '@hugeicons/core-free-icons/Add01Icon';
 import Search01Icon from '@hugeicons/core-free-icons/Search01Icon';
 import Calendar01Icon from '@hugeicons/core-free-icons/Calendar01Icon';
+import LeftToRightListBulletIcon from '@hugeicons/core-free-icons/LeftToRightListBulletIcon';
+import GridViewIcon from '@hugeicons/core-free-icons/GridViewIcon';
+import MapIcon from '@hugeicons/core-free-icons/MapIcon';
 
 export const toSvg = (data) => {
   const body = data.map(([tag, { key, ...attrs }]) =>
@@ -33,4 +36,7 @@ export const demoIcons = {
   plus: { svg: toSvg(Add01Icon), name: 'Add01Icon' },
   search: { svg: toSvg(Search01Icon), name: 'Search01Icon' },
   calendar: { svg: toSvg(Calendar01Icon), name: 'Calendar01Icon' },
+  list: { svg: toSvg(LeftToRightListBulletIcon), name: 'LeftToRightListBulletIcon' },
+  grid: { svg: toSvg(GridViewIcon), name: 'GridViewIcon' },
+  map: { svg: toSvg(MapIcon), name: 'MapIcon' },
 };

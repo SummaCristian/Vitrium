@@ -1,6 +1,5 @@
 import { components, byId } from '../components/registry.js';
-import { createPlayground } from '../components/playground.js';
-import { h, section, table, breadcrumbs } from '../dom.js';
+import { h, section, breadcrumbs } from '../dom.js';
 
 const card = (c) => h('a', { class: 'card lg-glass card-link liquid-glass', href: `#/components/${c.id}` }, h('h3', {}, c.title), h('p', {}, c.abstract));
 
@@ -19,13 +18,7 @@ function detail(root, c) {
       breadcrumbs([{ label: 'Components', href: '#/components' }, { label: c.group }, { label: c.title }]),
       h('h1', {}, c.title),
       h('p', { class: 'lede' }, c.abstract)),
-    // A component with its own page (like the foundation pages) supplies its sections; the rest are built from the registry.
-    ...(c.page ? c.page.sections() : [
-      section('Overview', {}, ...c.overview.map((t) => h('p', {}, t))),
-      section('Playground', {}, h('p', {}, c.playground.description), createPlayground(c.playground)),
-      section('API', {}, h('p', {}, 'All options go in one object. Anything not marked required can be left out.'),
-        table(['Option', 'Type', 'Description'], c.api.map((r) => [h('code', {}, r[0]), h('code', {}, r[1]), r[2]]))),
-    ]),
+    ...c.page.sections(),
     c.related?.length ? section('Related', {}, h('div', { class: 'grid' }, c.related.map((id) => card(byId(id))))) : null,
   );
 }

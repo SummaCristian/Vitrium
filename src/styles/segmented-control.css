@@ -57,7 +57,21 @@
   font-weight: 600;
 }
 
+/* An icon in a segment (and in the pill's copy of it) is sized here, not by the icon's own markup. */
+.lg-seg__item > svg,
+.lg-seg .lg-pill-active-cell > svg {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  pointer-events: none;
+}
+
 .lg-seg__item {
+  position: relative;   /* an outgoing label or icon is pinned to it while it fades out */
+  /* A label never wraps. While the track springs to a new size it is briefly narrower than its content, and a
+     wrapping label would flash onto a second line. */
+  flex: none;
+  white-space: nowrap;
   background: none;
   border: none;
   touch-action: none;

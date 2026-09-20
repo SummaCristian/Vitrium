@@ -7,6 +7,7 @@ import listPickerPage from './list-picker.js';
 import alertPage from './alert.js';
 import menuPage from './menu.js';
 import textFieldPage from './text-field.js';
+import stepperPage from './stepper.js';
 import popoverPage from './popover.js';
 import tabbarPage from './tabbar.js';
 import sheetPage from './sheet.js';
@@ -36,6 +37,14 @@ export const components = [
     abstract: 'A sliding-pill picker, horizontal or vertical.',
     page: segmentedControlPage,
     related: ['toggle', 'button'],
+  },
+  {
+    id: 'stepper',
+    group: 'Controls',
+    title: 'Stepper',
+    abstract: 'A glass capsule with minus and plus halves. Press and hold to repeat.',
+    page: stepperPage,
+    related: ['slider', 'text-field'],
   },
   {
     id: 'text-field',

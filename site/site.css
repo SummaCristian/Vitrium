@@ -481,3 +481,18 @@ code.ic { font: 0.88em ui-monospace, 'SF Mono', Menlo, monospace; padding: 0.12e
 .bench-verdict.fail { color: var(--lg-danger); }
 .bench-status { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 0.9rem; }
 .bench-status span { opacity: 0.85; }
+
+/* Motion page: easing curves */
+.easing { gap: 16px; }
+.easing-body { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; width: 100%; }
+.easing-side { flex: 1 1 260px; display: grid; gap: 14px; min-width: 0; }
+.easing-side .spring-track { max-width: none; }
+.curve { flex: 0 0 auto; width: 240px; }
+.curve--wide { width: min(100%, 420px); }
+.curve svg { display: block; width: 100%; overflow: visible; }
+.curve-axis { stroke: color-mix(in srgb, currentColor 35%, transparent); stroke-width: 1; }
+.curve-axis--target { stroke-dasharray: 3 3; }
+.curve-line { fill: none; stroke: var(--lg-accent); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.curve-marker { stroke: color-mix(in srgb, currentColor 60%, transparent); stroke-width: 1; }
+.curve-note { font-size: 8px; fill: currentColor; opacity: 0.65; }
+.curve-values { font-size: 0.85rem; opacity: 0.75; }

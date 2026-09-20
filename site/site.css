@@ -512,3 +512,25 @@ code.ic { font: 0.88em ui-monospace, 'SF Mono', Menlo, monospace; padding: 0.12e
 .popover-anchor:active { cursor: grabbing; }
 .popover-anchor:focus-visible { outline: 2px solid var(--lg-accent); outline-offset: 3px; }
 .popover-note { margin: 0 0 0.75rem; font-size: 0.95rem; opacity: 0.85; }
+
+/* The tab bar preview page (tabbar-preview.html), which the Tab bar docs page shows in an iframe.
+   The page clears the bar the way the docs tell you to. */
+body.preview { margin: 0; min-height: 100vh; background: var(--background-color); color: var(--text-color-primary);
+  padding: var(--lg-tabbar-top-space, 0px) var(--lg-tabbar-end-space, 0px) var(--lg-tabbar-bottom-space, 0px) var(--lg-tabbar-start-space, 0px); box-sizing: border-box; }
+body.preview #screen { padding: 24px; display: grid; gap: 12px; align-content: start; }
+body.preview h1 { font-size: 1.6rem; }
+body.preview p { opacity: 0.7; }
+body.preview .blocks { display: grid; gap: 12px; }
+body.preview .blocks > div { height: 84px; border-radius: 20px; background: var(--background-color-secondary); box-shadow: var(--shadow); }
+
+/* Tab bar page */
+.tabbar-stack { display: grid; gap: 12px; justify-items: center; width: 100%; }
+.tabbar-frame { display: block; height: 540px; max-width: 100%; border: 0; border-radius: var(--radius-xl); background: var(--background-color);
+  box-shadow: var(--shadow), 0 0 0 1px color-mix(in srgb, currentColor 14%, transparent); transition: width 0.6s cubic-bezier(0.2, 0, 0, 1); }
+.tabbar-readouts { display: flex; flex-wrap: wrap; gap: 4px 20px; justify-content: center; }
+.wire-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.wire-card { justify-items: stretch; gap: 8px; padding: 1rem; }
+.wire-card span { font-size: 0.85rem; opacity: 0.7; }
+.wire svg { display: block; width: 100%; }
+.wire-screen { fill: color-mix(in srgb, currentColor 6%, transparent); stroke: color-mix(in srgb, currentColor 25%, transparent); stroke-width: 1; }
+.wire-bar { fill: var(--lg-accent); }

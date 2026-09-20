@@ -2,6 +2,7 @@ import buttonPage from './button.js';
 import togglePage from './toggle.js';
 import segmentedControlPage from './segmented-control.js';
 import popoverPage from './popover.js';
+import tabbarPage from './tabbar.js';
 
 // One entry per component page. `page` is the page's own file, exporting `sections()` like a foundation page.
 export const components = [
@@ -36,6 +37,14 @@ export const components = [
     abstract: 'A glass panel attached to an element, with an arrow that follows it.',
     page: popoverPage,
     related: ['button', 'toggle'],
+  },
+  {
+    id: 'tab-bar',
+    group: 'Navigation',
+    title: 'Tab bar',
+    abstract: 'A fixed glass bar of tabs, as a row, a rail or one compact bar.',
+    page: tabbarPage,
+    related: ['segmented-control', 'button'],
   },
 ];
 

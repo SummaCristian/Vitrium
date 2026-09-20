@@ -5,12 +5,11 @@ import accent from '../foundation/accent.js';
 import theme from '../foundation/theme.js';
 import blur from '../foundation/blur.js';
 import motion from '../foundation/motion.js';
-import layout from '../foundation/layout.js';
 
 // One file per page in site/foundation/. Each exports { id, title, abstract, sections() }, where
 // sections() returns the page's `section(...)` blocks (they feed "On this page").
 // Add a page by creating a file there and listing it here, in the order it should appear.
-export const foundationPages = [glass, tokens, accent, theme, blur, motion, layout];
+export const foundationPages = [glass, tokens, accent, theme, blur, motion];
 
 export const foundationById = (id) => foundationPages.find((p) => p.id === id);
 

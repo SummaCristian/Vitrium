@@ -13,6 +13,7 @@ export function mountThemeSwitcher(slot) {
   const segHost = h('div', { class: 'theme-seg' });
   const seg = createSegmentedControl(segHost, {
     items: THEMES.map((t) => ({ value: t, label: LABELS[t] })), value: getTheme(),
+    blur: true,   // it floats over the page, so it has no surface behind it to do the blurring
     onSelect: (v, { silent }) => { if (!silent) setTheme(v, 'switcher'); },
   });
 

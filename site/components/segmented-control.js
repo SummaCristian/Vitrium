@@ -40,14 +40,16 @@ export default {
     let host, control, log;
     const build = (s) => {
       control = createSegmentedControl(host, {
-        items: itemsFor(s.content), value: 'grid', orientation: s.orientation, selectedColor: colorOf(s.colorMode, s.color),
+        items: itemsFor(s.content), value: 'grid', orientation: s.orientation, selectedColor: colorOf(s.colorMode, s.color), blur: s.blur,
         onSelect: (v, { silent }) => { log.textContent = `onSelect('${v}', { silent: ${silent} })`; },
       });
     };
     const playground = createPlayground({
+      stageClass: 'stage--backdrop',
       options: [
         { key: 'orientation', label: 'Orientation', type: 'choice', choices: ['horizontal', 'vertical'], default: 'horizontal' },
         { key: 'content', label: 'Content', type: 'choice', choices: CONTENT, default: 'labels' },
+        { key: 'blur', label: 'Blur', type: 'bool', default: false },
         { key: 'colorMode', label: 'Selected text', type: 'choice', choices: ['default', 'accent', 'custom'], default: 'default' },
         { key: 'color', label: 'Custom color', type: 'color', default: '#ff375f', when: (s) => s.colorMode === 'custom' },
       ],
@@ -62,6 +64,7 @@ export default {
       patch(s, stage, key) {
         if (key === 'orientation') control.setOrientation(s.orientation);
         else if (key === 'content') control.setItems(changesFor(s.content));
+        else if (key === 'blur') control.setBlur(s.blur);
         else control.setSelectedColor(colorOf(s.colorMode, s.color));
       },
       code(s) {
@@ -69,7 +72,7 @@ export default {
         return `import { createSegmentedControl } from 'vitrium';
 
 const control = createSegmentedControl(container, {
-${lines('  ', `items: [\n    ${items.join(',\n    ')},\n  ],`, `value: 'grid',`, s.orientation !== 'horizontal' && `orientation: '${s.orientation}',`, s.colorMode !== 'default' && `selectedColor: ${s.colorMode === 'custom' ? `'${s.color}'` : `'accent'`},`, 'onSelect(value) {},')}
+${lines('  ', `items: [\n    ${items.join(',\n    ')},\n  ],`, `value: 'grid',`, s.orientation !== 'horizontal' && `orientation: '${s.orientation}',`, s.blur && 'blur: true,', s.colorMode !== 'default' && `selectedColor: ${s.colorMode === 'custom' ? `'${s.color}'` : `'accent'`},`, 'onSelect(value) {},')}
 });`;
       },
     });
@@ -132,7 +135,7 @@ ${lines('  ', `items: [\n    ${items.join(',\n    ')},\n  ],`, `value: 'grid',`,
         h('p', {}, 'It is content-agnostic. Each segment hugs whatever it holds, a label, an icon, or both, and the control sizes itself to the largest one.')),
 
       section('Playground', {},
-        h('p', {}, 'Change the orientation and the layout morphs, with the pill riding along. Change the content and each label and icon swaps while the control resizes. Then use the control itself and watch `onSelect`.'),
+        h('p', {}, 'Change the orientation and the layout morphs, with the pill riding along. Turn on Blur to blur what is behind the track. Change the content and each label and icon swaps while the control resizes. Then use the control itself and watch `onSelect`.'),
         playground),
 
       section('Interaction', {},
@@ -205,6 +208,13 @@ control.setItems([
           h('li', {}, h('strong', {}, 'Name the group. '), 'If the choices are not obvious from context, add `aria-label` or `aria-labelledby` to the element you pass in.'),
           h('li', {}, h('strong', {}, 'Focus ring. '), 'The accent color, drawn inside the segment, on keyboard focus only.'))),
 
+      section('Blur', {},
+        h('p', {}, 'The track is tinted glass with no blur of its own. A segmented control usually sits on a card or a bar that already blurs what is behind it, and blurring twice would only add cost. One that floats straight over content, such as a switcher pinned to a corner, has no surface behind it to do that, and looks flat. For that, pass `blur: true`, or call `setBlur(on)` later: the track then blurs what is behind it like the regular glass, with the same blur as the rest of the material.'),
+        h('p', {}, 'It follows the blur setting like every other surface, so it turns off with the rest when a device cannot afford it. The lifted pill blurs a little of its own, and sits beside the track rather than inside it, so the two do not nest. Turn on Blur in the playground and look at what is behind the control.'),
+        codeBlock(`
+createSegmentedControl(host, { items, value, blur: true });
+control.setBlur(false);`)),
+
       section('Styling', {},
         table(['Token or variable', 'What it does'], [
           ['`--lg-text-muted`', 'Unselected labels (through `--lg-seg-color`).'],
@@ -225,6 +235,7 @@ control.setItems([
           ['value', 'string', 'The initially selected value.'],
           ['orientation', "'horizontal' | 'vertical'", 'Layout. Default: `"horizontal"`.'],
           ['selectedColor', "CSS color | 'accent'", 'Color of the selected label. Default: the normal text color.'],
+          ['blur', 'boolean', 'Blur what is behind the track, for a control that floats over content. Default: `false`.'],
           ['onSelect', '(value, { silent }) => void', 'Called when a different segment becomes selected. `silent` is true for `select()` calls.'],
         ].map((r) => [h('code', {}, r[0]), h('code', {}, r[1]), r[2]])),
         h('h3', { class: 'sub-label' }, 'Returned object'),
@@ -235,6 +246,7 @@ control.setItems([
           ['setItem(value, changes, { animate })', 'Change one segment\'s `label`, `icon` or `ariaLabel`. `null` removes it. Animated by default.'],
           ['setItems(changes, { animate })', 'The same for several segments, in one motion. Each change is `{ value, label?, icon?, ariaLabel? }`.'],
           ['setSelectedColor(color)', 'Change the selected label color. `null` restores the default.'],
+          ['setBlur(on)', 'Turn the track\'s backdrop blur on or off.'],
           ['refresh({ snap })', 'Re-measure and re-place the pill.'],
           ['destroy()', 'Remove its listeners, observers and springs. Call it when removing the control.'],
         ].map((r) => [h('code', {}, r[0]), r[1]]))),

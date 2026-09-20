@@ -265,3 +265,90 @@ test.describe('core', () => {
     await expect(calc.locator('.viz--detents .viz-line')).toHaveCount(2);
   });
 });
+
+test.describe('home', () => {
+  test('is a live board of the real components', async ({ page }) => {
+    await open(page, 'home', '.tile');
+    expect(await page.locator('.tile').count()).toBeGreaterThanOrEqual(9);
+    // A component on it responds: the stepper moves and drives the ring beside it.
+    const tile = page.locator('.tile', { hasText: 'Stepper and ring' });
+    await tile.getByRole('button', { name: 'Add a guest' }).click();
+    await expect(tile.locator('.tile-line strong')).toHaveText('3');
+    await expect(tile.locator('.lg-progress')).toHaveAttribute('aria-valuenow', '0.3');
+  });
+
+  test('an alert from it answers, and a sheet blocks the page until it is dismissed', async ({ page }) => {
+    await open(page, 'home', '.tile');
+    const overlays = page.locator('.tile', { hasText: 'Alert and sheet' });
+    await overlays.getByRole('button', { name: 'Alert' }).click();
+    await page.getByRole('button', { name: 'Delete' }).last().click();
+    await expect(overlays.locator('.readout')).toHaveText('present() resolved with "delete"');
+
+    await overlays.getByRole('button', { name: 'Sheet' }).click();
+    await page.waitForTimeout(900);
+    expect(await page.evaluate(() => document.getElementById('shell').inert)).toBe(true);
+    await page.keyboard.press('Escape');
+    await expect.poll(() => page.evaluate(() => document.getElementById('shell').inert)).toBe(false);
+  });
+
+  test('the accent applies to the board only, and the glass switch reaches every tile', async ({ page }) => {
+    await open(page, 'home', '.tile');
+    await page.locator('.swatch[aria-label="Pink"]').click();
+    expect(await page.locator('.board').evaluate((n) => n.style.getPropertyValue('--lg-accent'))).toBe('#ff375f');
+    expect(await page.evaluate(() => document.documentElement.style.getPropertyValue('--lg-accent'))).toBe('');
+    await page.locator('.board-opt', { hasText: 'Glass' }).locator('.lg-seg__item[data-value="clear"]').click();
+    await expect(page.locator('.tile.lg-glass--clear')).toHaveCount(await page.locator('.tile').count());
+  });
+
+  test('leaves nothing behind on the body when the page is left', async ({ page }) => {
+    await open(page, 'home', '.tile');
+    const before = await page.evaluate(() => document.body.children.length);
+    await page.goto('/#/components');
+    await page.waitForTimeout(600);
+    const after = await page.evaluate(() => document.body.children.length);
+    expect(after).toBeLessThan(before);
+    expect(await page.locator('.lg-popover').count()).toBe(0);
+  });
+
+  test('fits a phone without scrolling sideways', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await open(page, 'home', '.tile');
+    await page.waitForTimeout(800);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  });
+});
+
+test.describe('segmented control blur', () => {
+  test('the track blurs what is behind it only when asked to', async ({ page }) => {
+    // Blur stays off until the device has been benchmarked, so force it on for this test, the way a person can.
+    await page.addInitScript(() => localStorage.setItem('lg:blur-mode', 'on'));
+    await open(page, 'components/segmented-control', '.playground .lg-seg__track');
+    const track = page.locator('.playground .stage .lg-seg__track');
+    const filter = () => track.evaluate((n) => getComputedStyle(n).backdropFilter);
+    expect(await filter()).toBe('none');
+    await page.locator('.playground .control-row', { hasText: 'Blur' }).locator('[role="switch"]').click();
+    await page.waitForTimeout(600);
+    expect(await filter()).toContain('blur');
+    // The pill is a sibling of the track, so the two filters do not nest.
+    expect(await page.locator('.playground .stage .lg-seg__track .lg-pill').count()).toBe(0);
+  });
+
+  test('the theme switcher in the corner has it', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('lg:blur-mode', 'on'));
+    await open(page, 'home', '.tile');
+    expect(await page.locator('.theme-seg .lg-seg__track').evaluate((n) => getComputedStyle(n).backdropFilter)).toContain('blur');
+  });
+});
+
+test.describe('cards that are links', () => {
+  test('keep the text color of every other card, on all the pages that list them', async ({ page }) => {
+    for (const path of ['home', 'start', 'components', 'components/button', 'foundation']) {
+      await open(page, path, '.card-link');
+      const colors = await page.evaluate(() => {
+        const body = getComputedStyle(document.querySelector('#page')).color;
+        return [...document.querySelectorAll('.card-link h3, .card-link p')].filter((n) => getComputedStyle(n).color !== body).length;
+      });
+      expect(colors, `${path}: card text that is not the page's text color`).toBe(0);
+    }
+  });
+});

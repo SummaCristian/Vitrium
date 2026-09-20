@@ -17,6 +17,10 @@
 // accent does). Omit it for the default text color. setSelectedColor() changes
 // it later; null restores the default.
 //
+// `blur: true` gives the track the backdrop blur of the regular glass. The track has none by default, because a
+// segmented control usually sits on a surface of its own that already blurs; turn it on for one that floats
+// straight over content. setBlur() changes it later. It follows the site's blur setting like every other surface.
+//
 // An item can be changed after the fact with setItem(value, { label, icon, ariaLabel }) or
 // several at once with setItems([...]). The old label or icon shrinks, fades and
 // blurs away as the new one grows in, and the track glides to its new size while
@@ -27,8 +31,9 @@ import { layoutMorph } from '../core/layout-morph.js';
 import { createPillParts, el, toNode } from './dom.js';
 
 // onSelect(value, { silent }) fires when a different item becomes selected.
-export function createSegmentedControl(root, { items: itemDefs, value, onSelect, orientation = 'horizontal', selectedColor } = {}) {
+export function createSegmentedControl(root, { items: itemDefs, value, onSelect, orientation = 'horizontal', selectedColor, blur = false } = {}) {
   root.classList.add('lg-seg');
+  root.classList.toggle('lg-seg--blur', !!blur);
   const setSelectedColor = (c) => {
     if (c == null) root.style.removeProperty('--lg-seg-active-color');
     else root.style.setProperty('--lg-seg-active-color', c === 'accent' ? 'var(--lg-accent)' : c);
@@ -231,6 +236,7 @@ export function createSegmentedControl(root, { items: itemDefs, value, onSelect,
     setItem,
     setItems,
     setSelectedColor,
+    setBlur(on) { root.classList.toggle('lg-seg--blur', !!on); },
     destroy() { cancelMorph?.(); clearLeaving(); ro.disconnect(); core.destroy(); },
     get value() { return cellsOf()[core.index]?.dataset.value; },
   };

@@ -21,6 +21,16 @@
   touch-action: none;
   background: var(--lg-tint);
   box-shadow: var(--lg-shadow-compact);
+  transition: backdrop-filter 0.25s ease, -webkit-backdrop-filter 0.25s ease;
+}
+
+/* Opt-in blur (the `blur` option) for a control that floats over content instead of sitting on a surface of its own.
+   The pill is not inside the track, so its own blur is not nested under this one (Safari drops nested filters).
+   With blur switched off the token is 0px and the site-wide rule removes the filter, so it needs no rule of its own.
+   The -webkit- prefix comes first, on purpose: see glass.css. */
+.lg-seg--blur .lg-seg__track {
+  -webkit-backdrop-filter: blur(var(--lg-blur-md));
+  backdrop-filter: blur(var(--lg-blur-md));
 }
 
 .lg-seg__track::after {

@@ -3,7 +3,7 @@ import { demoIcons } from '../icons.js';
 import { createPlayground } from './playground.js';
 import { backdropCard } from './backdrop.js';
 import { h, section, table, codeBlock } from '../dom.js';
-import { swapIcon, crossfade } from '../swap.js';
+import { crossfade } from '../swap.js';
 
 const ICONS = ['star', 'settings', 'plus', 'search', 'calendar'];
 const TINTS = [['Red', '#ff375f'], ['Orange', '#ff9f0a'], ['Green', '#30d158'], ['Blue', '#0a84ff'], ['Purple', '#bf5af2']];
@@ -18,22 +18,34 @@ export default {
     };
     const toNode = (svg) => { const t = document.createElement('template'); t.innerHTML = svg; return t.content.firstElementChild; };
 
+    const build = (s) => createButton({
+      icon: s.content === 'text' ? null : demoIcons[s.icon].svg,
+      text: s.content === 'icon' ? null : 'Save',
+      label: s.content === 'icon' ? 'Demo' : undefined,
+    });
+
     const playground = createPlayground({
       stageClass: 'stage--backdrop',
       options: [
-        { key: 'icon', label: 'Icon', type: 'choice', choices: ICONS, default: 'star' },
+        { key: 'content', label: 'Content', type: 'choice', choices: ['icon', 'text', 'icon + text'], default: 'icon' },
+        { key: 'icon', label: 'Icon', type: 'choice', choices: ICONS, default: 'star', when: (s) => s.content !== 'text' },
         { key: 'material', label: 'Material', type: 'choice', choices: ['regular', 'clear'], default: 'regular' },
         { key: 'tintMode', label: 'Tint', type: 'choice', choices: ['none', 'custom'], default: 'none' },
         { key: 'color', label: 'Tint color', type: 'color', default: '#ff375f', when: (s) => s.tintMode === 'custom' },
       ],
       // Built once; option changes update this same button, so every change can animate.
       render(s, stage) {
-        btn = createButton({ icon: demoIcons[s.icon].svg, label: 'Demo' });
+        btn = build(s);
         apply(s);
         stage.append(btn);
       },
       patch(s, stage, key) {
-        if (key === 'icon') swapIcon(btn, toNode(demoIcons[s.icon].svg));
+        // The button reacts to its own content changing, so these are plain DOM edits.
+        if (key === 'content') {
+          const next = build(s);
+          btn.replaceChildren(...next.childNodes);
+          if (next.ariaLabel) btn.ariaLabel = next.ariaLabel; else btn.removeAttribute('aria-label');
+        } else if (key === 'icon') btn.querySelector('svg').replaceWith(toNode(demoIcons[s.icon].svg));
         // A tint or material can't be interpolated, so those fade. Dragging the color picker updates live.
         else if (key === 'material' || key === 'tintMode') crossfade(btn, stage, () => apply(s));
         else apply(s);
@@ -43,7 +55,7 @@ import ${demoIcons[s.icon].name} from '@hugeicons/core-free-icons/${demoIcons[s.
 import { toSvg } from './toSvg.js';
 
 const button = createButton({
-${lines('  ', `icon: toSvg(${demoIcons[s.icon].name}),`, `label: 'Demo',`, s.material === 'clear' && `className: 'lg-glass--clear',`, s.tintMode === 'custom' && `tint: '${s.color}',`, 'onClick() {},')}
+${lines('  ', s.content !== 'text' && `icon: toSvg(${demoIcons[s.icon].name}),`, s.content !== 'icon' && `text: 'Save',`, s.content === 'icon' && `label: 'Demo',`, s.material === 'clear' && `className: 'lg-glass--clear',`, s.tintMode === 'custom' && `tint: '${s.color}',`, 'onClick() {},')}
 });
 document.body.append(button);`,
     });
@@ -64,7 +76,7 @@ document.body.append(button);`,
 
     return [
       section('Overview', {},
-        h('p', {}, 'A button is a real `<button>` with the glass material and the press-and-stretch physics attached. It is a round, icon-only control: tap it, or hold and drag to stretch it and feel it spring back.'),
+        h('p', {}, 'A button is a real `<button>` with the glass material and the press-and-stretch physics attached. It can be a round icon button, a text pill, or an icon with text: tap it, or hold and drag to stretch it and feel it spring back.'),
         h('p', {}, 'Because it is attached by the factory, no global setup is needed. There are three factories: `createButton` for one button, `createToolbar` for a row of them, and `createBackButton` for the header pattern.')),
 
       section('Playground', {},
@@ -72,7 +84,7 @@ document.body.append(button);`,
         playground),
 
       section('Anatomy', {},
-        h('p', {}, 'A button is one element with four classes, and an icon inside:'),
+        h('p', {}, 'A button is one element with four classes (an icon-only one; text buttons swap `lg-glass--circle` for `lg-button--text`), and an icon inside:'),
         codeBlock(`
 <button type="button" class="lg-button lg-glass lg-glass--circle liquid-glass" aria-label="Favorite">
   <svg>…</svg>
@@ -132,18 +144,20 @@ import { createBackButton } from 'liquid-glass-web';
 
 header.prepend(createBackButton({ onClick: () => history.back() }));`)),
 
-      section('Text buttons', {},
-        h('p', {}, 'The library ships round icon buttons only. A button with a text label is not a factory: it is the material on a plain `<button>`, which you size yourself. Add `liquid-glass` for the physics (this one needs `initLiquidGlass()` to have been called once) and a focus style of your own.'),
-        backdropCard(textButton),
+      section('Text and icon + text', {},
+        h('p', {}, 'A button reacts when its content changes. Replace, add or remove its icon or label with ordinary DOM calls and the new content grows in while the button eases to its new width, turning into a circle or a pill to match.'),
+        h('p', {}, 'Pass `text` for a visible label. With an icon as well, the icon sits before the text. A button with text becomes a pill that grows with its content, instead of a 3rem circle.'),
+        backdropCard(h('div', { class: 'row' },
+          createButton({ text: 'Save' }),
+          createButton({ icon: demoIcons.plus.svg, text: 'New' }),
+          createButton({ icon: demoIcons.star.svg, text: 'Favorite', tint: '#0a84ff' }))),
         codeBlock(`
-<button type="button" class="lg-glass liquid-glass"
-        style="padding: 0.7rem 1.4rem; border: 0; border-radius: 999px; font: inherit; color: var(--lg-text); cursor: pointer">
-  Save
-</button>`, 'html')),
+createButton({ text: 'Save' });
+createButton({ icon: toSvg(Add01Icon), text: 'New' });`)),
 
       section('Accessibility', {},
         h('ul', { class: 'steps' },
-          h('li', {}, h('strong', {}, 'A label is required. '), 'The button has no text, so `label` becomes its `aria-label`. Without it a screen reader announces just "button".'),
+          h('li', {}, h('strong', {}, 'A label is required. '), 'An icon-only button has no text, so `label` becomes its `aria-label`; without it a screen reader announces just "button". With `text`, the visible text is the name.'),
           h('li', {}, h('strong', {}, 'It is a real button. '), 'Enter and Space activate it, it takes part in the tab order, and it shows a focus ring in the accent color, offset 3px, on keyboard focus only.'),
           h('li', {}, h('strong', {}, 'A drag is not a click. '), 'Dragging a button past 8px is a stretch gesture, and the click on release is swallowed. A keyboard activation is never affected.'),
           h('li', {}, h('strong', {}, 'Touch target. '), 'At 3rem the button is above the usual 44px minimum. If you make it smaller, keep the hit area that big.'))),
@@ -159,7 +173,8 @@ header.prepend(createBackButton({ onClick: () => history.back() }));`)),
         h('h3', { class: 'sub-label' }, 'createButton(options)'),
         table(['Option', 'Type', 'Description'], [
           ['icon', 'Node | string', 'Trusted SVG markup or a node. The library has a small built-in `icons` set, and any other icon library works too. See Icons.'],
-          ['label', 'string', 'Accessible name. Required, since the button is icon-only.'],
+          ['text', 'string', 'Visible label. Makes the button a pill; combine with `icon` for icon + text.'],
+          ['label', 'string', 'Accessible name. Required for an icon-only button; optional with `text`.'],
           ['onClick', '(event) => void', 'Click handler.'],
           ['tint', 'CSS color', 'Optional tinted glass.'],
           ['className', 'string', 'Extra classes, for example `lg-glass--clear`.'],

@@ -567,3 +567,8 @@ body.sheet-preview h1, body.sheet-preview p { color: #fff; text-shadow: 0 1px 4p
 .picker-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; }
 .picker-body > * { min-width: 0; }
 .picker-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-weight: 600; }
+
+/* Alert page: a layer of our own, made modal with createModalLayer */
+.demo-layer { position: fixed; inset: 0; z-index: 1100; display: grid; place-items: center; background: rgba(0, 0, 0, 0.32); }
+.demo-layer[hidden] { display: none; }
+.demo-layer__box { width: min(90vw, 340px); }

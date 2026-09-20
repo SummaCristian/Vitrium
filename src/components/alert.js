@@ -221,6 +221,9 @@ export function createAlert({
     }
 
     modal.activate();
+    // Lay the closed state out first: an alert shown in the same tick it was created (the usual `await createAlert(…).present()`)
+    // would otherwise never have been painted closed, and the pop-in would have nothing to transition from.
+    box.getBoundingClientRect();
     layer.setAttribute('data-show', '');
     document.addEventListener('keydown', onKeydown, true);
 

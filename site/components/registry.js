@@ -4,6 +4,7 @@ import segmentedControlPage from './segmented-control.js';
 import sliderPage from './slider.js';
 import chipPickerPage from './chip-picker.js';
 import listPickerPage from './list-picker.js';
+import alertPage from './alert.js';
 import popoverPage from './popover.js';
 import tabbarPage from './tabbar.js';
 import sheetPage from './sheet.js';
@@ -73,6 +74,14 @@ export const components = [
     abstract: 'A fixed glass bar of tabs, as a row, a rail or one compact bar.',
     page: tabbarPage,
     related: ['segmented-control', 'button'],
+  },
+  {
+    id: 'alert',
+    group: 'Overlays',
+    title: 'Alert',
+    abstract: 'A small modal dialog that asks for a decision and returns the answer.',
+    page: alertPage,
+    related: ['sheet', 'popover'],
   },
   {
     id: 'sheet',

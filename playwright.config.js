@@ -1,8 +1,9 @@
 import { defineConfig } from '@playwright/test';
 
-// The e2e suite drives the demo page with real pointer, touch and wheel input.
-// It uses the system Chrome (no browser download) and reuses a dev server that's
-// already running on 5173; if there isn't one, it starts (and later stops) its own.
+// The e2e suite drives the demo page and the docs site with real pointer, touch and wheel input.
+// It uses the system Chrome (no browser download). The servers run on their own ports (5175 for the demo, 5174 for
+// the docs), away from the usual 5173, so a dev server already running there is never mistaken for one of them. A
+// server already running on those ports is reused; otherwise each is started (and later stopped) here.
 export default defineConfig({
   testDir: 'tests/e2e',
   timeout: 30_000,
@@ -10,14 +11,23 @@ export default defineConfig({
   workers: 1,
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:5175',
     channel: 'chrome',
     headless: true,
   },
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: true,
-    timeout: 30_000,
-  },
+  // The demo page (the component specs) and the documentation site (docs.spec.js), each reusing a running server.
+  webServer: [
+    {
+      command: 'npm run dev -- --port 5175 --strictPort',
+      url: 'http://localhost:5175',
+      reuseExistingServer: true,
+      timeout: 30_000,
+    },
+    {
+      command: 'npm run dev:site -- --port 5174 --strictPort',
+      url: 'http://localhost:5174',
+      reuseExistingServer: true,
+      timeout: 30_000,
+    },
+  ],
 });

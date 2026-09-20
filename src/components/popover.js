@@ -21,13 +21,15 @@
 //   placement      floating-ui placement (default 'bottom'; 'top', 'right-start', ...)
 //   offset         gap to the anchor, px (default 8)
 //   shiftPadding   px kept clear of the viewport edge (default 8)
+//   dismissable    a press outside, or Escape, closes it (default true). Turn off for one you hold open yourself
+//   boundary       element the popover stays inside when it flips and shifts (default: the viewport)
 //   arrow          show the pointer arrow (default true)
 //   role           'dialog' (default; non-modal) or e.g. 'tooltip'
 //   label          accessible name
 //   deform         liquid-glass press/drag deform on the surface (default true)
 //   onShow / onHide
 //
-// Returns { el, show(target?), hide(), toggle(), update(), setContent(), isOpen, destroy() }.
+// Returns { el, show(target?), hide(), toggle(), update(), setPlacement(), setContent(), isOpen, destroy() }.
 //
 // Keyboard: activating the trigger from the keyboard moves focus into the
 // popover; Escape closes it and returns focus to the trigger; Tab past the last
@@ -51,7 +53,7 @@ const FOCUSABLE = [
 ].join(',');
 
 export function createPopover({
-  trigger, content, placement = 'bottom', offset: gap = 8, shiftPadding = 8,
+  trigger, content, placement = 'bottom', offset: gap = 8, shiftPadding = 8, boundary, dismissable = true,
   arrow = true, role = 'dialog', label, deform = true, onShow, onHide,
 } = {}) {
   const pop = el('div', 'lg-popover lg-glass', { role, tabindex: '-1' });
@@ -74,18 +76,28 @@ export function createPopover({
   let revealed = false;
   let stopAutoUpdate = null;
   let byKeyboard = false;
+  let wanted = placement;      // what was asked for; the placed one may differ after a flip
+  let glideNext = false;       // the next position is a deliberate move, so glide there
 
   async function position() {
     if (!anchor) return;
-    const middleware = [offset(gap), flip(), shift({ padding: shiftPadding })];
+    const area = boundary ? { boundary } : {};
+    const middleware = [offset(gap), flip(area), shift({ padding: shiftPadding, ...area })];
     if (arrowEl) middleware.push(arrowMiddleware({ element: arrowEl }));
     const { x, y, placement: placed, middlewareData } = await computePosition(anchor, pop, {
-      placement, strategy: 'fixed', middleware,
+      placement: wanted, strategy: 'fixed', middleware,
     });
     if (!open) return;   // hidden while we were computing
 
+    const from = glideNext && revealed ? pop.getBoundingClientRect() : null;
+    glideNext = false;
     pop.style.left = `${x}px`;
     pop.style.top = `${y}px`;
+    if (from && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const to = pop.getBoundingClientRect();
+      pop.animate([{ translate: `${from.left - to.left}px ${from.top - to.top}px` }, { translate: '0 0' }],
+        { duration: 450, easing: 'cubic-bezier(0.34, 1.3, 0.64, 1)' });
+    }
 
     if (arrowEl && middlewareData.arrow) {
       const { x: ax, y: ay } = middlewareData.arrow;
@@ -120,12 +132,13 @@ export function createPopover({
   }
 
   function onDocPointerDown(e) {
+    if (!dismissable) return;
     if (pop.contains(e.target) || trigger?.contains(e.target)) return;
     hide();
   }
 
   function onDocKeydown(e) {
-    if (e.key !== 'Escape') return;
+    if (e.key !== 'Escape' || !dismissable) return;
     const inside = pop.contains(document.activeElement);
     hide();
     if (inside || byKeyboard) trigger?.focus({ preventScroll: true });
@@ -194,6 +207,8 @@ export function createPopover({
     el: pop,
     show, hide, toggle,
     update: () => position(),
+    // Change where it wants to sit. While open it glides there.
+    setPlacement(next) { wanted = next; glideNext = true; if (open) position(); },
     setContent(next) { body.replaceChildren(toNode(next)); },
     get isOpen() { return open; },
     destroy() {

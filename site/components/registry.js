@@ -1,6 +1,7 @@
 import buttonPage from './button.js';
 import togglePage from './toggle.js';
 import segmentedControlPage from './segmented-control.js';
+import popoverPage from './popover.js';
 
 // One entry per component page. `page` is the page's own file, exporting `sections()` like a foundation page.
 export const components = [
@@ -27,6 +28,14 @@ export const components = [
     abstract: 'A sliding-pill picker, horizontal or vertical.',
     page: segmentedControlPage,
     related: ['toggle', 'button'],
+  },
+  {
+    id: 'popover',
+    group: 'Overlays',
+    title: 'Popover',
+    abstract: 'A glass panel attached to an element, with an arrow that follows it.',
+    page: popoverPage,
+    related: ['button', 'toggle'],
   },
 ];
 

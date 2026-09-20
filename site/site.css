@@ -150,8 +150,15 @@ body {
 
 /* Documentation pages */
 .doc-head { display: grid; gap: 12px; }
-.crumbs { font-size: 0.9rem; opacity: 0.7; }
-.crumbs a { color: var(--lg-accent); text-decoration: none; }
+.crumbs { display: flex; align-items: center; gap: 12px; font-size: 0.9rem; }
+.crumb-back { flex: none; }
+.crumb-list { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 0; padding: 0; list-style: none; }
+.crumb-list li { display: flex; align-items: center; }
+.crumb-list a { color: inherit; opacity: 0.7; text-decoration: none; }
+.crumb-list a:hover { color: var(--lg-accent); opacity: 1; }
+.crumb-list [aria-current] { font-weight: 700; }
+.crumb-sep { opacity: 0.4; }
+.crumb-sep svg { width: 14px; height: 14px; }
 .doc-section, .playground { grid-template-columns: minmax(0, 1fr); }
 .doc-section { display: grid; gap: 16px; scroll-margin-top: calc(var(--lg-tabbar-top-space, 0px) + 24px); }
 section[id].card { scroll-margin-top: calc(var(--lg-tabbar-top-space, 0px) + 24px); }

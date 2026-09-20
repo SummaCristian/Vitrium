@@ -1,6 +1,6 @@
 import { components, byId } from '../components/registry.js';
 import { createPlayground } from '../components/playground.js';
-import { h, section, table } from '../dom.js';
+import { h, section, table, breadcrumbs } from '../dom.js';
 
 const card = (c) => h('a', { class: 'card lg-glass card-link liquid-glass', href: `#/components/${c.id}` }, h('h3', {}, c.title), h('p', {}, c.abstract));
 
@@ -16,7 +16,7 @@ function list(root) {
 function detail(root, c) {
   root.append(
     h('header', { class: 'doc-head' },
-      h('p', { class: 'crumbs' }, h('a', { href: '#/components' }, 'Components'), ' › ', c.group),
+      breadcrumbs([{ label: 'Components', href: '#/components' }, { label: c.group }, { label: c.title }]),
       h('h1', {}, c.title),
       h('p', { class: 'lede' }, c.abstract)),
     section('Overview', {}, ...c.overview.map((t) => h('p', {}, t))),

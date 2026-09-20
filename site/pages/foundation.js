@@ -1,4 +1,4 @@
-import { h } from '../dom.js';
+import { h, breadcrumbs } from '../dom.js';
 import glass from '../foundation/glass.js';
 import tokens from '../foundation/tokens.js';
 import accent from '../foundation/accent.js';
@@ -29,7 +29,7 @@ export const foundation = {
     }
     root.append(
       h('header', { class: 'doc-head' },
-        h('p', { class: 'crumbs' }, h('a', { href: '#/foundation' }, 'Foundation')),
+        breadcrumbs([{ label: 'Foundation', href: '#/foundation' }, { label: page.title }]),
         h('h1', {}, page.title),
         h('p', { class: 'lede' }, page.abstract)),
       ...page.sections(),

@@ -93,3 +93,22 @@ export function table(headers, rows, { class: cls = 'api' } = {}) {
   addZoom(card);
   return card;
 }
+
+const CHEVRON_LEFT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>';
+const CHEVRON_RIGHT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>';
+
+// The top of a subpage: a glass back button to the parent list, then the trail. `trail` is [{ label, href? }, ...];
+// the first entry is the parent (the back target), and entries without an href are plain text.
+export function breadcrumbs(trail) {
+  const [parent] = trail;
+  const back = createButton({
+    icon: CHEVRON_LEFT, label: `Back to ${parent.label}`, className: 'crumb-back',
+    onClick() { location.hash = parent.href; },
+  });
+  const list = h('ol', { class: 'crumb-list' });
+  trail.forEach((t, i) => {
+    if (i) { const sep = h('li', { class: 'crumb-sep', 'aria-hidden': 'true' }); sep.innerHTML = CHEVRON_RIGHT; list.append(sep); }
+    list.append(h('li', {}, t.href ? h('a', { href: t.href }, t.label) : h('span', { 'aria-current': 'page' }, t.label)));
+  });
+  return h('nav', { class: 'crumbs', 'aria-label': 'Breadcrumb' }, back, list);
+}

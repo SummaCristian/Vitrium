@@ -2,7 +2,7 @@
 
 A JS/CSS re-implementation of a Liquid Glass-inspired design system and components, ready to use for the web. Framework-agnostic vanilla core; Web Component wrappers are planned.
 
-> Work in progress (version 0.0.1). The foundation and every component below are ported. The API can still change.
+> Work in progress (version 0.2.0). The foundation and every component below are ported. The API can still change.
 
 - **Real glass.** A translucent, blurred material with a lit rim, a gradient stroke and a soft shadow, as plain CSS classes.
 - **Physics that feels right.** Presses shrink and drag stretches with an elastic falloff, and things spring back. Sliding pills, thumbs and sheets follow a finger with inertia.

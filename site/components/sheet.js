@@ -103,7 +103,7 @@ export default {
           "  label: 'Places',",
           '  onDetentChange(id) {},',
         ].filter(Boolean);
-        return `import { createSheet } from 'liquid-glass-web';\n\nconst sheet = createSheet({\n${rows.join('\n')}\n});${modal ? '\n\nsheet.present();' : ''}`;
+        return `import { createSheet } from 'vitrium';\n\nconst sheet = createSheet({\n${rows.join('\n')}\n});${modal ? '\n\nsheet.present();' : ''}`;
       },
     });
 
@@ -187,6 +187,11 @@ createSheet({
 
 sheet.setSide('start');   // glides across`),
         h('p', {}, '`side` only matters for a fixed-width panel, and follows the writing direction. Switch the viewport to desktop, then change Side, to watch the panel glide across. Going from phone to desktop crosses the breakpoint, and the sheet re-lays itself out. `margin` is `{ top, bottom, inline }`, and the bottom also clears the safe area.')),
+
+      section('Safe area', {},
+        h('p', {}, 'The sheet\'s bottom margin is `margin.bottom` plus `env(safe-area-inset-bottom)`, on a fixed frame the detents are measured from, so it clears a phone\'s home indicator. But `env()` is only non-zero if the page opts in with `viewport-fit=cover` in its viewport meta tag, so set that for iOS:'),
+        codeBlock(`<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">`, 'html'),
+        h('p', {}, 'The tab bar uses the same inset, its clearance plus the safe area, so the two line up when a sheet sits above a tab bar.')),
 
       section('Content', {},
         h('p', {}, 'The sheet has three slots: a `header`, a `content` and a `footer`. The header and footer are pinned overlays, and the content scrolls and fades out beneath them. The header is also a drag handle, so an interactive control in it (a button, a field) keeps its own press. With no header the handle reserves the top edge.'),

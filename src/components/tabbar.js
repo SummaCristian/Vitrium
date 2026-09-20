@@ -148,7 +148,7 @@ function resolvePlacement(next, prev = DEFAULT_PLACEMENT) {
     const v = next?.[key];
     if (v === undefined) continue;
     if (EDGES[key].includes(v)) out[key] = v;
-    else console.warn(`liquid-glass-web: placement.${key} must be ${EDGES[key].map(e => `'${e}'`).join(' or ')}, got '${v}'; ignoring it.`);
+    else console.warn(`vitrium: placement.${key} must be ${EDGES[key].map(e => `'${e}'`).join(' or ')}, got '${v}'; ignoring it.`);
   }
   return out;
 }
@@ -166,7 +166,7 @@ function splitTabs(tabs, unified = false) {
   const prominent = validProminent(tabs);
   for (const t of tabs) {
     if (t.prominent && t !== prominent) {
-      console.warn(`liquid-glass-web: tab "${t.id}" can't be prominent (it must be the last of at least ${MIN_TABS_FOR_PROMINENT} tabs); ignoring the flag.`);
+      console.warn(`vitrium: tab "${t.id}" can't be prominent (it must be the last of at least ${MIN_TABS_FOR_PROMINENT} tabs); ignoring the flag.`);
     }
   }
   if (unified) return { main: tabs, prominent: null };

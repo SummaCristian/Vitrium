@@ -90,7 +90,7 @@ export default {
           s.transition !== 'pop' && `transition: '${s.transition}',`,
           s.dismissible !== 'default' && `dismissible: ${DISMISSIBLE[s.dismissible]},`,
         ].filter(Boolean);
-        return `import { createAlert } from 'liquid-glass-web';\n\nconst alert = createAlert({\n${lines('  ', ...rows)}\n});\n\nconst choice = await alert.present({ from: button });`;
+        return `import { createAlert } from 'vitrium';\n\nconst alert = createAlert({\n${lines('  ', ...rows)}\n});\n\nconst choice = await alert.present({ from: button });`;
       },
     });
 
@@ -215,7 +215,7 @@ button.addEventListener('click', () => alert.present({ from: button }));`)),
         h('p', {}, 'Everything that makes an alert modal is one small primitive, `createModalLayer`, which is exported for layers of your own. It takes a fixed layer and does two things while it is active: everything else on the page becomes `inert`, and Tab is trapped inside the layer. Only what was not already inert is touched, so deactivating puts back exactly what it changed.'),
         h('div', { class: 'card lg-glass' }, h('div', { class: 'row' }, layerBtn), layerLog),
         codeBlock(`
-import { createModalLayer } from 'liquid-glass-web';
+import { createModalLayer } from 'vitrium';
 
 const modal = createModalLayer(layerEl);
 modal.activate();     // the page goes inert, Tab wraps inside layerEl

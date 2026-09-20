@@ -1,5 +1,5 @@
 {
-  "name": "liquid-glass-web",
+  "name": "vitrium",
   "version": "0.0.1",
   "description": "A JS/CSS re-implementation of a Liquid Glass-inspired design system for the web.",
   "license": "MIT",
@@ -37,7 +37,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/SummaCristian/Liquid-Glass-Web.git"
+    "url": "git+https://github.com/SummaCristian/Vitrium.git"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.8.0"

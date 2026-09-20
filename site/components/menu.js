@@ -98,7 +98,7 @@ export default {
           sections: `    { type: 'label', label: 'Create' },\n    { id: 'doc', label: 'Document', icon, onSelect() {} },\n    { id: 'folder', label: 'Folder', icon, onSelect() {} },\n    { type: 'label', label: 'Import' },\n    { id: 'file', label: 'From file', icon${s.disabled ? ', disabled: true' : ''}, onSelect() {} },\n    { id: 'link', label: 'From link', icon, onSelect() {} },`,
         }[s.items];
         const rows = [`  trigger: button,`, `  label: '${s.label}',`, s.width !== 220 && `  width: ${s.width},`, !s.title && '  title: false,', `  items: [\n${item}\n  ],`].filter(Boolean);
-        return `import { createMenu } from 'liquid-glass-web';\n\nconst menu = createMenu({\n${rows.join('\n')}\n});`;
+        return `import { createMenu } from 'vitrium';\n\nconst menu = createMenu({\n${rows.join('\n')}\n});`;
       },
     });
 

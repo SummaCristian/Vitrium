@@ -18,7 +18,7 @@ export default {
         h('p', {}, 'Create the component in an effect, put its element in a ref, and return the cleanup. The value goes in through `set()` in a second effect, which is silent, so it does not call your handler back.'),
         codeBlock(`
 import { useEffect, useRef } from 'react';
-import { createToggle } from 'liquid-glass-web';
+import { createToggle } from 'vitrium';
 
 export function Toggle({ value, onChange, label }) {
   const host = useRef(null);
@@ -43,7 +43,7 @@ export function Toggle({ value, onChange, label }) {
         codeBlock(`
 <script setup>
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { createToggle } from 'liquid-glass-web';
+import { createToggle } from 'vitrium';
 
 const props = defineProps({ modelValue: Boolean, label: String });
 const emit = defineEmits(['update:modelValue']);
@@ -67,7 +67,7 @@ watch(() => props.modelValue, (v) => toggle.set(v));
         h('p', {}, 'An action is the natural fit: it runs when the element is added, and returns an object to update and clean up.'),
         codeBlock(`
 <script>
-  import { createToggle } from 'liquid-glass-web';
+  import { createToggle } from 'vitrium';
   export let value = false;
   export let label;
 

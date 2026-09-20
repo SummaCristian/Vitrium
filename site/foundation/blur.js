@@ -182,7 +182,7 @@ export default {
         ]),
         h('p', {}, 'Expose it as a setting, not just in code. The user should be able to see what was decided and change it. A segmented control is enough:'),
         codeBlock(`
-import { getBlurMode, setBlurMode, applyBlurState, resolveBlurCapability, reevaluateBlurCapability } from 'liquid-glass-web';
+import { getBlurMode, setBlurMode, applyBlurState, resolveBlurCapability, reevaluateBlurCapability } from 'vitrium';
 
 createSegmentedControl(host, {
   items: ['auto', 'on', 'off'].map((v) => ({ value: v, label: v })),

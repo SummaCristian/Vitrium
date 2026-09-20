@@ -90,7 +90,7 @@ export default {
           s.action && "  action: { label: 'Compose', icon, onClick() {} },",
           '  onSelect(id) {},',
         ].filter(Boolean);
-        return `import { createTabBar } from 'liquid-glass-web';\n\nconst tabbar = createTabBar(container, {\n${rows.join('\n')}\n});`;
+        return `import { createTabBar } from 'vitrium';\n\nconst tabbar = createTabBar(container, {\n${rows.join('\n')}\n});`;
       },
     });
 
@@ -175,7 +175,7 @@ body {
         h('p', {}, 'The preview page does exactly this, which is why its content stays clear of the bar in every layout.')),
 
       section('Offsets', {},
-        h('p', {}, 'The clearance from each edge is also a variable. Call `tabbar.refresh()` after changing one, so the published space follows. Try Edge clearance: wide in the playground.'),
+        h('p', {}, 'The clearance from each edge is also a variable. Call `tabbar.refresh()` after changing one, so the published space follows. `--lg-tabbar-rail-top` and `--lg-tabbar-rail-start` still work as older names for the top and start offsets. Try Edge clearance: wide in the playground.'),
         table(['Variable', 'Default', 'What it sets'], OFFSETS.map(([name, def, what]) => [h('code', {}, name), h('code', {}, def), what]))),
 
       section('Page transition', {},
@@ -193,7 +193,7 @@ body {
         table(['Option', 'Type', 'Description'], [
           ['tabs', '{ id, label, icon?, panel?, prominent?, press?, onPress? }[]', 'The tabs. `icon` is a node or trusted SVG markup.'],
           ['value', 'string', 'The initially selected tab id. Default: the first.'],
-          ['onSelect', '(id, { silent }) => void', 'Called when the selection changes. `silent` is true for `select()` calls.'],
+          ['onSelect', '(id, { silent }) => void', 'Called when the selection changes. `silent` is true for `select()` calls, and for the initial selection.'],
           ['orientation', "'auto' | 'horizontal' | 'vertical'", 'Layout axis. Default: `"auto"`.'],
           ['breakpoint', 'number', 'Width in px from which `auto` is a rail. Default: 600.'],
           ['placement', '{ row?, rail?, railAlign? }', 'Which edge each layout uses.'],

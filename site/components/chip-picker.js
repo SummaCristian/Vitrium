@@ -76,7 +76,7 @@ export default {
           `  content: (popup) => ${s.content === 'text' ? 'notes' : s.content === 'slider' ? 'volumeSlider' : 'profileForm'},`,
           '  onClose() {},',
         ].filter(Boolean);
-        return `import { createChipPicker } from 'liquid-glass-web';\n\nconst picker = createChipPicker({\n${rows.join('\n')}\n});\ncontainer.append(picker.el);\n\npicker.setValue('Tomorrow');`;
+        return `import { createChipPicker } from 'vitrium';\n\nconst picker = createChipPicker({\n${rows.join('\n')}\n});\ncontainer.append(picker.el);\n\npicker.setValue('Tomorrow');`;
       },
     });
 

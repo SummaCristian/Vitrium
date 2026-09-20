@@ -72,7 +72,7 @@ export default {
         io.observe(arena);
       },
       patch(s) { pop.setPlacement(placementOf(s.side, s.align)); },
-      code: (s) => `import { createPopover } from 'liquid-glass-web';
+      code: (s) => `import { createPopover } from 'vitrium';
 
 const popover = createPopover({
   placement: '${placementOf(s.side, s.align)}',

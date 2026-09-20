@@ -50,7 +50,7 @@ export default {
         else if (key === 'material' || key === 'tintMode') crossfade(btn, stage, () => apply(s));
         else apply(s);
       },
-      code: (s) => `import { createButton } from 'liquid-glass-web';
+      code: (s) => `import { createButton } from 'vitrium';
 import ${demoIcons[s.icon].name} from '@hugeicons/core-free-icons/${demoIcons[s.icon].name}';
 import { toSvg } from './toSvg.js';
 
@@ -127,7 +127,7 @@ createButton({ icon: toSvg(StarIcon), label: 'Favorite', tint: '#ff375f', classN
         h('p', {}, '`createToolbar` puts buttons in a row with a 0.5rem gap. Items are option objects, or ready-made elements, so you can mix your own into the row.'),
         backdropCard(toolbar),
         codeBlock(`
-import { createToolbar } from 'liquid-glass-web';
+import { createToolbar } from 'vitrium';
 
 const toolbar = createToolbar([
   { icon: toSvg(Search01Icon), label: 'Search' },
@@ -140,7 +140,7 @@ document.body.append(toolbar);`)),
         h('p', {}, '`createBackButton` is a button with a chevron, for the top-left of a header. It labels itself "Back" unless you say otherwise, and carries an `lg-back-button` class as a hook for your own layout.'),
         backdropCard(createBackButton({ onClick() {} })),
         codeBlock(`
-import { createBackButton } from 'liquid-glass-web';
+import { createBackButton } from 'vitrium';
 
 header.prepend(createBackButton({ onClick: () => history.back() }));`)),
 

@@ -6,7 +6,7 @@ export const home = {
     const seg = h('div');
     root.append(
       h('section', { class: 'stack' },
-        h('h1', {}, 'Liquid Glass, for the web.'),
+        h('h1', {}, 'Vitrium, glass for the web.'),
         h('p', { class: 'lede' }, 'A vanilla JS/CSS design system with real glass, springy physics and morphing surfaces. No framework. This whole site is built from it.'),
         h('div', { class: 'row' },
           h('a', { class: 'lg-btn pill lg-glass liquid-glass', href: '#/start' }, 'Get started'),

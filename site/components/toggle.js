@@ -33,7 +33,7 @@ export default {
         if (key === 'value') toggle.set(s.value);
         else toggle.setColor(colorOf(s.colorMode, s.color));
       },
-      code: (s) => `import { createToggle } from 'liquid-glass-web';
+      code: (s) => `import { createToggle } from 'vitrium';
 
 const toggle = createToggle({
 ${lines('  ', `value: ${s.value},`, s.colorMode !== 'default' && `color: ${s.colorMode === 'custom' ? `'${s.color}'` : `'accent'`},`, `label: 'Notifications',`, 'onChange(on) {},')}

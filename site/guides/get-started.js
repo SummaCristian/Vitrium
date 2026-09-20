@@ -8,24 +8,24 @@ export default {
     return [
       section('Install', {},
         h('p', {}, 'Add the package from npm.'),
-        codeBlock('npm install liquid-glass-web', 'text')),
+        codeBlock('npm install vitrium', 'text')),
 
       section('Add the styles', {},
         h('p', {}, 'Import the stylesheet once, in your entry file or your main CSS. It contains the tokens, the glass material and the styles of every component.'),
-        codeBlock(`import 'liquid-glass-web/styles';`),
+        codeBlock(`import 'vitrium/styles';`),
         h('p', {}, 'If you only use a few components, import just what they need. The tokens and the glass material are always required, and each component has its own file:'),
         codeBlock(`
-import 'liquid-glass-web/styles/tokens.css';
-import 'liquid-glass-web/styles/glass.css';
-import 'liquid-glass-web/styles/liquid-glass.css';   // press and stretch
-import 'liquid-glass-web/styles/pill.css';           // the sliding lens (segmented control, toggle, slider, tab bar)
-import 'liquid-glass-web/styles/toggle.css';`),
+import 'vitrium/styles/tokens.css';
+import 'vitrium/styles/glass.css';
+import 'vitrium/styles/liquid-glass.css';   // press and stretch
+import 'vitrium/styles/pill.css';           // the sliding lens (segmented control, toggle, slider, tab bar)
+import 'vitrium/styles/toggle.css';`),
         h('p', {}, 'The morph panel behind the chip pickers, the list picker and the menu has its own file, `morph-popup.css`, which they share.')),
 
       section('Initialize', {},
         h('p', {}, 'Two setup functions, both optional and both safe to call once at startup:'),
         codeBlock(`
-import { initLiquidGlass, initBlurCapability } from 'liquid-glass-web';
+import { initLiquidGlass, initBlurCapability } from 'vitrium';
 
 initLiquidGlass();     // press and stretch for every .liquid-glass element
 initBlurCapability();  // decide whether backdrop blur is affordable`),
@@ -34,10 +34,14 @@ initBlurCapability();  // decide whether backdrop blur is affordable`),
           ['`initBlurCapability()`', 'Starts with blur off, benchmarks the device once the page is idle, and switches blur on if it keeps up. See Blur.', 'Blur is simply always on.'],
         ])),
 
+      section('On phones', {},
+        h('p', {}, 'For the tab bar and the sheet to clear a phone\'s home indicator, the page has to opt in to the full screen. Add `viewport-fit=cover` to the viewport meta tag. Without it the safe-area inset is zero, and they sit against the edge.'),
+        codeBlock(`<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">`, 'html')),
+
       section('Your first component', {},
         h('p', {}, 'Every component is a function that returns a real DOM element. Create it, then put it in the page:'),
         codeBlock(`
-import { createToggle } from 'liquid-glass-web';
+import { createToggle } from 'vitrium';
 
 const toggle = createToggle({
   value: true,
@@ -46,7 +50,7 @@ const toggle = createToggle({
 });
 
 document.querySelector('#settings').append(toggle.el);`),
-        h('p', {}, 'The same shape works for all of them: options in, an object out with the element as `el`, and methods such as `set()` and `destroy()`. Each component page lists its own.')),
+        h('p', {}, 'Most components work like this: options in, an object out with the element as `el`, and methods such as `set()` and `destroy()`. The buttons return the element itself, and the segmented control and the tab bar are built into an element you pass in. Each component page shows its own.')),
 
       section('Glass on anything', {},
         h('p', {}, 'The material is a set of classes, so any element can be glass. Add `lg-glass` for the material, `liquid-glass` for the press behavior, and `lg-glass--circle` on true circles.'),

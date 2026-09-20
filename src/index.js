@@ -1,5 +1,5 @@
-// Liquid Glass Web — foundation.
-// Styles are imported separately: `import 'liquid-glass-web/styles'`.
+// Vitrium — foundation.
+// Styles are imported separately: `import 'vitrium/styles'`.
 
 export { Spring, onSpringFrame, wakeSprings } from './core/spring.js';
 export { snapGeometry, morphGeometry, hideInnerBoxInstantly, unhideInnerBox } from './core/flip-morph.js';

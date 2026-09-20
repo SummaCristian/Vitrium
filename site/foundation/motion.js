@@ -125,7 +125,7 @@ export default {
           x.to(atEnd ? track.clientWidth - DOT : 0, { stiffness: s.stiffness, damping: s.damping });
         }));
       },
-      code: (s) => `import { Spring, onSpringFrame } from 'liquid-glass-web';
+      code: (s) => `import { Spring, onSpringFrame } from 'vitrium';
 
 const x = new Spring(0);
 onSpringFrame(() => { dot.style.translate = \`\${x.value}px 0\`; });

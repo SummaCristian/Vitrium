@@ -67,7 +67,7 @@ export default {
           'onInput(value) {},',
         ].filter(Boolean);
         const tail = [s.state === 'invalid' && 'field.setInvalid(true);', s.state === 'disabled' && 'field.setDisabled(true);'].filter(Boolean);
-        return `import { createTextField } from 'liquid-glass-web';\n\nconst field = createTextField({\n${rows.map((r) => `  ${r}`).join('\n')}\n});\ncontainer.append(field.el);${tail.length ? `\n\n${tail.join('\n')}` : ''}`;
+        return `import { createTextField } from 'vitrium';\n\nconst field = createTextField({\n${rows.map((r) => `  ${r}`).join('\n')}\n});\ncontainer.append(field.el);${tail.length ? `\n\n${tail.join('\n')}` : ''}`;
       },
     });
 

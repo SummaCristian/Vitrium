@@ -69,7 +69,7 @@ export default {
           "label: 'Upload',",
         ].filter(Boolean);
         const tail = s.mode === 'determinate' ? 'progress.set(0.8);        // animates' : 'progress.set(0.8);        // becomes determinate';
-        return `import { createProgress } from 'liquid-glass-web';\n\nconst progress = createProgress({\n${rows.map((r) => `  ${r}`).join('\n')}\n});\ncontainer.append(progress.el);\n\n${tail}`;
+        return `import { createProgress } from 'vitrium';\n\nconst progress = createProgress({\n${rows.map((r) => `  ${r}`).join('\n')}\n});\ncontainer.append(progress.el);\n\n${tail}`;
       },
     });
 

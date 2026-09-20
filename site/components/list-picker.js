@@ -59,7 +59,7 @@ export default {
         const body = shown.sections
           ? `  sections: [\n${shown.sections.map((g) => `    { label: '${g.label}', options: [${first(g.options)}] },`).join('\n')}\n  ],`
           : `  options: [${first(shown.options)}],`;
-        return `import { createListPicker } from 'liquid-glass-web';\n\nconst picker = createListPicker({\n  label: 'Country',\n  icon,\n${body}\n  value: 'pt',\n  onChange(value) {},\n});\ncontainer.append(picker.el);`;
+        return `import { createListPicker } from 'vitrium';\n\nconst picker = createListPicker({\n  label: 'Country',\n  icon,\n${body}\n  value: 'pt',\n  onChange(value) {},\n});\ncontainer.append(picker.el);`;
       },
     });
 

@@ -66,7 +66,7 @@ export default {
       },
       code(s) {
         const items = itemsFor(s.content).map((i) => `{ ${[`value: '${i.value}'`, i.label && `label: '${i.label}'`, i.icon && `icon: toSvg(${demoIcons[i.value].name})`, i.ariaLabel && `ariaLabel: '${i.ariaLabel}'`].filter(Boolean).join(', ')} }`);
-        return `import { createSegmentedControl } from 'liquid-glass-web';
+        return `import { createSegmentedControl } from 'vitrium';
 
 const control = createSegmentedControl(container, {
 ${lines('  ', `items: [\n    ${items.join(',\n    ')},\n  ],`, `value: 'grid',`, s.orientation !== 'horizontal' && `orientation: '${s.orientation}',`, s.colorMode !== 'default' && `selectedColor: ${s.colorMode === 'custom' ? `'${s.color}'` : `'accent'`},`, 'onSelect(value) {},')}

@@ -116,7 +116,7 @@ export default {
       section('Tinting', {},
         h('p', {}, '`setGlassTint(el, color)` tints an element and picks a legible text color for it. Pass `null` to remove the tint. The regular material shows the color more strongly than the clear one.'),
         codeBlock(`
-import { setGlassTint } from 'liquid-glass-web';
+import { setGlassTint } from 'vitrium';
 
 setGlassTint(el, '#0a7aff');   // tint, and set a matching text color
 setGlassTint(el, null);        // back to plain glass`)),

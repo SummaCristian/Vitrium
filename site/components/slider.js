@@ -54,7 +54,7 @@ export default {
           '  onChange(value) {},      // while dragging',
           '  onCommit(value) {},      // when let go',
         ].filter(Boolean);
-        return `import { createSlider } from 'liquid-glass-web';\n\nconst slider = createSlider({\n${rows.join('\n')}\n});\ncontainer.append(slider.el);`;
+        return `import { createSlider } from 'vitrium';\n\nconst slider = createSlider({\n${rows.join('\n')}\n});\ncontainer.append(slider.el);`;
       },
     });
 

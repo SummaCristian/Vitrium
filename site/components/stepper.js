@@ -69,7 +69,7 @@ export default {
           'onChange(value) { count.textContent = value; },',
           s.disabled && 'disabled: true,',
         ].filter(Boolean);
-        return `import { createStepper } from 'liquid-glass-web';\n\nconst stepper = createStepper({\n${rows.map((r) => `  ${r}`).join('\n')}\n});\ncontainer.append(stepper.el);${s.disabled ? '\n\nstepper.setDisabled(true);' : ''}`;
+        return `import { createStepper } from 'vitrium';\n\nconst stepper = createStepper({\n${rows.map((r) => `  ${r}`).join('\n')}\n});\ncontainer.append(stepper.el);${s.disabled ? '\n\nstepper.setDisabled(true);' : ''}`;
       },
     });
 

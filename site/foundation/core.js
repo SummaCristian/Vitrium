@@ -248,7 +248,7 @@ export default {
         h('p', {}, 'A press that starts on a button, link or field inside the surface is theirs by default, so the surface does not deform and the control keeps its own press. The delegated path reads `from` and `exclude` from the `data-lg-from` and `data-lg-exclude` attributes. Try the three panels, and note that the button in each keeps its own gesture:'),
         backdropCard(panels),
         codeBlock(`
-import { attachLiquidGlass } from 'liquid-glass-web';
+import { attachLiquidGlass } from 'vitrium';
 
 attachLiquidGlass(panel);                            // the whole surface
 attachLiquidGlass(panel, { from: '.title-bar' });    // only the title bar
@@ -259,7 +259,7 @@ attachLiquidGlass(panel, { exclude: '.scroller' });  // everything but the list`
         h('p', {}, '`createMorphPopup` is the motion behind the chip pickers, the list picker and the menu: a trigger that grows into a floating panel as one glass shape, and shrinks back. It has no content of its own and does not open itself. You give it a trigger, put your content in `popup.inner`, and call `open()`, `close()` or `toggle()` when you like.'),
         h('div', { class: 'card lg-glass' }, h('div', { class: 'row' }, trigger)),
         codeBlock(`
-import { createMorphPopup } from 'liquid-glass-web';
+import { createMorphPopup } from 'vitrium';
 
 const popup = createMorphPopup({
   trigger: button, role: 'dialog', label: 'Add a note',
@@ -291,7 +291,7 @@ button.addEventListener('click', () => popup.toggle());`),
         h('p', {}, 'Here is a control of our own, a size picker made of nothing but the core, a few cells and some CSS:'),
         h('div', { class: 'card lg-glass' }, h('div', { class: 'demo-stack' }, dial.el, dial.log)),
         codeBlock(`
-import { createPillDragCore } from 'liquid-glass-web';
+import { createPillDragCore } from 'vitrium';
 
 const core = createPillDragCore({
   root, items, pill, hit, activeRow,
@@ -340,7 +340,7 @@ core.select(1, { animate: false, silent: true });`),
           ['`hideInnerBoxInstantly(el)`, `unhideInnerBox(el)`', 'Cut a shrinking panel\'s contents out with no fade, and bring them back, so their squeezed layout is not seen stretched back up during a close.'],
         ]),
         codeBlock(`
-import { morphGeometry } from 'liquid-glass-web';
+import { morphGeometry } from 'vitrium';
 
 const from = trigger.getBoundingClientRect();
 const to = { left: 40, top: 80, width: 320, height: 240 };

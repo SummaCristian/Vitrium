@@ -8,6 +8,7 @@ import alertPage from './alert.js';
 import menuPage from './menu.js';
 import textFieldPage from './text-field.js';
 import stepperPage from './stepper.js';
+import progressPage from './progress.js';
 import popoverPage from './popover.js';
 import tabbarPage from './tabbar.js';
 import sheetPage from './sheet.js';
@@ -37,6 +38,14 @@ export const components = [
     abstract: 'A sliding-pill picker, horizontal or vertical.',
     page: segmentedControlPage,
     related: ['toggle', 'button'],
+  },
+  {
+    id: 'progress',
+    group: 'Status',
+    title: 'Progress',
+    abstract: 'A bar or ring that fills to a value, or spins while the amount is unknown.',
+    page: progressPage,
+    related: ['slider', 'stepper'],
   },
   {
     id: 'stepper',

@@ -71,8 +71,10 @@
 .lg-progress__arc {
   stroke: var(--lg-accent);
   stroke-linecap: round;
-  stroke-dasharray: calc(var(--lg-progress, 0) * 100) 100;
-  transition: stroke-dasharray 0.3s ease;
+  /* The component sets the dash (the ring's circumference) and slides it with stroke-dashoffset: see progress.js. */
+  stroke-dasharray: 62.832;
+  stroke-dashoffset: 62.832;
+  transition: stroke-dashoffset 0.3s ease, opacity 0.2s ease;
 }
 
 /* Indeterminate: a fixed arc spinning. */
@@ -81,7 +83,8 @@
 }
 
 .lg-progress--circular.is-indeterminate .lg-progress__arc {
-  stroke-dasharray: 28 100;
+  stroke-dasharray: 17.6 62.832;   /* a little over a quarter of the ring */
+  stroke-dashoffset: 0;
   transition: none;
 }
 

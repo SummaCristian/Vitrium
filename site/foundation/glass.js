@@ -1,6 +1,6 @@
 import { setGlassTint } from '../../src/index.js';
 import { createPlayground } from '../components/playground.js';
-import { h, section, table } from '../dom.js';
+import { h, section, table, codeBlock } from '../dom.js';
 
 // Fixed sizes, so a change of shape is a real CSS transition (auto sizes can't animate). Radii are
 // half the height, not 999px, so the corners ease along with the box instead of clamping.
@@ -128,6 +128,13 @@ export default {
       section('Anatomy', {},
         h('p', {}, 'A glass surface is five layers on one element: the tint, the backdrop blur, an inner rim highlight made from inset shadows, a 0.5px gradient stroke drawn outside the edge, and a drop shadow. On displays with HDR headroom the rim goes brighter than white.')),
       section('Playground', {}, h('p', {}, 'The colorful backdrop is only here so the blur has something to work on.'), playground),
+      section('Tinting', {},
+        h('p', {}, '`setGlassTint(el, color)` tints an element and picks a legible text color for it. Pass `null` to remove the tint. The regular material shows the color more strongly than the clear one.'),
+        codeBlock(`
+import { setGlassTint } from 'liquid-glass-web';
+
+setGlassTint(el, '#0a7aff');   // tint, and set a matching text color
+setGlassTint(el, null);        // back to plain glass`)),
       section('Classes', {},
         table(['Class', 'What it does'], [
           [h('code', {}, 'lg-glass'), 'The material.'],

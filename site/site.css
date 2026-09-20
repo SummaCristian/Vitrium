@@ -431,3 +431,15 @@ code.ic { font: 0.88em ui-monospace, 'SF Mono', Menlo, monospace; padding: 0.12e
 @keyframes page-zoom-out { to { opacity: 0; } }
 @keyframes page-zoom-in { from { opacity: 0; } }
 ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.25s; }
+
+/* Theme page: light and dark previews side by side. The panel's tokens are set inline (see foundation/theme.js). */
+.theme-previews { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+.theme-preview { display: grid; gap: 12px; padding: 1.25rem; border-radius: var(--radius-xl); color: var(--lg-text); overflow: hidden;
+  background: radial-gradient(circle at 20% 15%, #ff7a59 0, transparent 55%), radial-gradient(circle at 85% 30%, #4f8cff 0, transparent 60%),
+    radial-gradient(circle at 40% 100%, #3ce065 0, transparent 60%), radial-gradient(circle at 95% 95%, #c05cff 0, transparent 50%),
+    var(--lg-preview-base, #e8e8ed); }
+.theme-preview--dark { --lg-preview-base: #1c1c1e; }
+.theme-preview-title { font-size: 1rem; font-weight: 700; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); }
+.theme-preview-surface { display: grid; gap: 16px; padding: 1.25rem; border-radius: var(--radius-lg); }
+.theme-preview-text { font-weight: 600; }
+.theme-preview-text--muted { color: var(--lg-text-secondary); font-weight: 500; }

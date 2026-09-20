@@ -15,6 +15,10 @@ const declarations = (text) => {
 const light = declarations(block(':root {'));
 const dark = declarations(block(':root[data-theme="dark"] {'));
 
+// Every token's value in one theme (the dark values laid over the light ones), for previews that show a theme
+// whatever the page itself is showing.
+export const themeTokens = (theme) => new Map([...light, ...(theme === 'dark' ? dark : [])]);
+
 const GROUPS = [
   ['Material', /^--lg-(tint|outline|shadow|specular|highlight|stroke|blur)/],
   ['Text', /^--lg-text/],

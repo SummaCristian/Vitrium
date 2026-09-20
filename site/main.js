@@ -20,7 +20,7 @@ initBlurCapability();
 const routes = { home, start, foundation, components: componentsPage };
 const tabs = [
   { id: 'home', label: 'Home', icon: navIcons.home, panel: 'page' },
-  { id: 'start', label: 'Start', icon: navIcons.start, panel: 'page' },
+  { id: 'start', label: 'Guides', icon: navIcons.start, panel: 'page' },
   { id: 'foundation', label: 'Foundation', icon: navIcons.foundation, panel: 'page' },
   { id: 'components', label: 'Components', icon: navIcons.components, panel: 'page' },
 ];

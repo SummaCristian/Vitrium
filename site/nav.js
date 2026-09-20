@@ -3,6 +3,7 @@ import { createTextField, createSegmentedControl, icons } from '../src/index.js'
 import { h } from './dom.js';
 import { components } from './components/registry.js';
 import { foundationPages } from './pages/foundation.js';
+import { guidePages, guideHref } from './pages/start.js';
 
 const groupsOf = () => {
   const groups = new Map();
@@ -12,7 +13,7 @@ const groupsOf = () => {
 
 // The documentation tree. A node with `href` is a page; one with `children` is a branch that can be folded.
 const treeData = () => [
-  { title: 'Guides', children: [{ title: 'Get started', href: '#/start' }] },
+  { title: 'Guides', children: guidePages.map((g) => ({ title: g.title, href: guideHref(g) })) },
   { title: 'Foundation', children: [{ title: 'Overview', href: '#/foundation' }, ...foundationPages.map((p) => ({ title: p.title, href: `#/foundation/${p.id}` }))] },
   { title: 'Components', children: [
     { title: 'All components', href: '#/components' },

@@ -216,11 +216,11 @@ test.describe('guides', () => {
     });
   }
 
-  test('the sidebar lists every guide, and the Start tab stays selected on all of them', async ({ page }) => {
+  test('the sidebar lists every guide, and the Guides tab stays selected on all of them', async ({ page }) => {
     await open(page, 'start/theming', 'main h1');
     const links = page.locator('.sidebar .node--root').first().locator('.side-link');
     await expect(links).toHaveText(GUIDES.map(([, title]) => title));
-    await expect(page.locator('.lg-tabbar [role="tab"][aria-selected="true"]')).toHaveText(/Start/);
+    await expect(page.locator('.lg-tabbar [role="tab"][aria-selected="true"]')).toHaveText(/Guides/);
   });
 
   test('Get started links on to the other guides', async ({ page }) => {

@@ -562,3 +562,8 @@ body.sheet-preview h1, body.sheet-preview p { color: #fff; text-shadow: 0 1px 4p
 .slider-ticks span { position: absolute; top: 0; left: calc(var(--lg-slider-thumb-w, 38px) / 2 + (100% - var(--lg-slider-thumb-w, 38px)) * var(--f)); translate: -50% 0; font-size: 0.75rem; opacity: 0.6; }
 .slider-thick { --lg-slider-track-h: 12px; }
 .slider-tinted { --lg-accent: #ff375f; }
+
+/* Picker pages */
+.picker-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; }
+.picker-body > * { min-width: 0; }
+.picker-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-weight: 600; }

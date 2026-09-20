@@ -43,3 +43,18 @@ export function crossfade(el, container, apply) {
   ghost.animate([{ opacity: 1 }, { opacity: 0 }], opts).finished.then(() => ghost.remove());
   el.animate([{ opacity: 0 }, { opacity: 1 }], opts).finished.then((a) => a.cancel());
 }
+
+// Replaces an element's text: the old text shrinks, fades and blurs away over the new, which grows in.
+export function swapText(el, text) {
+  if (el.textContent === text) return;
+  if (reduceMotion()) { el.textContent = text; return; }
+  const host = el.parentElement;
+  if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+  const ghost = el.cloneNode(true);
+  Object.assign(ghost.style, { position: 'absolute', left: `${el.offsetLeft}px`, top: `${el.offsetTop}px`, width: `${el.offsetWidth}px`, margin: '0', pointerEvents: 'none' });
+  ghost.setAttribute('aria-hidden', 'true');
+  host.append(ghost);
+  el.textContent = text;
+  el.animate([HIDDEN, SHOWN], SWAP);
+  ghost.animate([SHOWN, HIDDEN], SWAP).finished.then(() => ghost.remove(), () => ghost.remove());
+}

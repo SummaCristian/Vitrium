@@ -2,6 +2,8 @@ import buttonPage from './button.js';
 import togglePage from './toggle.js';
 import segmentedControlPage from './segmented-control.js';
 import sliderPage from './slider.js';
+import chipPickerPage from './chip-picker.js';
+import listPickerPage from './list-picker.js';
 import popoverPage from './popover.js';
 import tabbarPage from './tabbar.js';
 import sheetPage from './sheet.js';
@@ -39,6 +41,22 @@ export const components = [
     abstract: 'A glass lens on a track, for one value or a range.',
     page: sliderPage,
     related: ['toggle', 'segmented-control'],
+  },
+  {
+    id: 'chip-picker',
+    group: 'Pickers',
+    title: 'Chip picker',
+    abstract: 'A glass chip that morphs into a panel holding anything.',
+    page: chipPickerPage,
+    related: ['list-picker', 'popover'],
+  },
+  {
+    id: 'list-picker',
+    group: 'Pickers',
+    title: 'List picker',
+    abstract: 'A select: a chip that morphs into a listbox, with sections and type-ahead.',
+    page: listPickerPage,
+    related: ['chip-picker', 'segmented-control'],
   },
   {
     id: 'popover',

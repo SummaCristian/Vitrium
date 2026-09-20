@@ -1,46 +1,15 @@
 import { createPlayground } from './playground.js';
 import { h, section, table, codeBlock } from '../dom.js';
+import { createPreviewFrame } from './preview-frame.js';
 
-const LAYOUTS = {
-  auto: { orientation: 'auto', compact: false },
-  'auto compact': { orientation: 'auto', compact: true },
-  row: { orientation: 'horizontal', compact: false },
-  rail: { orientation: 'vertical', compact: false },
-  compact: { orientation: 'vertical', compact: true },
-};
-const VIEWPORTS = { phone: '390px', tablet: '700px', desktop: '100%' };
-const stateOf = (s) => ({ ...LAYOUTS[s.layout], row: s.row, rail: s.rail, railAlign: s.railAlign, tabs: s.tabs, prominent: s.prominent, action: s.action, transition: s.transition, clearance: s.clearance });
-
-// The preview: an iframe running tabbar-preview.html, so the bar has a viewport of its own to be fixed to. The docs
-// theme and blur state are mirrored onto it, and it is driven through window.preview.
-function createFrame(initial, { onEvent, onTick }) {
-  const frame = h('iframe', { class: 'tabbar-frame', src: './tabbar-preview.html', title: 'Tab bar preview' });
-  const html = document.documentElement;
-  const mirror = () => {
-    const doc = frame.contentDocument?.documentElement;
-    if (!doc) return;
-    for (const attr of ['data-theme', 'data-blur']) {
-      if (html.hasAttribute(attr)) doc.setAttribute(attr, html.getAttribute(attr)); else doc.removeAttribute(attr);
-    }
-  };
-  const observer = new MutationObserver(mirror);
-  observer.observe(html, { attributes: true, attributeFilter: ['data-theme', 'data-blur'] });
-
-  let preview = null;
-  frame.addEventListener('load', () => {
-    preview = frame.contentWindow.preview;
-    mirror();
-    preview.onEvent = onEvent;
-    preview.init(initial());
-  });
-
-  const timer = setInterval(() => {
-    if (!frame.isConnected) { clearInterval(timer); observer.disconnect(); return; }
-    if (preview?.tabbar) onTick(preview);
-  }, 250);
-
-  return { el: frame, apply: (next) => preview?.apply(next) };
-}
+const ORIENTATIONS = { auto: 'auto', row: 'horizontal', rail: 'vertical' };
+// Compact replaces the wide-screen rail, so it only exists where the bar is a rail: a fixed rail, or auto on a wide viewport.
+const compactApplies = (s) => s.layout === 'rail' || (s.layout === 'auto' && s.viewport !== 'phone');
+const layoutOf = (s) => ({ orientation: ORIENTATIONS[s.layout], compact: s.compact && compactApplies(s) });
+const VIEWPORTS = { phone: '390px', desktop: '100%' };
+// Start on the viewport that fits: a small window has no room for the desktop preview.
+const fittingViewport = () => (window.matchMedia('(min-width: 900px)').matches ? 'desktop' : 'phone');
+const stateOf = (s) => ({ ...layoutOf(s), row: s.row, rail: s.rail, railAlign: s.railAlign, tabs: s.tabs, prominent: s.prominent, action: s.action, transition: s.transition, clearance: s.clearance, large: s.viewport !== 'phone' });
 
 const SPACES = [
   ['top', 'A row at the top edge, or the compact bar.'],
@@ -75,11 +44,12 @@ export default {
 
     const playground = createPlayground({
       options: [
-        { key: 'layout', label: 'Layout', type: 'choice', choices: ['auto', 'auto compact', 'row', 'rail', 'compact'], default: 'auto' },
-        { key: 'viewport', label: 'Viewport', type: 'choice', choices: ['phone', 'tablet', 'desktop'], default: 'desktop' },
-        { key: 'row', label: 'Row edge', type: 'choice', choices: ['bottom', 'top'], default: 'bottom', when: (s) => s.layout !== 'rail' && s.layout !== 'compact' },
-        { key: 'rail', label: 'Rail edge', type: 'choice', choices: ['start', 'end'], default: 'start', when: (s) => s.layout === 'auto' || s.layout === 'rail' },
-        { key: 'railAlign', label: 'Rail align', type: 'choice', choices: ['top', 'center', 'bottom'], default: 'top', when: (s) => s.layout === 'auto' || s.layout === 'rail' },
+        { key: 'layout', label: 'Layout', type: 'choice', choices: ['auto', 'row', 'rail'], default: 'auto' },
+        { key: 'compact', label: 'Compact', type: 'bool', default: false, when: compactApplies },
+        { key: 'viewport', label: 'Viewport', type: 'choice', choices: ['phone', 'desktop'], default: fittingViewport() },
+        { key: 'row', label: 'Row edge', type: 'choice', choices: ['bottom', 'top'], default: 'bottom', when: (s) => s.layout !== 'rail' },
+        { key: 'rail', label: 'Rail edge', type: 'choice', choices: ['start', 'end'], default: 'start', when: (s) => s.layout !== 'row' && !layoutOf(s).compact },
+        { key: 'railAlign', label: 'Rail align', type: 'choice', choices: ['top', 'center', 'bottom'], default: 'top', when: (s) => s.layout !== 'row' && !layoutOf(s).compact },
         { key: 'tabs', label: 'Tabs', type: 'choice', choices: [3, 4], default: 4 },
         { key: 'prominent', label: 'Last tab', type: 'choice', choices: ['none', 'tab', 'press'], default: 'none' },
         { key: 'action', label: 'Action button', type: 'bool', default: false },
@@ -87,23 +57,25 @@ export default {
         { key: 'clearance', label: 'Edge clearance', type: 'choice', choices: ['default', 'wide'], default: 'default' },
       ],
       render(s, stage) {
-        frame = createFrame(() => stateOf(s), {
+        frame = createPreviewFrame({
+          src: './tabbar-preview.html', title: 'Tab bar preview', height: 540, initial: () => stateOf(s),
           onEvent(name, arg) { events.textContent = arg ? `${name}('${arg}')` : `${name}()`; },
           onTick(preview) {
+            if (!preview.tabbar) return;
             const spaces = preview.spaces();
             for (const [name, cell] of spaceCells) cell.textContent = spaces[name];
             status.textContent = `orientation: ${preview.tabbar.orientation}, compact: ${preview.tabbar.compact}`;
           },
         });
-        frame.el.style.width = VIEWPORTS[s.viewport];
+        frame.setWidth(VIEWPORTS[s.viewport]);
         stage.append(h('div', { class: 'tabbar-stack' }, frame.el, h('div', { class: 'tabbar-readouts' }, status, events)));
       },
       patch(s, stage, key) {
-        if (key === 'viewport') frame.el.style.width = VIEWPORTS[s.viewport];
-        else frame.apply(stateOf(s));
+        if (key === 'viewport') frame.setWidth(VIEWPORTS[s.viewport]);
+        frame.apply(stateOf(s));
       },
       code(s) {
-        const { orientation, compact } = LAYOUTS[s.layout];
+        const { orientation, compact } = layoutOf(s);
         const tabs = ['home', 'explore', 'library', 'settings'].slice(0, s.tabs).map((id) => `    { id: '${id}', label: '${id[0].toUpperCase()}${id.slice(1)}', icon },`);
         if (s.prominent === 'tab') tabs.push("    { id: 'search', label: 'Search', icon, prominent: true },");
         if (s.prominent === 'press') tabs.push("    { id: 'new', label: 'New', icon, prominent: true, press: true, onPress(el) {} },");
@@ -128,7 +100,7 @@ export default {
         h('p', {}, 'It has several layouts and picks between them for you: a row along the bottom or top edge, a vertical rail on the side, or one compact bar centered at the top. Change the layout while it is showing and it animates between them.')),
 
       section('Playground', {},
-        h('p', {}, 'The bar is fixed to the screen, so the preview is a small screen of its own. Change the layout and watch the bar move there. Change the viewport and the automatic layout switches at the breakpoint, exactly as it would on a phone and a laptop. Tap the tabs, drag the pill, and use the arrow keys.'),
+        h('p', {}, 'The bar is fixed to the screen, so the preview is a small screen of its own. Change the layout and watch the bar move there. Change the viewport and the automatic layout switches at the breakpoint, exactly as it would on a phone and a laptop. Tap the tabs, drag the pill, and use the arrow keys. If this column is narrower than the viewport you pick, the preview is scaled down to fit but still lays out at its real width.'),
         playground),
 
       section('Layouts', {},

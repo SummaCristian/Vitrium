@@ -21,7 +21,7 @@ const TEXT = {
 // The state the docs page sends. Every key is optional; what is missing keeps its last value.
 const DEFAULTS = {
   orientation: 'auto', compact: false, row: 'bottom', rail: 'start', railAlign: 'top',
-  tabs: 4, prominent: 'none', action: false, transition: true, clearance: 'default',
+  tabs: 4, prominent: 'none', action: false, transition: true, clearance: 'default', large: true,
 };
 
 const tabsFor = ({ tabs, prominent }) => {
@@ -41,6 +41,10 @@ const show = (id) => {
 const events = { handler: null };
 const emit = (name, arg) => events.handler?.(name, arg);
 
+// A tablet or desktop preview counts as a wide screen even when the frame is too narrow to be one, so `auto`
+// resolves to the rail there. Going through setOrientation keeps the change animated.
+const orientationOf = ({ orientation, large }) => (orientation === 'auto' && large ? 'vertical' : orientation);
+
 let state = { ...DEFAULTS };
 let bar = null;
 
@@ -49,7 +53,7 @@ function build() {
   const value = bar?.value ?? 'home';
   bar = createTabBar(document.getElementById('tabbar'), {
     tabs: tabsFor(state), value: tabsFor(state).some((t) => t.id === value && !t.press) ? value : 'home',
-    orientation: state.orientation, compact: state.compact, transition: state.transition, label: 'Sections',
+    orientation: orientationOf(state), compact: state.compact, transition: state.transition, label: 'Sections',
     placement: { row: state.row, rail: state.rail, railAlign: state.railAlign },
     action: state.action ? { label: 'Compose', icon: icons.plus, onClick: () => emit('onAction') } : undefined,
     onSelect: (id, { silent }) => { show(id); if (!silent) emit('onSelect', id); },
@@ -64,7 +68,7 @@ function apply(next) {
   state = { ...state, ...next };
   if (!bar || state.action !== prev.action || state.transition !== prev.transition) { build(); }
   else {
-    if (state.orientation !== prev.orientation) bar.setOrientation(state.orientation);
+    if (orientationOf(state) !== orientationOf(prev)) bar.setOrientation(orientationOf(state));
     if (state.compact !== prev.compact) bar.setCompact(state.compact);
     if (state.row !== prev.row || state.rail !== prev.rail || state.railAlign !== prev.railAlign) {
       bar.setPlacement({ row: state.row, rail: state.rail, railAlign: state.railAlign });

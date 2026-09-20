@@ -3,6 +3,7 @@ import togglePage from './toggle.js';
 import segmentedControlPage from './segmented-control.js';
 import popoverPage from './popover.js';
 import tabbarPage from './tabbar.js';
+import sheetPage from './sheet.js';
 
 // One entry per component page. `page` is the page's own file, exporting `sections()` like a foundation page.
 export const components = [
@@ -45,6 +46,14 @@ export const components = [
     abstract: 'A fixed glass bar of tabs, as a row, a rail or one compact bar.',
     page: tabbarPage,
     related: ['segmented-control', 'button'],
+  },
+  {
+    id: 'sheet',
+    group: 'Overlays',
+    title: 'Sheet',
+    abstract: 'A glass panel that resizes between detents, as a bottom sheet or a side panel.',
+    page: sheetPage,
+    related: ['popover', 'tab-bar'],
   },
 ];
 

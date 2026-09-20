@@ -373,11 +373,10 @@
 /* At least square. The lens's corner radius is half its shorter side, so it
    stays concentric with the bar's full-pill radius (half the bar's thickness)
    only if no tab is shorter than the bar is wide; otherwise the lens's corners
-   poke out of the bar. (In a row the same is done from JS, sizeTabs(): a
-   minimum width equal to the tab height.) */
-.lg-tabbar--vertical .lg-tabbar__tab {
-  aspect-ratio: 1;
-}
+   poke out of the bar. (Done from JS, sizeTabs(): in a row a minimum width
+   equal to the tab height, in a rail a minimum height equal to the tab width.
+   Not `aspect-ratio`: it made the rail's thickness depend on its height,
+   which Safari resolved differently at first layout and mid-animation.) */
 
 /* Not near the viewport's bottom edge here (a rail, or a row at the top), so
    the safe-area shadow shrink (0 4px 20px) isn't needed: use the full glass

@@ -262,8 +262,13 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
   // rail, the CSS aspect-ratio does the equivalent.)
   function sizeTabs() {
     const tabsInBar = Array.from(items.children);
-    for (const t of tabsInBar) t.style.minWidth = '';
-    if (vertical || !tabsInBar.length) return;
+    for (const t of tabsInBar) t.style.minWidth = t.style.minHeight = '';
+    if (!tabsInBar.length) return;
+    if (vertical) {
+      const w = Math.max(...tabsInBar.map(t => t.offsetWidth));
+      if (w) for (const t of tabsInBar) t.style.minHeight = w + 'px';
+      return;
+    }
     const h = Math.max(...tabsInBar.map(t => t.offsetHeight));
     if (h) for (const t of tabsInBar) t.style.minWidth = h + 'px';
   }
@@ -343,6 +348,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
   // Fractional used size (offsetWidth rounds, which would leave a sub-pixel
   // step when the inline size is cleared); unaffected by the group's deform.
   const barSize = () => parseFloat(getComputedStyle(bar)[sizeProp()]) || 0;
+  const barCross = () => parseFloat(getComputedStyle(bar)[vertical ? 'width' : 'height']) || 0;
   const barW = new Spring(0);
   let barAnimating = false;
   let freezeSpace = false;   // hold the page's reserved space steady while the orientation sequence collapses
@@ -355,7 +361,11 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     if (barAnimating) {
       if (barW.resting) {
         barAnimating = false;
-        bar.style.width = bar.style.height = '';
+        // Release only the animated axis. A rail's pinned thickness stays, so
+        // the bar doesn't re-derive a different (wider, in Safari) one on settle;
+        // whatever changes the labels or layout clears it (setLabel, applyTabs,
+        // switchLayout).
+        bar.style[sizeProp()] = '';
         core.refresh();
       } else {
         bar.style[sizeProp()] = `${barW.value}px`;
@@ -537,6 +547,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     if (!btn) return;
     const labelEl = btn.querySelector('.lg-tabbar__label');
     if (labelEl) labelEl.textContent = label; else btn.setAttribute('aria-label', label);
+    if (!barAnimating) bar.style.width = bar.style.height = '';   // drop a rail's pinned thickness: the new label may need more
     sizeTabs();
     core.refresh();
   }
@@ -613,6 +624,11 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     const newSize = barSize();
     if (oldSize && newSize && oldSize !== newSize) {
       barAnimating = true;
+      // In a rail, pin the thickness at its natural value while the height
+      // animates. Left to the browser it's re-derived every frame from the
+      // labels and the tabs' aspect-ratio against the forced height, which
+      // Safari resolves unstably (the rail, and the lens with it, wobble).
+      if (vertical) bar.style.width = `${barCross()}px`;
       bar.style[sizeProp()] = oldSize + 'px';   // start value, in place before the next paint
       barW.set(oldSize);
       barW.to(newSize, WIDTH_SPRING);

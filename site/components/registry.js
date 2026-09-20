@@ -6,6 +6,7 @@ import chipPickerPage from './chip-picker.js';
 import listPickerPage from './list-picker.js';
 import alertPage from './alert.js';
 import menuPage from './menu.js';
+import textFieldPage from './text-field.js';
 import popoverPage from './popover.js';
 import tabbarPage from './tabbar.js';
 import sheetPage from './sheet.js';
@@ -35,6 +36,14 @@ export const components = [
     abstract: 'A sliding-pill picker, horizontal or vertical.',
     page: segmentedControlPage,
     related: ['toggle', 'button'],
+  },
+  {
+    id: 'text-field',
+    group: 'Controls',
+    title: 'Text field',
+    abstract: 'A glass capsule around a native input, with search and multiline forms.',
+    page: textFieldPage,
+    related: ['list-picker', 'slider'],
   },
   {
     id: 'slider',

@@ -572,3 +572,13 @@ body.sheet-preview h1, body.sheet-preview p { color: #fff; text-shadow: 0 1px 4p
 .demo-layer { position: fixed; inset: 0; z-index: 1100; display: grid; place-items: center; background: rgba(0, 0, 0, 0.32); }
 .demo-layer[hidden] { display: none; }
 .demo-layer__box { width: min(90vw, 340px); }
+
+/* Text field page */
+.field-host { width: min(100%, 420px); }
+.field-stack { width: 100%; }
+.field-gallery { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); width: 100%; }
+.field-form { display: grid; gap: 12px; width: min(100%, 420px); justify-items: start; }
+.field-form .lg-field { width: 100%; }
+.field-msg { min-height: 1.3em; margin: 0; font-size: 0.9rem; color: var(--lg-danger); }
+.field-results { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.field-results li { padding: 6px 14px; border-radius: 999px; background: color-mix(in srgb, currentColor 8%, transparent); font-size: 0.9rem; }

@@ -19,6 +19,12 @@ const dark = declarations(block(':root[data-theme="dark"] {'));
 // whatever the page itself is showing.
 export const themeTokens = (theme) => new Map([...light, ...(theme === 'dark' ? dark : [])]);
 
+// What [data-blur="off"] changes in a theme (blur zeroed, tint near-opaque), to lay over themeTokens().
+export const blurOffTokens = (theme) => new Map([
+  ...declarations(block(':root[data-blur="off"] {')),
+  ...(theme === 'dark' ? declarations(block(':root[data-blur="off"][data-theme="dark"] {')) : []),
+]);
+
 const GROUPS = [
   ['Material', /^--lg-(tint|outline|shadow|specular|highlight|stroke|blur)/],
   ['Text', /^--lg-text/],

@@ -13,7 +13,7 @@
 export const BLUR_MODE_KEY = 'lg:blur-mode';            // 'auto' | 'on' | 'off'
 const BENCHMARK_CACHE_KEY = 'lg:blur-benchmark';
 // Bump when the benchmark logic or thresholds change so stale verdicts re-run.
-const BENCHMARK_VERSION = 1;
+const BENCHMARK_VERSION = 2;
 
 const IDLE_RECHECK_DELAY_MS = 2500; // requestIdleCallback fallback (Safari)
 const SAMPLE_MS = 500;              // benchmark window, ~30 frames at 60fps
@@ -49,21 +49,31 @@ function writeCachedResult(capable) {
   store.set(BENCHMARK_CACHE_KEY, JSON.stringify({ version: BENCHMARK_VERSION, capable }));
 }
 
+// The verdict from an earlier run on this device: true, false, or null if there isn't one.
+export const getCachedBlurVerdict = readCachedResult;
+
+// The numbers the benchmark judges against, for anything that wants to show them.
+export const BLUR_BENCHMARK = { SAMPLE_MS, WARMUP_FRAMES, JANK_THRESHOLD_MS, MAX_JANK_RATIO, BENCHMARK_CACHE_KEY, VERSION: BENCHMARK_VERSION };
+
 function supportsBackdropFilter() {
   return CSS.supports('backdrop-filter', 'blur(1px)') || CSS.supports('-webkit-backdrop-filter', 'blur(1px)');
 }
 
 // Renders an offscreen full-viewport blurred panel and measures rAF frame gaps
 // while it's composited, so the sample reflects real compositing cost.
-function runBenchmark() {
+//
+// `onFrame({ index, elapsed, gap, warmup, jank })` is called on every frame, so a UI can draw the run live.
+export function runBlurBenchmark({ onFrame } = {}) {
   return new Promise(resolve => {
     if (!supportsBackdropFilter()) return resolve(false);
 
     const probe = document.createElement('div');
+    // !important: while [data-blur="off"] is applied (always the case on a first visit), the catch-all rule in
+    // tokens.css is !important too, and would otherwise strip the very blur this is trying to measure.
     probe.style.cssText = `
       position: fixed; inset: 0; opacity: 0; pointer-events: none; z-index: -1;
       background: rgba(250, 250, 250, 0.7);
-      backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+      backdrop-filter: blur(18px) !important; -webkit-backdrop-filter: blur(18px) !important;
     `;
     document.body.appendChild(probe);
 
@@ -72,8 +82,12 @@ function runBenchmark() {
 
     function tick(now) {
       totalFrames++;
-      if (totalFrames > WARMUP_FRAMES && now - lastTime > JANK_THRESHOLD_MS) jankFrames++;
+      const gap = now - lastTime;
+      const warmup = totalFrames <= WARMUP_FRAMES;
+      const jank = !warmup && gap > JANK_THRESHOLD_MS;
+      if (jank) jankFrames++;
       lastTime = now;
+      onFrame?.({ index: totalFrames, elapsed: now - start, gap, warmup, jank });
       if (now - start < SAMPLE_MS) return requestAnimationFrame(tick);
 
       probe.remove();
@@ -109,7 +123,7 @@ export function scheduleIdleBenchmark() {
   const run = () => {
     // Mode/cache may have changed while waiting — don't clobber it.
     if (getBlurMode() !== 'auto' || readCachedResult() !== null) return;
-    runBenchmark().then(capable => {
+    runBlurBenchmark().then(capable => {
       writeCachedResult(capable);
       applyBlurState(capable);
     });
@@ -124,7 +138,7 @@ export function scheduleIdleBenchmark() {
 
 // Re-runs and re-caches the benchmark now (e.g. the user switched back to "Auto").
 export async function reevaluateBlurCapability() {
-  const capable = await runBenchmark();
+  const capable = await runBlurBenchmark();
   writeCachedResult(capable);
   applyBlurState(capable);
   return capable;

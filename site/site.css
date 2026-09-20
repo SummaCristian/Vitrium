@@ -443,3 +443,41 @@ code.ic { font: 0.88em ui-monospace, 'SF Mono', Menlo, monospace; padding: 0.12e
 .theme-preview-surface { display: grid; gap: 16px; padding: 1.25rem; border-radius: var(--radius-lg); }
 .theme-preview-text { font-weight: 600; }
 .theme-preview-text--muted { color: var(--lg-text-secondary); font-weight: 500; }
+
+/* Blur page */
+.steps { margin: 0; padding-inline-start: 1.25rem; display: grid; gap: 10px; color: var(--text-color-secondary); max-width: var(--measure, none); }
+.blur-previews { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.blur-preview { position: relative; height: 170px; border-radius: var(--radius-xl); overflow: hidden; display: grid; place-items: center; color: var(--lg-text);
+  background: radial-gradient(circle at 20% 20%, #ff7a59 0, transparent 55%), radial-gradient(circle at 80% 30%, #4f8cff 0, transparent 60%),
+    radial-gradient(circle at 50% 100%, #3ce065 0, transparent 60%), #c05cff; }
+.blur-preview-behind { position: absolute; inset: 0; display: grid; place-items: center; font-size: 2.2rem; font-weight: 800; color: #fff; opacity: 0.9; letter-spacing: -0.02em; }
+.blur-preview-row { position: relative; display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; padding: 0 12px; }
+.blur-preview-glass { padding: 0.8rem 1.5rem; border-radius: 999px; font-weight: 700; }
+.blur-preview-label { position: absolute; top: 10px; left: 14px; font-size: 0.8rem; font-weight: 700; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45); }
+
+.bench { gap: 16px; }
+.bench-hint { font-size: 0.9rem; opacity: 0.65; }
+.bench-chart { position: relative; width: 100%; height: 150px; border-radius: var(--radius-md); background: color-mix(in srgb, currentColor 5%, transparent); padding: 8px 8px 0; box-sizing: border-box; overflow: hidden; }
+.bench-bars { position: relative; height: 100%; display: flex; align-items: flex-end; gap: 2px; }
+.bar { flex: 1 1 0; max-width: 16px; min-height: 2px; border-radius: 3px 3px 0 0; background: var(--lg-accent); }
+.bar--warmup { background: color-mix(in srgb, currentColor 30%, transparent); }
+.bar--jank { background: var(--lg-danger); }
+.bench-line { position: absolute; left: 0; right: 0; z-index: 1; border-top: 1px dashed color-mix(in srgb, currentColor 55%, transparent); pointer-events: none; }
+.bench-line span { position: absolute; right: 6px; bottom: 2px; font-size: 0.72rem; opacity: 0.7; }
+.bench-empty { position: absolute; inset: 0; display: grid; place-items: center; font-size: 0.9rem; opacity: 0.55; }
+.bench-chart.has-data .bench-empty { display: none; }
+.bench-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.85rem; opacity: 0.8; }
+.bench-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.swatch-dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.swatch-dot--warmup { background: color-mix(in srgb, currentColor 30%, transparent); }
+.swatch-dot--ok { background: var(--lg-accent); }
+.swatch-dot--jank { background: var(--lg-danger); }
+.bench-stats { display: grid; gap: 12px; width: 100%; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+.bench-stat { display: grid; gap: 2px; font-size: 0.8rem; }
+.bench-stat span { opacity: 0.65; }
+.bench-stat strong { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.bench-verdict { width: 100%; font-weight: 700; }
+.bench-verdict.pass { color: #1f9d4d; }
+.bench-verdict.fail { color: var(--lg-danger); }
+.bench-status { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 0.9rem; }
+.bench-status span { opacity: 0.85; }

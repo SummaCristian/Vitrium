@@ -13,7 +13,7 @@ export {
   BLUR_MODE_KEY, BLUR_STATE_EVENT,
   getBlurMode, setBlurMode,
   resolveBlurCapability, applyBlurState, scheduleIdleBenchmark, reevaluateBlurCapability,
-  initBlurCapability,
+  initBlurCapability, runBlurBenchmark, getCachedBlurVerdict, BLUR_BENCHMARK,
 } from './core/blur-capability.js';
 
 export { icons } from './components/icons.js';

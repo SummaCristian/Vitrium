@@ -3,8 +3,13 @@ import Home01Icon from '@hugeicons/core-free-icons/Home01Icon';
 import Compass01Icon from '@hugeicons/core-free-icons/Compass01Icon';
 import BookOpen01Icon from '@hugeicons/core-free-icons/BookOpen01Icon';
 import Settings02Icon from '@hugeicons/core-free-icons/Settings02Icon';
+import StarIcon from '@hugeicons/core-free-icons/StarIcon';
+import Settings01Icon from '@hugeicons/core-free-icons/Settings01Icon';
+import Add01Icon from '@hugeicons/core-free-icons/Add01Icon';
+import Search01Icon from '@hugeicons/core-free-icons/Search01Icon';
+import Calendar01Icon from '@hugeicons/core-free-icons/Calendar01Icon';
 
-const toSvg = (data) => {
+export const toSvg = (data) => {
   const body = data.map(([tag, { key, ...attrs }]) =>
     `<${tag} ${Object.entries(attrs).map(([k, v]) => `${k.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase())}="${v}"`).join(' ')}/>`).join('');
   return `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">${body}</svg>`;
@@ -19,4 +24,13 @@ export const navIcons = {
   start: toSvg(BookOpen01Icon),
   foundation: toSvg(Settings02Icon),
   components: toSvg(Compass01Icon),
+};
+
+// The icons the component demos use, by short name, with the Hugeicons name each one came from (for the printed code).
+export const demoIcons = {
+  star: { svg: toSvg(StarIcon), name: 'StarIcon' },
+  settings: { svg: toSvg(Settings01Icon), name: 'Settings01Icon' },
+  plus: { svg: toSvg(Add01Icon), name: 'Add01Icon' },
+  search: { svg: toSvg(Search01Icon), name: 'Search01Icon' },
+  calendar: { svg: toSvg(Calendar01Icon), name: 'Calendar01Icon' },
 };

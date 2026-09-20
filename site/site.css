@@ -496,3 +496,7 @@ code.ic { font: 0.88em ui-monospace, 'SF Mono', Menlo, monospace; padding: 0.12e
 .curve-marker { stroke: color-mix(in srgb, currentColor 60%, transparent); stroke-width: 1; }
 .curve-note { font-size: 8px; fill: currentColor; opacity: 0.65; }
 .curve-values { font-size: 0.85rem; opacity: 0.75; }
+
+/* Component pages: labeled groups of demos on a backdrop card */
+.demo-stack { display: grid; gap: 12px; justify-items: center; }
+.demo-cap { font-size: 0.8rem; font-weight: 700; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45); }

@@ -1,5 +1,6 @@
 import { createToggle, createSegmentedControl, createButton, icons } from '../../src/index.js';
 import { h } from '../dom.js';
+import buttonPage from './button.js';
 
 // One entry per component page. `playground` describes the interactive demo: its options,
 // how to render it, and how to print the matching code. `api` rows are [name, type, description].
@@ -15,31 +16,7 @@ export const components = [
     group: 'Controls',
     title: 'Buttons',
     abstract: 'Round glass buttons, toolbars and the back button.',
-    overview: [
-      'Buttons are real `<button>` elements with the glass material and the press-and-stretch physics attached, so no global setup is needed to use one.',
-      'They are icon-only, which is why a label (the accessible name) is required. Group them with `createToolbar`, or use `createBackButton` for the header pattern.',
-    ],
-    playground: {
-      description: 'Pick an icon and an optional tint. Icon-only buttons always need a label, so screen readers have something to announce.',
-      options: [
-        { key: 'icon', label: 'Icon', type: 'choice', choices: ['star', 'settings', 'plus'], default: 'star' },
-        { key: 'tintMode', label: 'Tint', type: 'choice', choices: ['none', 'custom'], default: 'none' },
-        { key: 'color', label: 'Tint color', type: 'color', default: '#ff375f', when: (s) => s.tintMode === 'custom' },
-      ],
-      render: (s, stage) => stage.append(createButton({ icon: icons[s.icon], label: 'Demo', tint: s.tintMode === 'custom' ? s.color : undefined })),
-      code: (s) => `import { createButton, icons } from 'liquid-glass-web';
-
-const button = createButton({
-${lines('  ', `icon: icons.${s.icon},`, `label: 'Demo',`, s.tintMode === 'custom' && `tint: '${s.color}',`, 'onClick() {},')}
-});
-document.body.append(button);`,
-    },
-    api: [
-      ['icon', 'Node | string', 'Trusted SVG markup or a node.'],
-      ['label', 'string', 'Accessible name. Required, since these are icon-only.'],
-      ['tint', 'CSS color', 'Optional tinted glass.'],
-      ['onClick', '(event) => void', 'Click handler.'],
-    ],
+    page: buttonPage,
     related: ['toggle', 'segmented-control'],
   },
   {

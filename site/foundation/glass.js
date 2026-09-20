@@ -1,6 +1,7 @@
 import { setGlassTint } from '../../src/index.js';
 import { createPlayground } from '../components/playground.js';
 import { h, section, table, codeBlock } from '../dom.js';
+import { crossfade } from '../swap.js';
 
 // Fixed sizes, so a change of shape is a real CSS transition (auto sizes can't animate). Radii are
 // half the height, not 999px, so the corners ease along with the box instead of clamping.
@@ -10,7 +11,6 @@ const SHAPES = {
   circle: { width: '5.5rem', height: '5.5rem', borderRadius: '2.75rem' },
 };
 const MORPH_MS = 450;
-const CROSSFADE_MS = 350;
 const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // The text color setGlassTint would pick, so the printed markup matches what's on screen.
@@ -69,21 +69,6 @@ export default {
       setGlassTint(el, s.tint === 'custom' ? s.color : null);
     }
 
-    // A tint or a material can't be interpolated (a tinted background is a gradient stack), so
-    // crossfade instead: a copy of the old look fades out over the new one fading in.
-    function crossfade(stage, s) {
-      if (reduceMotion()) { apply(s); return; }
-      const ghost = el.cloneNode(true);
-      Object.assign(ghost.style, { position: 'absolute', left: `${el.offsetLeft}px`, top: `${el.offsetTop}px`, margin: '0', pointerEvents: 'none', transition: 'none' });
-      ghost.removeAttribute('id');
-      ghost.setAttribute('aria-hidden', 'true');
-      stage.append(ghost);
-      apply(s);
-      const opts = { duration: CROSSFADE_MS, easing: 'ease', fill: 'both' };
-      ghost.animate([{ opacity: 1 }, { opacity: 0 }], opts).finished.then(() => ghost.remove());
-      el.animate([{ opacity: 0 }, { opacity: 1 }], opts).finished.then((a) => a.cancel());
-    }
-
     const playground = createPlayground({
       lang: 'html',
       stageClass: 'stage--backdrop',
@@ -103,7 +88,7 @@ export default {
       patch(s, stage, key) {
         if (key === 'ui') { ui.classList.toggle('on', s.ui); return; }
         // Dragging the color picker fires constantly, so that updates live, without a fade.
-        if (key === 'variant' || key === 'tint') crossfade(stage, s); else apply(s);
+        if (key === 'variant' || key === 'tint') crossfade(el, stage, () => apply(s)); else apply(s);
       },
       code(s) {
         const style = s.tint === 'custom' ? ` style="--lg-glass-tint: ${s.color}; --lg-glass-tint-text: ${tintText(s.color)}"` : '';

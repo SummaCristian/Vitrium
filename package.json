@@ -18,12 +18,10 @@
     "./core/*": "./src/core/*"
   },
   "scripts": {
-    "dev": "vite demo",
-    "dev:site": "vite site",
+    "dev": "vite site",
+    "dev:test": "vite tests/fixture",
     "build:site": "vite build site --outDir ../site-dist --emptyOutDir",
     "preview:site": "vite preview site --outDir ../site-dist",
-    "build:demo": "vite build demo --outDir ../demo-dist --emptyOutDir",
-    "preview": "vite preview demo --outDir ../demo-dist",
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "vitest run",
     "test:e2e": "playwright test"

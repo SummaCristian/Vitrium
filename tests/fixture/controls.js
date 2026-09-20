@@ -1,11 +1,11 @@
 import {
   createSlider, createStepper, createTextField, createAlert, createMenu, createProgress, icons,
-} from '../src/index.js';
+} from '../../src/index.js';
 
-// The Home page's value controls, text fields, alert, menu and progress. Each one
+// The test page's value controls, text fields, alert, menu and progress. Each one
 // writes what it just did into a readout next to it, which is also what the e2e
 // tests read.
-export function mountControlsDemo(root) {
+export function mountControls(root) {
   root.innerHTML = `
     <h2>Sliders &amp; steppers</h2>
     <section class="stack">

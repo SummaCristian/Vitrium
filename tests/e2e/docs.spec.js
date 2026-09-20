@@ -352,3 +352,23 @@ test.describe('cards that are links', () => {
     }
   });
 });
+
+test.describe('cards that are links, on a phone', () => {
+  test('press down but do not drag, and never take over scrolling', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 800 });
+    await open(page, 'components', '.card-link');
+    const card = page.locator('a.card-link').first();
+    // No stretch physics: it would claim touch gestures (touch-action: none) and stop a swipe from scrolling.
+    await expect(card).not.toHaveClass(/liquid-glass/);
+    expect(await card.evaluate((n) => getComputedStyle(n).touchAction)).toBe('auto');
+    // A plain press still scales down, and a drag does not move it.
+    const box = await card.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(300);
+    expect(parseFloat(await card.evaluate((n) => getComputedStyle(n).scale))).toBeLessThan(1);
+    await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2 + 30, { steps: 5 });
+    expect(await card.evaluate((n) => getComputedStyle(n).translate)).toBe('none');
+    await page.mouse.up();
+  });
+});

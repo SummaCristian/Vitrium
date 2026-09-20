@@ -1,7 +1,7 @@
 import { components, byId } from '../components/registry.js';
 import { h, section, breadcrumbs } from '../dom.js';
 
-const card = (c) => h('a', { class: 'card lg-glass card-link liquid-glass', href: `#/components/${c.id}` }, h('h3', {}, c.title), h('p', {}, c.abstract));
+const card = (c) => h('a', { class: 'card lg-glass card-link', href: `#/components/${c.id}` }, h('h3', {}, c.title), h('p', {}, c.abstract));
 
 function list(root) {
   const groups = new Map();

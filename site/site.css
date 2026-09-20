@@ -198,6 +198,10 @@ h3 { font-size: clamp(1.15rem, 1.09rem + 0.3vw, 1.25rem); font-weight: 600; }
 .lg-btn.pill { padding: 0.7rem 1.4rem; }
 a.lg-btn { text-decoration: none; color: inherit; display: inline-block; }
 .card-link { text-decoration: none; color: inherit; cursor: pointer; text-align: start; }
+/* A card that is a link presses down and springs back: the press of the glass physics, without its drag, so a swipe that
+   starts on one still scrolls the page on a phone. */
+.card-link { transition: scale var(--lg-press-out-dur) var(--lg-ease-spring); }
+.card-link:active { scale: 0.96; transition: scale var(--lg-press-in-dur) var(--lg-press-in-ease); }
 .card-link p { opacity: 0.75; font-size: 0.95rem; }
 
 /* Code sits on a glass card; the <pre> scrolls inside it. */

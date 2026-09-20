@@ -14,7 +14,7 @@ export const foundationPages = [glass, tokens, accent, theme, blur, motion, core
 
 export const foundationById = (id) => foundationPages.find((p) => p.id === id);
 
-const card = (p) => h('a', { class: 'card lg-glass card-link liquid-glass', href: `#/foundation/${p.id}` }, h('h3', {}, p.title), h('p', {}, p.abstract));
+const card = (p) => h('a', { class: 'card lg-glass card-link', href: `#/foundation/${p.id}` }, h('h3', {}, p.title), h('p', {}, p.abstract));
 
 export const foundation = {
   render(root, [id]) {

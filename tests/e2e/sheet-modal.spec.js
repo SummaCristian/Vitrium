@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 const MODAL = '.lg-sheet-frame[data-modal]';
 const rectOf = (page, sel) => page.locator(sel).evaluate(e => { const r = e.getBoundingClientRect(); return { left: r.left, right: r.right, width: r.width }; });
-// Drives one of the demo's list pickers (the library's own) like a user.
+// Drives one of the test page's list pickers (the library's own) like a user.
 async function choose(page, pickerSel, optionName) {
   await page.locator(`${pickerSel} .lg-chip`).click();
   await page.getByRole('option', { name: optionName }).click();
@@ -181,11 +181,23 @@ test.describe('transitions', () => {
   const glass = `${MODAL} .lg-sheet__glass`;
 
   test('a pop scales and fades in without translating toward the bottom', async ({ page }) => {
-    await page.evaluate(() => { modalSheet.setTransition('pop'); modalSheet.present(); });
-    await page.waitForTimeout(60);
-    const mid = await page.locator(glass).evaluate(e => ({ scale: e.style.scale, translate: e.style.translate, opacity: e.style.opacity }));
-    expect(parseFloat(mid.scale)).toBeLessThan(1);
-    expect(mid.translate).toBe('');
+    // Sampled on the frames right after present() instead of after a fixed wait, so a slow machine cannot miss the pop.
+    const frames = await page.evaluate(async (sel) => {
+      const e = document.querySelector(sel);
+      const seen = [];
+      const read = () => seen.push({ scale: e.style.scale, translate: e.style.translate });
+      modalSheet.setTransition('pop');
+      modalSheet.present();
+      read();
+      await new Promise((done) => {
+        let n = 0;
+        const tick = () => { read(); if (++n < 12) requestAnimationFrame(tick); else done(); };
+        requestAnimationFrame(tick);
+      });
+      return seen;
+    }, glass);
+    expect(Math.min(...frames.map(f => parseFloat(f.scale)).filter(Number.isFinite))).toBeLessThan(1);
+    expect(frames.every(f => f.translate === '')).toBe(true);
     await settle(page);
     const end = await page.locator(glass).evaluate(e => ({ scale: e.style.scale, opacity: e.style.opacity }));
     expect(end).toEqual({ scale: '', opacity: '' });
@@ -194,12 +206,25 @@ test.describe('transitions', () => {
   test('a morph starts on the trigger button and lands on the sheet', async ({ page }) => {
     await page.locator('#open-modal').scrollIntoViewIfNeeded();
     const btn = await page.locator('#open-modal').boundingBox();
-    await page.locator('#open-modal').click();
-    await page.waitForTimeout(30);
-    const r = await page.locator(glass).boundingBox();
-    // Early on the glass is still about the button's size and near it, not the sheet's.
-    expect(r.width).toBeLessThan(btn.width * 2.5);
-    expect(await page.locator('#open-modal').evaluate(e => e.style.visibility)).toBe('hidden');
+    // The glass is placed on the button by the first frame after the click, and then grows. Sample the frames right after
+    // it instead of one moment after a fixed wait, so a busy machine cannot step over the start of the morph.
+    const frames = await page.evaluate(async (sel) => {
+      const button = document.querySelector('#open-modal');
+      const seen = [];
+      button.focus();   // a real click focuses it, and the sheet gives focus back to whatever had it
+      button.click();
+      const hidden = button.style.visibility;
+      await new Promise((done) => {
+        let n = 0;
+        const tick = () => { seen.push(document.querySelector(sel).getBoundingClientRect().width); if (++n < 8) requestAnimationFrame(tick); else done(); };
+        requestAnimationFrame(tick);
+      });
+      return { widths: seen, hidden };
+    }, glass);
+    // It starts about the button's size, not the sheet's, and grows from there.
+    expect(Math.min(...frames.widths)).toBeLessThan(btn.width * 2.5);
+    expect(Math.max(...frames.widths)).toBeGreaterThan(Math.min(...frames.widths));
+    expect(frames.hidden).toBe('hidden');
     await settle(page);
     const full = await page.locator(glass).boundingBox();
     expect(full.width).toBeGreaterThan(300);

@@ -1,5 +1,5 @@
-/* Demo: a search overlay the tab bar's prominent circle morphs into (see search-overlay.js). */
-.demo-search {
+/* A search overlay the tab bar's prominent circle morphs into (see search.js). */
+.test-search {
   position: fixed;
   inset: 0;
   z-index: 100;
@@ -11,9 +11,9 @@
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
 }
-.demo-search[hidden] { display: none; }
-.demo-search__row { display: flex; gap: 10px; align-items: center; }
-.demo-search__bar {
+.test-search[hidden] { display: none; }
+.test-search__row { display: flex; gap: 10px; align-items: center; }
+.test-search__bar {
   flex: 1;
   display: flex;
   align-items: center;
@@ -22,8 +22,8 @@
   padding: 0 18px;
   border-radius: 26px;
 }
-.demo-search__bar svg { width: 20px; height: 20px; flex: none; }
-.demo-search__input {
+.test-search__bar svg { width: 20px; height: 20px; flex: none; }
+.test-search__input {
   flex: 1;
   min-width: 0;
   border: 0;
@@ -32,14 +32,14 @@
   font: inherit;
   color: inherit;
 }
-.demo-search__close { width: 52px; height: 52px; flex: none; }
+.test-search__close { width: 52px; height: 52px; flex: none; }
 
 /* While open, the real circle is hidden so only the morphing snapshot shows. */
-body.demo-search-open .lg-tabbar__prominent { visibility: hidden; }
+body.test-search-open .lg-tabbar__prominent { visibility: hidden; }
 
-::view-transition-group(demo-search-morph) {
+::view-transition-group(test-search-morph) {
   animation-duration: 450ms;
   animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
 }
-::view-transition-old(demo-search-morph),
-::view-transition-new(demo-search-morph) { height: 100%; }
+::view-transition-old(test-search-morph),
+::view-transition-new(test-search-morph) { height: 100%; }

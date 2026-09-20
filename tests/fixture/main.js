@@ -1,10 +1,10 @@
-import '../src/styles/index.css';
-import './search-overlay.css';
-import { createSearchOverlay } from './search-overlay.js';
+import '../../src/styles/index.css';
+import './search.css';
+import { createSearchOverlay } from './search.js';
 import { mountExplore } from './explore.js';
-import { mountModalDemo } from './modal-demo.js';
-import { mountControlsDemo } from './controls-demo.js';
-import { createBackButton, setGlassTint, createToolbar, createListPicker, createChipPicker, createPopover, createSegmentedControl, createToggle, createTabBar, icons, initLiquidGlass, initBlurCapability, getBlurMode, setBlurMode, applyBlurState, resolveBlurCapability } from '../src/index.js';
+import { mountModal } from './modal.js';
+import { mountControls } from './controls.js';
+import { createBackButton, setGlassTint, createToolbar, createListPicker, createChipPicker, createPopover, createSegmentedControl, createToggle, createTabBar, icons, initLiquidGlass, initBlurCapability, getBlurMode, setBlurMode, applyBlurState, resolveBlurCapability } from '../../src/index.js';
 import { hugeicons } from './hugeicons.js';
 import '@fontsource-variable/nunito';
 
@@ -51,7 +51,7 @@ createSegmentedControl(document.getElementById('seg'), {
   value: 'week',
   onSelect: (v, { silent }) => { if (!silent) console.log('segment', v); },
 });
-document.getElementById('controls-row').append(createToggle({ value: true, label: 'Demo toggle', onChange: (v) => console.log('toggle', v) }).el);
+document.getElementById('controls-row').append(createToggle({ value: true, label: 'Test toggle', onChange: (v) => console.log('toggle', v) }).el);
 
 const TAB_POOL = [
   { id: 'home', label: 'Home', icon: hugeicons.home },
@@ -73,15 +73,15 @@ const currentTabs = () => TAB_POOL.slice(0, tabCount).map((t, i) => {
   return { ...t, prominent: last, ...(last && pressOn ? { press: true, onPress: () => searchOverlay.show() } : {}) };
 });
 
-// Tab navigation: Explore shows the persistent sheet demo; every other tab shows the components page (with the modal sheet demo).
+// Tab navigation: Explore shows the persistent sheet; every other tab shows the components page (with the modal sheet).
 const explore = mountExplore(document.getElementById('panel-explore'));
-const modalDemo = mountModalDemo(document.getElementById('modal-demo'));
+const modalSection = mountModal(document.getElementById('modal-section'));
 function showTab(id) {
   const isExplore = id === 'explore';
   document.getElementById('panel-home').hidden = isExplore;
   document.getElementById('panel-explore').hidden = !isExplore;
   document.body.dataset.tab = id;
-  if (isExplore) { explore.show(); modalDemo.hide(); } else { explore.hide(); modalDemo.show(); }
+  if (isExplore) { explore.show(); modalSection.hide(); } else { explore.hide(); modalSection.show(); }
 }
 const startTab = new URLSearchParams(location.search).get('tab');
 
@@ -229,6 +229,6 @@ for (let i = 1; i <= 8; i++) {
   blocks.appendChild(b);
 }
 
-window.controls = mountControlsDemo(document.getElementById('controls-demo'));
+window.controls = mountControls(document.getElementById('controls-section'));
 window.sheet = explore.sheet;
-window.modalSheet = modalDemo.modalSheet;   // for the tests and for poking at it in the console
+window.modalSheet = modalSection.modalSheet;   // for the tests and for poking at it in the console

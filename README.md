@@ -71,7 +71,7 @@ On phones, add `viewport-fit=cover` to the viewport meta tag so the tab bar and 
 The documentation site is in [`site/`](site). Each page has live playgrounds, the API, and notes on accessibility and styling. Run it locally:
 
 ```sh
-npm run dev:site
+npm run dev
 ```
 
 Besides the reference for the foundation and for every component, it has guides:
@@ -91,13 +91,12 @@ Current evergreen browsers: recent Chrome, Edge, Safari and Firefox. It uses mod
 
 ```sh
 npm install
-npm run dev          # the demo page
-npm run dev:site     # the documentation site
+npm run dev          # the documentation site
+npm run dev:test     # the page the end-to-end tests drive
 npm run build:site   # build the documentation site
-npm run build:demo   # build the demo
 ```
 
-The package ships the `src` folder: `src/core` (springs, physics, the pill core, the morph popup), `src/components` (one file per component) and `src/styles` (one stylesheet per component, plus the tokens and the glass). The documentation site is in `site/`, the demo in `demo/`, and the tests in `tests/`.
+The package ships the `src` folder: `src/core` (springs, physics, the pill core, the morph popup), `src/components` (one file per component) and `src/styles` (one stylesheet per component, plus the tokens and the glass). The documentation site is in `site/`, and the tests are in `tests/`, along with the page they drive, `tests/fixture/`.
 
 ## Testing
 
@@ -107,7 +106,7 @@ npm run test:e2e    # Playwright
 ```
 
 - **Unit tests** cover the pure logic: the sheet's physics and detents, the value math, and the blur decisions (the mode, the cached verdict and its version).
-- **End-to-end tests** drive the demo page and the documentation site with real pointer, wheel, touch and keyboard input, in the system Chrome. The demo runs on port 5175 and the docs on 5174, away from the usual 5173 so a dev server of your own is never mistaken for one of them. A server already running on those ports is reused, and otherwise each is started, and later stopped, by the test run.
+- **End-to-end tests** drive the test page and the documentation site with real pointer, wheel, touch and keyboard input, in the system Chrome. The test page runs on port 5175 and the docs on 5174, away from the usual 5173 so a dev server of your own is never mistaken for one of them. A server already running on those ports is reused, and otherwise each is started, and later stopped, by the test run.
 
 ## License
 

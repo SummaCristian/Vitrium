@@ -63,10 +63,10 @@ document.querySelector('#settings').append(toggle.el);`),
 
       section('Next steps', {},
         h('div', { class: 'grid' }, guides.filter((g) => g.id !== 'get-started').map((g) =>
-          h('a', { class: 'card lg-glass card-link liquid-glass', href: `#/start/${g.id}` }, h('h3', {}, g.title), h('p', {}, g.abstract)))),
+          h('a', { class: 'card lg-glass card-link', href: `#/start/${g.id}` }, h('h3', {}, g.title), h('p', {}, g.abstract)))),
         h('div', { class: 'grid' },
-          h('a', { class: 'card lg-glass card-link liquid-glass', href: '#/foundation' }, h('h3', {}, 'Foundation'), h('p', {}, 'The material, the tokens, theming, motion and blur.')),
-          h('a', { class: 'card lg-glass card-link liquid-glass', href: '#/components' }, h('h3', {}, 'Components'), h('p', {}, 'Every control, with a playground and its options.')))),
+          h('a', { class: 'card lg-glass card-link', href: '#/foundation' }, h('h3', {}, 'Foundation'), h('p', {}, 'The material, the tokens, theming, motion and blur.')),
+          h('a', { class: 'card lg-glass card-link', href: '#/components' }, h('h3', {}, 'Components'), h('p', {}, 'Every control, with a playground and its options.')))),
     ];
   },
 };

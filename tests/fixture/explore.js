@@ -1,4 +1,4 @@
-import { createSheet, createListPicker } from '../src/index.js';
+import { createSheet, createListPicker } from '../../src/index.js';
 
 // The Explore tab: a busy, interactive backdrop standing in for a map, with the persistent
 // sheet over it. The sheet must not block the backdrop.

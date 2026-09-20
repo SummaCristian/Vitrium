@@ -187,9 +187,9 @@ export const home = {
 
       section('What is inside', {},
         h('div', { class: 'grid' },
-          h('a', { class: 'card lg-glass card-link liquid-glass', href: '#/foundation' }, h('h3', {}, 'Foundation'), h('p', {}, 'The glass material, the tokens, theming, blur, motion and the core building blocks.')),
-          h('a', { class: 'card lg-glass card-link liquid-glass', href: '#/components' }, h('h3', {}, 'Components'), h('p', {}, 'Sixteen controls, pickers, overlays and bars, each with a playground and its API.')),
-          h('a', { class: 'card lg-glass card-link liquid-glass', href: '#/start' }, h('h3', {}, 'Guides'), h('p', {}, 'Frameworks, server rendering, browser support, accessibility and theming.')))),
+          h('a', { class: 'card lg-glass card-link', href: '#/foundation' }, h('h3', {}, 'Foundation'), h('p', {}, 'The glass material, the tokens, theming, blur, motion and the core building blocks.')),
+          h('a', { class: 'card lg-glass card-link', href: '#/components' }, h('h3', {}, 'Components'), h('p', {}, 'Sixteen controls, pickers, overlays and bars, each with a playground and its API.')),
+          h('a', { class: 'card lg-glass card-link', href: '#/start' }, h('h3', {}, 'Guides'), h('p', {}, 'Frameworks, server rendering, browser support, accessibility and theming.')))),
 
       section('Start building', {},
         h('p', {}, 'One package and one stylesheet. Every component is a function that builds real DOM.'),

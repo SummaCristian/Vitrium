@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-// Viewport 430x900 with the demo's 20px top/bottom margins: available height 860.
+// Viewport 430x900 with the test page's 20px top/bottom margins: available height 860.
 //   peek 192px, half 0.5 -> 430px, full 0.85 -> 731px
 const PEEK = 192, HALF = 430, FULL = 731;
 
@@ -185,8 +185,10 @@ test.describe('mouse drag', () => {
     const h = centerOf(await box(page, '.lg-sheet-frame:not([data-modal]) .lg-sheet__grabber'));
     await page.mouse.move(h.x, h.y);
     await page.mouse.down();
-    await page.mouse.move(h.x, h.y - 20); await page.waitForTimeout(15);
-    await page.mouse.move(h.x, h.y - 45); await page.waitForTimeout(15);
+    // Two quick moves and a release with no waits between them: the speed is what makes it a flick, and a pause that a busy
+    // machine stretches would turn it into a slow drag. 70px is well short of the 238px to the next detent.
+    await page.mouse.move(h.x, h.y - 25);
+    await page.mouse.move(h.x, h.y - 70);
     await page.mouse.up();
     await settle(page);
     expect((await state(page)).detent).not.toBe('peek');

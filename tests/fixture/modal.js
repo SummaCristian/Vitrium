@@ -1,9 +1,9 @@
-import { createSheet, createListPicker, createToggle } from '../src/index.js';
+import { createSheet, createListPicker, createToggle } from '../../src/index.js';
 
-// The Home page's modal sheet demo: a "Filters" sheet presented over a scrim, with
+// The test page's modal sheet: a "Filters" sheet presented over a scrim, with
 // controls for its own side, background interaction and dismissal. Everything is
 // per instance: nothing here touches the Explore tab's sheet.
-export function mountModalDemo(root) {
+export function mountModal(root) {
   root.innerHTML = `
     <div class="row">
       <button id="open-modal" class="lg-btn pill lg-glass liquid-glass">Filters</button>

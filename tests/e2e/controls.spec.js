@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-// Drives the demo's Controls section with real pointer and keyboard input.
+// Drives the test page's Controls section with real pointer and keyboard input.
 const centerOf = (b) => ({ x: b.x + b.width / 2, y: b.y + b.height / 2 });
 const out = (page, id) => page.locator(`#${id}`);
 
@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
 
 test.describe('slider', () => {
   test('dragging the thumb sets the value and lifts it while held', async ({ page }) => {
-    const slider = page.locator('#controls-demo .lg-slider').first();
+    const slider = page.locator('#controls-section .lg-slider').first();
     await slider.scrollIntoViewIfNeeded();
     const thumb = slider.locator('.lg-slider__thumb');
     const t = centerOf(await thumb.boundingBox());
@@ -34,7 +34,7 @@ test.describe('slider', () => {
   });
 
   test('no outline appears after a pointer interaction; the lens shows keyboard focus instead', async ({ page }) => {
-    const slider = page.locator('#controls-demo .lg-slider').first();
+    const slider = page.locator('#controls-section .lg-slider').first();
     await slider.scrollIntoViewIfNeeded();
     const thumb = slider.locator('.lg-slider__thumb');
     const b = await slider.boundingBox();
@@ -52,7 +52,7 @@ test.describe('slider', () => {
   });
 
   test('a tap on the track jumps there', async ({ page }) => {
-    const slider = page.locator('#controls-demo .lg-slider').first();
+    const slider = page.locator('#controls-section .lg-slider').first();
     await slider.scrollIntoViewIfNeeded();
     const b = await slider.boundingBox();
     await page.mouse.click(b.x + 2, b.y + b.height / 2);
@@ -60,7 +60,7 @@ test.describe('slider', () => {
   });
 
   test('arrow keys, PageUp and Home / End move it', async ({ page }) => {
-    const thumb = page.locator('#controls-demo .lg-slider').first().locator('.lg-slider__thumb');
+    const thumb = page.locator('#controls-section .lg-slider').first().locator('.lg-slider__thumb');
     await thumb.focus();
     await page.keyboard.press('ArrowRight');
     expect(await page.evaluate(() => controls.slider.value)).toBe(41);
@@ -73,7 +73,7 @@ test.describe('slider', () => {
   });
 
   test('a range keeps its thumbs apart by minGap', async ({ page }) => {
-    const range = page.locator('#controls-demo .lg-slider--range');
+    const range = page.locator('#controls-section .lg-slider--range');
     await range.scrollIntoViewIfNeeded();
     const [low, high] = await range.locator('.lg-slider__thumb').all();
     await expect(low).toHaveAttribute('aria-label', 'Price, Minimum price');
@@ -89,13 +89,13 @@ test.describe('slider', () => {
   test('set() is silent by default', async ({ page }) => {
     await page.evaluate(() => controls.slider.set(75));
     await expect(out(page, 'slider-out')).toHaveText('40');
-    await expect(page.locator('#controls-demo .lg-slider__thumb').first()).toHaveAttribute('aria-valuenow', '75');
+    await expect(page.locator('#controls-section .lg-slider__thumb').first()).toHaveAttribute('aria-valuenow', '75');
   });
 });
 
 test.describe('stepper', () => {
   test('buttons step the value and stop at the bounds', async ({ page }) => {
-    const stepper = page.locator('#controls-demo .lg-stepper');
+    const stepper = page.locator('#controls-section .lg-stepper');
     await stepper.scrollIntoViewIfNeeded();
     await stepper.getByRole('button', { name: 'Increase' }).click();
     await expect(out(page, 'stepper-out')).toHaveText('3');
@@ -109,7 +109,7 @@ test.describe('stepper', () => {
   });
 
   test('pressing it deforms the whole capsule, like the other glass controls', async ({ page }) => {
-    const stepper = page.locator('#controls-demo .lg-stepper');
+    const stepper = page.locator('#controls-section .lg-stepper');
     await stepper.scrollIntoViewIfNeeded();
     const c = centerOf(await stepper.getByRole('button', { name: 'Increase' }).boundingBox());
     await page.mouse.move(c.x, c.y);
@@ -121,7 +121,7 @@ test.describe('stepper', () => {
   });
 
   test('holding repeats; a keyboard press steps once', async ({ page }) => {
-    const stepper = page.locator('#controls-demo .lg-stepper');
+    const stepper = page.locator('#controls-section .lg-stepper');
     await stepper.scrollIntoViewIfNeeded();
     const inc = stepper.getByRole('button', { name: 'Increase' });
     const c = centerOf(await inc.boundingBox());
@@ -141,7 +141,7 @@ test.describe('stepper', () => {
 
 test.describe('text field', () => {
   test('the clear button appears with text, empties it and keeps focus', async ({ page }) => {
-    const field = page.locator('#controls-demo .lg-field--search');
+    const field = page.locator('#controls-section .lg-field--search');
     await field.scrollIntoViewIfNeeded();
     const input = field.locator('input');
     await input.fill('pizza');
@@ -153,7 +153,7 @@ test.describe('text field', () => {
   });
 
   test('Enter submits, and Escape clears a search field', async ({ page }) => {
-    const field = page.locator('#controls-demo .lg-field--search');
+    const field = page.locator('#controls-section .lg-field--search');
     await field.scrollIntoViewIfNeeded();
     await field.locator('input').fill('tacos');
     await page.keyboard.press('Enter');
@@ -163,7 +163,7 @@ test.describe('text field', () => {
   });
 
   test('pressing the capsule surface gives the glass press; typing in the input does not', async ({ page }) => {
-    const field = page.locator('#controls-demo .lg-field--search');
+    const field = page.locator('#controls-section .lg-field--search');
     await field.scrollIntoViewIfNeeded();
     const b = await field.boundingBox();
     await page.mouse.move(b.x + 3, b.y + b.height / 2);
@@ -178,12 +178,12 @@ test.describe('text field', () => {
   });
 
   test('clicking the capsule padding focuses the input; multiline is a textarea', async ({ page }) => {
-    const field = page.locator('#controls-demo .lg-field--search');
+    const field = page.locator('#controls-section .lg-field--search');
     await field.scrollIntoViewIfNeeded();
     const b = await field.boundingBox();
     await page.mouse.click(b.x + 3, b.y + b.height / 2);
     expect(await page.evaluate(() => document.activeElement === controls.search.input)).toBe(true);
-    expect(await page.locator('#controls-demo .lg-field--multiline textarea').count()).toBe(1);
+    expect(await page.locator('#controls-section .lg-field--multiline textarea').count()).toBe(1);
   });
 });
 

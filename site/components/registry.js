@@ -1,6 +1,7 @@
 import { createToggle, createSegmentedControl, createButton, icons } from '../../src/index.js';
 import { h } from '../dom.js';
 import buttonPage from './button.js';
+import togglePage from './toggle.js';
 
 // One entry per component page. `playground` describes the interactive demo: its options,
 // how to render it, and how to print the matching code. `api` rows are [name, type, description].
@@ -24,31 +25,7 @@ export const components = [
     group: 'Controls',
     title: 'Toggle',
     abstract: 'A draggable switch with a springy thumb.',
-    overview: [
-      'Tap it, press Space, or drag the thumb to either end. The thumb lifts into glass while you hold it and settles on whichever end is nearer when you let go.',
-      'The on-color defaults to the iOS green. Pass a color to override it for one toggle, or pass `"accent"` to follow the system accent so it changes when `--lg-accent` does.',
-    ],
-    playground: {
-      description: 'Change the initial state or the on-color. With `accent`, the toggle follows the accent picker on the Foundation page.',
-      options: [
-        { key: 'value', label: 'Initial state', type: 'bool', default: true },
-        { key: 'colorMode', label: 'On color', type: 'choice', choices: COLOR_MODES, default: 'default' },
-        { key: 'color', label: 'Custom color', type: 'color', default: '#ff375f', when: (s) => s.colorMode === 'custom' },
-      ],
-      render: (s, stage) => stage.append(createToggle({ value: s.value, color: colorOpt(s.colorMode, s.color), label: 'Demo' }).el),
-      code: (s) => `import { createToggle } from 'liquid-glass-web';
-
-const toggle = createToggle({
-${lines('  ', `value: ${s.value},`, s.colorMode !== 'default' && `color: ${colorLiteral(s.colorMode, s.color)},`, `label: 'Notifications',`, 'onChange(on) {},')}
-});
-document.body.append(toggle.el);`,
-    },
-    api: [
-      ['value', 'boolean', 'Initial state.'],
-      ['label', 'string', 'Accessible name.'],
-      ['color', "CSS color | 'accent'", "On-color of the track. `'accent'` follows `--lg-accent`. Default: `--lg-toggle-on` (green). Change later with `setColor()`."],
-      ['onChange', '(on: boolean) => void', 'Called when the state changes.'],
-    ],
+    page: togglePage,
     related: ['segmented-control', 'button'],
   },
   {

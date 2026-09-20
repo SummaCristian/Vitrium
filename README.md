@@ -1,8 +1,15 @@
 # Vitrium
 
+[![npm](https://img.shields.io/npm/v/vitrium?style=flat-square&color=cb3837&logo=npm)](https://www.npmjs.com/package/vitrium)
+[![npm downloads](https://img.shields.io/npm/dm/vitrium?style=flat-square&color=blue)](https://www.npmjs.com/package/vitrium)
+[![Deploy docs](https://img.shields.io/github/actions/workflow/status/SummaCristian/Vitrium/pages.yml?style=flat-square&label=docs)](https://summacristian.github.io/Vitrium/)
+[![license](https://img.shields.io/npm/l/vitrium?style=flat-square)](LICENSE)
+
 A JS/CSS re-implementation of a Liquid Glass-inspired design system and components, ready to use for the web. Framework-agnostic vanilla core; Web Component wrappers are planned.
 
 > Work in progress (version 0.2.0). The foundation and every component below are ported. The API can still change.
+
+**[📖 Read the docs and try the live playgrounds →](https://summacristian.github.io/Vitrium/)** · **[📦 npm](https://www.npmjs.com/package/vitrium)**
 
 - **Real glass.** A translucent, blurred material with a lit rim, a gradient stroke and a soft shadow, as plain CSS classes.
 - **Physics that feels right.** Presses shrink and drag stretches with an elastic falloff, and things spring back. Sliding pills, thumbs and sheets follow a finger with inertia.

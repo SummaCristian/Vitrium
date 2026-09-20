@@ -20,8 +20,11 @@ export function createRouter(root, routes, { onChange } = {}) {
     window.scrollTo(0, 0);
   }
 
+  let rendered = false;
   function render() {
     const path = parse();
+    if (rendered && path.join('/') === prev.join('/')) return;   // go() already rendered this one; the hashchange is its echo
+    rendered = true;
     const from = prev;
     prev = path;
     const zoom = document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches && isZoom(from, path);
@@ -46,5 +49,5 @@ export function createRouter(root, routes, { onChange } = {}) {
   }
 
   window.addEventListener('hashchange', render);
-  return { render, go: (hash) => { location.hash = hash; } };
+  return { render, go: (hash) => { location.hash = hash; render(); } };
 }

@@ -19,10 +19,10 @@ initBlurCapability();
 
 const routes = { home, start, foundation, components: componentsPage };
 const tabs = [
-  { id: 'home', label: 'Home', icon: navIcons.home },
-  { id: 'start', label: 'Start', icon: navIcons.start },
-  { id: 'foundation', label: 'Foundation', icon: navIcons.foundation },
-  { id: 'components', label: 'Components', icon: navIcons.components },
+  { id: 'home', label: 'Home', icon: navIcons.home, panel: 'page' },
+  { id: 'start', label: 'Start', icon: navIcons.start, panel: 'page' },
+  { id: 'foundation', label: 'Foundation', icon: navIcons.foundation, panel: 'page' },
+  { id: 'components', label: 'Components', icon: navIcons.components, panel: 'page' },
 ];
 
 const page = document.getElementById('page');
@@ -90,9 +90,10 @@ const router = createRouter(page, routes, {
 
 tabbar = createTabBar(document.getElementById('tabbar'), {
   tabs,
+  transition: true,
   compact: true,   // wide screens: one bar centred at the top; phones keep the bottom row
   value: location.hash.split('/')[1] || 'home',
-  onSelect: (id, { silent }) => { if (!silent) location.hash = `#/${id}`; },
+  onSelect: (id, { silent }) => { if (!silent) router.go(`#/${id}`); },
 });
 
 mountThemeSwitcher(document.getElementById('theme-slot'));

@@ -89,6 +89,17 @@
 // they go. Options: `label` names the tablist; a tab's `panel` (an element id)
 // becomes its aria-controls.
 //
+// Page transition:
+//   transition: false (default) | true
+//   When on, the panel of the tab you arrive on (the element whose id is the
+//   tab's `panel`) fades in and widens slightly, 0.3s. It plays after
+//   `onSelect` returns, so swap the content inside `onSelect` (synchronously),
+//   or, if something else drives the page, before calling tabs.select(). Either
+//   way it plays once per change of tab, and never with reduced motion. It
+//   deliberately doesn't blur (`filter`): with it, Firefox left a glass card
+//   invisible until the animation ended. It has no fill either, so nothing is left on
+//   the panel afterwards.
+//
 // `icon` is a Node or trusted SVG/HTML string; `label` is set as text.
 import { createPillDragCore } from '../core/pill-drag-core.js';
 import { attachLiquidGlass } from '../core/liquid-glass.js';
@@ -164,7 +175,7 @@ function splitTabs(tabs, unified = false) {
 
 let tabbarUid = 0;
 
-export function createTabBar(root, { tabs: initialTabs, value, onSelect, action, orientation = 'auto', breakpoint = 600, placement, label, compact = false } = {}) {
+export function createTabBar(root, { tabs: initialTabs, value, onSelect, action, orientation = 'auto', breakpoint = 600, placement, label, compact = false, transition = false } = {}) {
   root.classList.add('lg-tabbar');
   const uid = ++tabbarUid;
 
@@ -303,6 +314,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
       currentId = mainTabs[i].id;
       markActive();
       onSelect?.(currentId, { silent });
+      enterPanel(currentId);
     },
   });
 
@@ -482,6 +494,23 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
   ro.observe(root);
 
   /* --- Selection ------------------------------------------------------------- */
+  // The page transition (see `transition` above): plays once per change of tab, on that tab's panel.
+  let shownId = currentId;
+  let entering;
+  function enterPanel(id) {
+    if (id === shownId) return;
+    shownId = id;
+    if (!transition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const panelId = [...mainTabs, prominent].find((t) => t?.id === id)?.panel;
+    const panel = panelId && document.getElementById(panelId);
+    if (!panel) return;
+    entering?.cancel();
+    entering = panel.animate(
+      [{ opacity: 0, transform: 'scale(0.95, 1)' }, { opacity: 1, transform: 'scale(1, 1)' }],
+      { duration: 300, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' },
+    );
+  }
+
   const inMain = (id) => mainTabs.findIndex(t => t.id === id);
 
   // Programmatic selection. Silent by default: the caller already knows.
@@ -498,6 +527,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
       core.deselect();
       markActive();
       if (changed && !silent) onSelect?.(id, { silent: false });
+      enterPanel(id);
     }
   }
 

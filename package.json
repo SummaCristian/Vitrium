@@ -1,6 +1,6 @@
 {
   "name": "vitrium",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "description": "A JS/CSS re-implementation of a Liquid Glass-inspired design system for the web.",
   "license": "MIT",
   "type": "module",

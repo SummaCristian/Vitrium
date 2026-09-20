@@ -56,11 +56,16 @@
 //   material         'auto' (clear below the largest detent, regular at it) |
 //                    'regular' | 'clear'
 //   handle           show the grabber (default true)
-//   deform           squash/stretch from the resize velocity (default true)
+//   deform           squash/stretch from the resize velocity: true (any resize),
+//                    false, or 'handle' (only a drag that starts on the grabber
+//                    or the header; the content still resizes, without the
+//                    stretch). Default true.
 //   shield           while a gesture is live, a transparent layer swallows wheel
 //                    input so it can't leak to what's behind (default true)
-//   expandOnFocus    focus moving into the content while below the largest
-//                    detent expands it (default true)
+//   expandOnFocus    keyboard-initiated focus (:focus-visible: tabbing in, or
+//                    tapping a text field) moving into the content while below
+//                    the largest detent expands it. A tap on a card doesn't.
+//                    Default true.
 //   label            the accessible name
 //   container        where to mount (default document.body)
 //   modal            present over a scrim with an inert page behind, and start
@@ -453,6 +458,7 @@ export function createSheet({
     snapTo(target);
   }
 
+  let deformDrag = false;   // the last drag started on the grabber or header (for deform: 'handle')
   const zoneOf = (target) => (target.closest?.('.lg-sheet__handle, .lg-sheet__header') ? 'handle' : 'content');
   // A press on a control (a button or chip in the header, a link in the content) is
   // that control's, not the sheet's: claiming it would swallow its click.
@@ -463,6 +469,7 @@ export function createSheet({
 
   function beginDrag(y, target) {
     dragging = true;
+    deformDrag = zoneOf(target) === 'handle';
     dragResizing = false;
     size.stop();
     presence.stop();
@@ -612,8 +619,9 @@ export function createSheet({
   });
 
   // Focus moving into the content while it's mostly hidden: bring it into view.
-  contentEl.addEventListener('focusin', () => {
+  contentEl.addEventListener('focusin', (e) => {
     if (!expandOnFocus || isLargest() || gesturing()) return;
+    if (!e.target.matches?.(':focus-visible')) return;   // a pointer tap on a card isn't a reason to expand
     snapTo(largest());
   });
 
@@ -693,6 +701,10 @@ export function createSheet({
 
     // A committed wheel fling's spring runs on its own; release the burst once it settles.
     if (wheel.committed && size.resting) wheel.settled();
+
+    // A refresh() that ran mid-gesture or mid-spring left the size short of its
+    // re-resolved detent; run it again now that things are idle.
+    if (remeasureOwed && size.resting && !gesturing()) refresh();
   }
   const offFrame = onSpringFrame(render);
 
@@ -714,7 +726,8 @@ export function createSheet({
     // The "lit" glow reads as touching the glass, so it fades the moment the gesture ends.
     glass.classList.toggle('is-active', live);
 
-    if (deform && !reducedMotion()) {
+    if (!busy) deformDrag = false;
+    if (deform && (deform !== 'handle' || deformDrag) && !reducedMotion()) {
       // While the whole sheet is being pushed away it's moving, not resizing.
       const v = presence.value < 0.995 ? 0 : resizeVelocity();
       const mag = Math.min(Math.abs(v) * STRETCH_GAIN, STRETCH_MAX);
@@ -740,7 +753,9 @@ export function createSheet({
   // While a gesture or settle is live, leave it alone: on Safari, scrolling over
   // the sheet animates the toolbar, and reacting mid-gesture would yank the sheet
   // to a new target and kill its velocity.
+  let remeasureOwed = false;
   function refresh() {
+    remeasureOwed = false;
     applyLayout();
     // Not laid out (hidden, or in a display:none container): there's nothing to
     // measure, and resolving detents against 0px would throw the state away.
@@ -749,6 +764,7 @@ export function createSheet({
     resolvePoints();
     if (!pointFor(current)) current = smallest().id;
     if (idle) size.set(pointFor(current).px);
+    else remeasureOwed = true;   // the size is still on the old detent: retry once it rests
     commitDetent(current);
     syncSlotHeights();
   }

@@ -21,7 +21,7 @@ const TEXT = {
 // The state the docs page sends. Every key is optional; what is missing keeps its last value.
 const DEFAULTS = {
   orientation: 'auto', compact: false, row: 'bottom', rail: 'start', railAlign: 'top',
-  tabs: 4, prominent: 'none', action: false, transition: true, clearance: 'default', large: true,
+  tabs: 4, prominent: 'none', transition: true, clearance: 'default', large: true,
 };
 
 const tabsFor = ({ tabs, prominent }) => {
@@ -55,18 +55,17 @@ function build() {
     tabs: tabsFor(state), value: tabsFor(state).some((t) => t.id === value && !t.press) ? value : 'home',
     orientation: orientationOf(state), compact: state.compact, transition: state.transition, label: 'Sections',
     placement: { row: state.row, rail: state.rail, railAlign: state.railAlign },
-    action: state.action ? { label: 'Compose', icon: icons.plus, onClick: () => emit('onAction') } : undefined,
     onSelect: (id, { silent }) => { show(id); if (!silent) emit('onSelect', id); },
   });
   show(bar.value);
 }
 
 // Brings the bar in line with `next`. Things the bar can change in place animate; the two that are fixed
-// when it is made (the action button, the page transition) rebuild it.
+// when it is made (the page transition) rebuild it.
 function apply(next) {
   const prev = state;
   state = { ...state, ...next };
-  if (!bar || state.action !== prev.action || state.transition !== prev.transition) { build(); }
+  if (!bar || state.transition !== prev.transition) { build(); }
   else {
     if (orientationOf(state) !== orientationOf(prev)) bar.setOrientation(orientationOf(state));
     if (state.compact !== prev.compact) bar.setCompact(state.compact);

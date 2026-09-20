@@ -16,7 +16,10 @@
   translate: 0 0;
   scale: 1;
 
-  /* The spring lives here; JS just writes target values frame to frame. */
+  /* The spring lives here; JS just writes target values frame to frame.
+     `transition` is a shorthand: a same-specificity rule that sets its own replaces
+     this whole list. If an element carrying `liquid-glass` sets its own transition,
+     include translate, scale and filter or it snaps back on release. */
   transition:
     translate var(--lg-press-out-dur) var(--lg-ease-spring),
     scale var(--lg-press-out-dur) var(--lg-ease-spring),

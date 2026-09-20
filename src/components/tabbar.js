@@ -26,6 +26,17 @@
 // view transition; `tabs.prominentEl` exposes the same element). It never
 // appears selected, and arrow keys focus it without activating it.
 //
+// `prominent: { label: true }` (instead of `true`) also shows the tab's label
+// under the circle's icon. The circle is rebuilt on layout changes, so look
+// `tabs.prominentEl` up when you need it; don't hold on to it.
+//
+// The root element fires a bubbling `lg-tabbar:settle` event when a size
+// animation (setTabs) finishes. --lg-tabbar-height / --lg-tabbar-width are
+// layout measurements (offsetHeight/Width), unaffected by the squash and stretch,
+// so read those, never getBoundingClientRect(), for the bar's size. To animate
+// the page around an orientation change, transition the padding that uses the
+// --lg-tabbar-*-space variables (they change at once) over the same duration.
+//
 // tabs.setTabs(newTabs) swaps the tab set in place, animating the bar's size
 // along its axis and springing the pill to its new anchor.
 //
@@ -137,6 +148,7 @@ const deform2 = (vx, vy) => {
 };
 
 const MIN_TABS_FOR_PROMINENT = 3;
+const FEW_TABS = 3;   // this many or fewer keep the full side padding at every width
 
 const DEFAULT_PLACEMENT = { row: 'bottom', rail: 'start', railAlign: 'top' };
 const EDGES = { row: ['bottom', 'top'], rail: ['start', 'end'], railAlign: ['top', 'center', 'bottom'] };
@@ -270,13 +282,25 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
       return;
     }
     const h = Math.max(...tabsInBar.map(t => t.offsetHeight));
-    if (h) for (const t of tabsInBar) t.style.minWidth = h + 'px';
+    if (!h) return;
+    // Tabs are at least square, but on a squeezed row (four tabs and a circle on a
+    // phone) that floor doesn't fit. Work out the room the tabs really have from
+    // the root's width, not the bar's live one, so the answer is the same before
+    // and after a setTabs() animation: the bar then never snaps when it ends.
+    const rs = getComputedStyle(root);
+    const bs = getComputedStyle(bar);
+    const circle = prominent ? h + 8 + (parseFloat(rs.columnGap) || 0) : 0;
+    const room = root.clientWidth - parseFloat(rs.paddingLeft) - parseFloat(rs.paddingRight) - circle
+      - parseFloat(bs.paddingLeft) - parseFloat(bs.paddingRight);
+    const width = room > 0 ? Math.min(h, Math.floor(room / tabsInBar.length)) : h;
+    for (const t of tabsInBar) t.style.minWidth = width + 'px';
   }
 
   // Sync the bar's buttons to `mainTabs`: keep existing ones, create new ones
   // (flagged so they fade in when `enter`), drop the rest, and reorder.
   function syncMainEls({ enter = false } = {}) {
     const ids = new Set(mainTabs.map(t => t.id));
+    bar.classList.toggle('lg-tabbar__bar--few', mainTabs.length <= FEW_TABS);
     for (const [id, btn] of tabEls) {
       if (!ids.has(id) && id !== prominent?.id) { btn.remove(); tabEls.delete(id); }
     }
@@ -367,6 +391,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
         // switchLayout).
         bar.style[sizeProp()] = '';
         core.refresh();
+        root.dispatchEvent(new CustomEvent('lg-tabbar:settle', { bubbles: true }));
       } else {
         bar.style[sizeProp()] = `${barW.value}px`;
       }
@@ -414,6 +439,10 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     if (prominent.panel) pBtn.setAttribute('aria-controls', prominent.panel); else pBtn.removeAttribute('aria-controls');
     pBtn.setAttribute('aria-label', prominent.label);
     pBtn.replaceChildren(...(prominent.icon ? [toNode(prominent.icon)] : []));
+    // `prominent: { label: true }` keeps the text under the icon, like the bar's own tabs.
+    pBtn.classList.toggle('lg-tabbar__prominent--labeled', !!prominent.prominent?.label);
+    if (prominent.prominent?.label) pBtn.append(el('span', 'lg-tabbar__prominent-label'));
+    if (prominent.prominent?.label) pBtn.lastChild.textContent = prominent.label;
   }
 
   function buildProminent({ enter = false } = {}) {
@@ -543,10 +572,17 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
 
   // Relabel a tab (e.g. on a language switch) and re-measure.
   function setLabel(id, label) {
+    // Update the stored definitions too: buttons are rebuilt from them on a layout change.
+    const relabel = (t) => (t.id === id ? { ...t, label } : t);
+    allTabs = allTabs.map(relabel);
+    mainTabs = mainTabs.map(relabel);
+    if (prominent) prominent = relabel(prominent);
     const btn = tabEls.get(id);
     if (!btn) return;
     const labelEl = btn.querySelector('.lg-tabbar__label');
     if (labelEl) labelEl.textContent = label; else btn.setAttribute('aria-label', label);
+    const circleLabel = btn.querySelector('.lg-tabbar__prominent-label');
+    if (circleLabel) circleLabel.textContent = label;
     if (!barAnimating) bar.style.width = bar.style.height = '';   // drop a rail's pinned thickness: the new label may need more
     sizeTabs();
     core.refresh();

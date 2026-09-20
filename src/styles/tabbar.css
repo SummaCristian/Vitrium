@@ -108,8 +108,9 @@
   justify-content: center;
   gap: 0.5rem;
   /* Fluid side padding: full-size on wide screens, tightening on narrow ones
-     so a 5-tab bar plus its action circle still fits a phone. */
-  padding: 0.625rem clamp(0.25rem, 1.6vw, 1.1875rem);
+     so a 5-tab bar plus its action circle still fits a phone. Bars with three
+     tabs or fewer have room to spare and keep the full padding (see --few). */
+  padding: 0.625rem var(--lg-tab-padding-inline, clamp(0.25rem, 1.6vw, 1.1875rem));
   font: inherit;
   font-size: 0.625rem;
   font-weight: 700;
@@ -128,10 +129,22 @@
   color: var(--lg-tab-active-color);
 }
 
+/* Row layout only: the rail's own padding is set further down. The selected
+   pill's cells need the same value, or they drift off their tabs. */
+.lg-tabbar:not(.lg-tabbar--vertical) .lg-tabbar__bar--few .lg-tabbar__tab,
+.lg-tabbar:not(.lg-tabbar--vertical) .lg-tabbar__bar--few .lg-pill-active-cell {
+  padding-inline: var(--lg-tab-padding-inline, 1.1875rem);
+}
+
 .lg-tabbar__tab:focus-visible {
   outline: 2px solid var(--lg-tab-active-color);
   outline-offset: -4px;
   border-radius: var(--lg-radius-pill);
+}
+
+.lg-tabbar__icon,
+.lg-tabbar__prominent {
+  font-weight: 400;   /* a single-weight icon font must not get a synthesized bold from the tab's 700 */
 }
 
 .lg-tabbar__icon {
@@ -187,6 +200,17 @@
     translate var(--lg-press-out-dur) var(--lg-ease-spring),
     scale var(--lg-press-out-dur) var(--lg-ease-spring),
     filter 0.2s ease;
+}
+
+.lg-tabbar__prominent--labeled {
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.lg-tabbar__prominent-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .lg-tabbar__prominent[aria-selected="true"] {

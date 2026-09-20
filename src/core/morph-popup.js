@@ -98,6 +98,7 @@ export function createMorphPopup({
   trigger.setAttribute('aria-controls', id);
 
   let isOpen = false;
+  let settled = false;   // open and finished animating: safe to re-place on resize
   let seq = 0;
   let cleanupTimer = 0;
   let morphCleanup = null;
@@ -211,6 +212,7 @@ export function createMorphPopup({
 
   function afterOpen() {
     if (!isOpen) return;
+    settled = true;
     panel.focus({ preventScroll: true });
     onAfterOpen?.();
   }
@@ -219,6 +221,7 @@ export function createMorphPopup({
     if (isOpen) return;
     const mySeq = beginOp();
     isOpen = true;
+    settled = false;
     if (role === 'dialog') document.addEventListener('focusin', pullFocusBack);
     trigger.setAttribute('aria-expanded', 'true');
     lockScroll();
@@ -340,6 +343,15 @@ export function createMorphPopup({
 
   const toggle = () => (isOpen ? close() : open());
 
+  // The panel is placed once on open; a viewport change (rotation, a keyboard,
+  // a browser toolbar) would leave it misplaced, so re-place it while it rests.
+  function onViewportResize() {
+    if (!isOpen || !settled) return;
+    const target = panelTarget();
+    snapGeometry(panel, target, target.borderRadius);
+  }
+  window.addEventListener('resize', onViewportResize);
+
   overlay.addEventListener('click', close);
   panel.addEventListener('keydown', trapTab);
   panel.addEventListener('keydown', (e) => {
@@ -349,6 +361,7 @@ export function createMorphPopup({
   function destroy() {
     beginOp();
     isOpen = false;
+    window.removeEventListener('resize', onViewportResize);
     document.removeEventListener('focusin', pullFocusBack);
     unlockScroll();
     trigger.classList.remove('lg-morph-anim', 'lg-morph-content-hidden');

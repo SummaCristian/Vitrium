@@ -21,7 +21,7 @@ const PLACES = [
 
 const DEFAULTS = {
   modal: false, side: 'end', transition: 'pop', detents: 'three', material: 'auto', header: true, footer: false, handle: true,
-  deform: true, dismissible: 'default', background: 'default', scrim: true, expandOnFocus: true,
+  deform: 'any drag', dismissible: 'default', background: 'default', scrim: true, expandOnFocus: true,
 };
 
 const events = { handler: null };
@@ -60,7 +60,7 @@ function build() {
     detents: DETENTS[s.detents],
     responsive: [{ minWidth: 600, width: 420, margin: { inline: 20 } }],
     side: s.side, modal: s.modal, transition: s.transition, scrim: s.scrim,
-    material: s.material, handle: s.handle, deform: s.deform, expandOnFocus: s.expandOnFocus,
+    material: s.material, handle: s.handle, deform: { 'any drag': true, handle: 'handle', off: false }[s.deform] ?? true, expandOnFocus: s.expandOnFocus,
     dismissible: dismissibleOf(s.dismissible, s.modal),
     backgroundInteraction: backgroundOf(s.background),
     onPresent: () => emit('onPresent'),

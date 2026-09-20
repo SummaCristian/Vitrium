@@ -11,7 +11,8 @@
 //   picker.setValue('Wed 16 Sept');
 //
 // Options
-//   icon, label, value   the chip's face (icon is a Node or trusted SVG string)
+//   icon, label, value   the chip's face (icon is a Node or trusted SVG string;
+//                        value is text, or a Node / trusted HTML for styled parts)
 //   content              Node, or (popup) => Node, appended to the panel body
 //   title                { icon, text } shown atop the panel; defaults to
 //                        { icon, text: label }; pass false for none
@@ -40,7 +41,7 @@ export function createChipPicker({
   const labelEl = box.appendChild(el('span', 'lg-chip__label'));
   const valueEl = box.appendChild(el('span', 'lg-chip__value'));
   labelEl.textContent = label;
-  valueEl.textContent = value;
+  valueEl.replaceChildren(typeof value === 'string' && !/</.test(value) ? value : toNode(value));
   btn.appendChild(box);
   btn.appendChild(el('span', 'lg-chip__chevron', { 'aria-hidden': 'true' })).appendChild(toNode(icons.chevronDown));
   wrap.appendChild(btn);
@@ -70,7 +71,8 @@ export function createChipPicker({
     el: wrap,
     trigger: btn,
     popup,
-    setValue(text) { valueEl.textContent = text; },
+    // Text, or a Node / trusted HTML string for a value with styled parts.
+    setValue(value) { valueEl.replaceChildren(typeof value === 'string' && !/</.test(value) ? value : toNode(value)); },
     setLabel(text) { labelEl.textContent = text; },
     // A shimmering placeholder of the same footprint, in place of the chip.
     setLoading(on) {

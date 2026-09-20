@@ -9,7 +9,7 @@ const layoutOf = (s) => ({ orientation: ORIENTATIONS[s.layout], compact: s.compa
 const VIEWPORTS = { phone: '390px', desktop: '100%' };
 // Start on the viewport that fits: a small window has no room for the desktop preview.
 const fittingViewport = () => (window.matchMedia('(min-width: 900px)').matches ? 'desktop' : 'phone');
-const stateOf = (s) => ({ ...layoutOf(s), row: s.row, rail: s.rail, railAlign: s.railAlign, tabs: s.tabs, prominent: s.prominent, action: s.action, transition: s.transition, clearance: s.clearance, large: s.viewport !== 'phone' });
+const stateOf = (s) => ({ ...layoutOf(s), row: s.row, rail: s.rail, railAlign: s.railAlign, tabs: s.tabs, prominent: s.prominent, transition: s.transition, clearance: s.clearance, large: s.viewport !== 'phone' });
 
 const SPACES = [
   ['top', 'A row at the top edge, or the compact bar.'],
@@ -50,9 +50,8 @@ export default {
         { key: 'row', label: 'Row edge', type: 'choice', choices: ['bottom', 'top'], default: 'bottom', when: (s) => s.layout !== 'rail' },
         { key: 'rail', label: 'Rail edge', type: 'choice', choices: ['start', 'end'], default: 'start', when: (s) => s.layout !== 'row' && !layoutOf(s).compact },
         { key: 'railAlign', label: 'Rail align', type: 'choice', choices: ['top', 'center', 'bottom'], default: 'top', when: (s) => s.layout !== 'row' && !layoutOf(s).compact },
-        { key: 'tabs', label: 'Tabs', type: 'choice', choices: [3, 4], default: 4 },
+        { key: 'tabs', label: 'Tabs', type: 'choice', choices: [2, 3, 4], default: 4 },
         { key: 'prominent', label: 'Last tab', type: 'choice', choices: ['none', 'tab', 'press'], default: 'none' },
-        { key: 'action', label: 'Action button', type: 'bool', default: false },
         { key: 'transition', label: 'Page transition', type: 'bool', default: true },
         { key: 'clearance', label: 'Edge clearance', type: 'choice', choices: ['default', 'wide'], default: 'default' },
       ],
@@ -87,7 +86,6 @@ export default {
           compact && '  compact: true,',
           place.length && `  placement: { ${place.join(', ')} },`,
           s.transition && '  transition: true,',
-          s.action && "  action: { label: 'Compose', icon, onClick() {} },",
           '  onSelect(id) {},',
         ].filter(Boolean);
         return `import { createTabBar } from 'vitrium';\n\nconst tabbar = createTabBar(container, {\n${rows.join('\n')}\n});`;

@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/vitrium?style=flat-square&color=cb3837&logo=npm)](https://www.npmjs.com/package/vitrium)
 [![npm downloads](https://img.shields.io/npm/dm/vitrium?style=flat-square&color=blue)](https://www.npmjs.com/package/vitrium)
-[![Deploy docs](https://img.shields.io/github/actions/workflow/status/SummaCristian/Vitrium/pages.yml?style=flat-square&label=docs)](https://summacristian.github.io/Vitrium/)
+[![Deploy docs](https://img.shields.io/github/actions/workflow/status/SummaCristian/Vitrium/pages.yml?style=flat-square&label=docs)](https://vitrium.summacristian.com)
 [![license](https://img.shields.io/npm/l/vitrium?style=flat-square)](LICENSE)
 
 A JS/CSS re-implementation of a Liquid Glass-inspired design system and components, ready to use for the web. Framework-agnostic vanilla core; Web Component wrappers are planned.

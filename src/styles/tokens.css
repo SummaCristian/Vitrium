@@ -14,13 +14,46 @@
   /* Specular rim on the top/bottom edges. Plain white in SDR; pushed past
      white on HDR displays (see the dynamic-range block below). */
   --lg-specular: rgb(255 255 255);
+
+  /* The rim, as three colors: shaded left/right sides, lit top/bottom edges
+     and a faint inner glow. --lg-highlight assembles them; the dark theme
+     only swaps the parts. */
+  --lg-rim-side-alpha: 0.25;
+  --lg-rim-side-x: 1;
+  --lg-rim-side-blur: 2;
+  --lg-rim-side: rgba(0, 0, 0, var(--lg-rim-side-alpha));
+  --lg-rim-top: var(--lg-specular);
+  --lg-rim-glow: rgba(0, 0, 0, 0.02);
   --lg-highlight:
-    inset -1px 0 2px 0 rgba(0, 0, 0, 0.25),
-    inset 1px 0 2px 0 rgba(0, 0, 0, 0.25),
-    inset 0 -1px 2px 0 var(--lg-specular),
-    inset 0 1px 2px 0 var(--lg-specular),
-    inset 0 -8px 4px 0 rgba(0, 0, 0, 0.02),
-    inset 0 8px 4px 0 rgba(0, 0, 0, 0.02);
+    inset calc(var(--lg-rim-side-x) * -1px) 0 calc(var(--lg-rim-side-blur) * 1px) 0 var(--lg-rim-side),
+    inset calc(var(--lg-rim-side-x) * 1px) 0 calc(var(--lg-rim-side-blur) * 1px) 0 var(--lg-rim-side),
+    inset 0 -1px 2px 0 var(--lg-rim-top),
+    inset 0 1px 2px 0 var(--lg-rim-top),
+    inset 0 -8px 4px 0 var(--lg-rim-glow),
+    inset 0 8px 4px 0 var(--lg-rim-glow);
+
+  /* Tinted glass derives its rim from the tint instead (see .lg-glass--tinted):
+     the top/bottom edges are the tint moved `lift` of the way to white with
+     `chroma` of its color kept, the sides are its lightness times `sink` at
+     full color. On HDR displays the edges start from the tint lifted only by
+     `hdr-lift` and are pushed past white by `hdr-gain`. */
+  --lg-rim-lift: 0.7;
+  --lg-rim-chroma: 0.6;
+  --lg-rim-light-alpha: 1;
+  --lg-rim-sink: 0.55;
+  --lg-rim-shade-alpha: 0.35;
+  --lg-rim-hdr-lift: 0.3;
+  --lg-rim-hdr-gain: 1.8;
+
+  /* Tinted glass casts a glow in its own color: the tint, mixed toward black
+     by 1 - --lg-shadow-tint, at --lg-shadow-tint-alpha. */
+  --lg-shadow-tint: 0.85;
+  --lg-shadow-tint-alpha: 0.2;
+
+  /* Clear glass fades its rim and stroke by these factors, like the rest of
+     the material. */
+  --lg-rim-clear: 0.6;
+  --lg-stroke-clear: 0.75;
 
   --lg-blur-sm: 4px;
   --lg-blur-md: 8px;
@@ -88,13 +121,18 @@
   --lg-tint: rgba(21, 21, 21, 0.8);
   --lg-tint-clear: rgba(21, 21, 21, 0.35);
   --lg-outline: rgba(255, 255, 255, 0.25);
-  --lg-highlight:
-    inset -1px 0 2px 0 rgba(0, 0, 0, 0.75),
-    inset 1px 0 2px 0 rgba(0, 0, 0, 0.75),
-    inset 0 -1px 2px 0 rgba(255, 255, 255, 0.2),
-    inset 0 1px 2px 0 rgba(255, 255, 255, 0.2),
-    inset 0 -8px 4px 0 rgba(255, 255, 255, 0.02),
-    inset 0 8px 4px 0 rgba(255, 255, 255, 0.02);
+  --lg-rim-side-alpha: 1;
+  --lg-rim-side-x: 1.5;
+  --lg-rim-side-blur: 3;
+  --lg-rim-top: rgba(255, 255, 255, 0.2);
+  --lg-rim-glow: rgba(255, 255, 255, 0.02);
+  --lg-rim-lift: 0.5;
+  --lg-rim-chroma: 0.8;
+  --lg-rim-light-alpha: 0.45;
+  --lg-rim-sink: 0.5;
+  --lg-rim-shade-alpha: 0.9;
+  --lg-shadow-tint: 1;
+  --lg-shadow-tint-alpha: 0.1;
   --lg-stroke-gradient: linear-gradient(
     to bottom,
     rgba(223, 223, 223, 0.35) 0%,
@@ -116,13 +154,18 @@
     --lg-tint: rgba(21, 21, 21, 0.8);
     --lg-tint-clear: rgba(21, 21, 21, 0.35);
     --lg-outline: rgba(255, 255, 255, 0.25);
-    --lg-highlight:
-      inset -1px 0 2px 0 rgba(0, 0, 0, 0.75),
-      inset 1px 0 2px 0 rgba(0, 0, 0, 0.75),
-      inset 0 -1px 2px 0 rgba(255, 255, 255, 0.2),
-      inset 0 1px 2px 0 rgba(255, 255, 255, 0.2),
-      inset 0 -8px 4px 0 rgba(255, 255, 255, 0.02),
-      inset 0 8px 4px 0 rgba(255, 255, 255, 0.02);
+    --lg-rim-side-alpha: 1;
+    --lg-rim-side-x: 1.5;
+    --lg-rim-side-blur: 3;
+    --lg-rim-top: rgba(255, 255, 255, 0.2);
+    --lg-rim-glow: rgba(255, 255, 255, 0.02);
+    --lg-rim-lift: 0.5;
+    --lg-rim-chroma: 0.8;
+    --lg-rim-light-alpha: 0.45;
+    --lg-rim-sink: 0.5;
+    --lg-rim-shade-alpha: 0.9;
+    --lg-shadow-tint: 1;
+    --lg-shadow-tint-alpha: 0.1;
     --lg-stroke-gradient: linear-gradient(
       to bottom,
       rgba(223, 223, 223, 0.35) 0%,

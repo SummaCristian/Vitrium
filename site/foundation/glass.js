@@ -115,6 +115,7 @@ export default {
       section('Playground', {}, h('p', {}, 'The colorful backdrop is only here so the blur has something to work on.'), playground),
       section('Tinting', {},
         h('p', {}, '`setGlassTint(el, color)` tints an element and picks a legible text color for it. Pass `null` to remove the tint. The regular material shows the color more strongly than the clear one.'),
+        h('p', {}, 'The rim follows the tint: the lit edges are a lighter shade of it and the sides a deeper one, in place of white and black, and the drop shadow becomes a faint glow in the same color. Clear glass, tinted or not, also fades its rim and stroke. Both need a browser with relative color syntax (Chrome 119, Safari 18, Firefox 128); older ones show the plain rim.'),
         codeBlock(`
 import { setGlassTint } from 'vitrium';
 

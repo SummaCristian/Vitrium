@@ -52,6 +52,77 @@
   backdrop-filter: blur(var(--lg-blur-clear)) saturate(var(--lg-tint-saturate-clear));
 }
 
+/* Rim of the clear and tinted variants. The shadow tokens are resolved on :root,
+   so a variant that changes a rim color has to restate --lg-highlight and the
+   stacks built on it here, on its own element. Descendants inherit them, so
+   don't nest glass inside a clear or tinted surface.
+
+   Every rim color is faded by --_rim-k (1, or --lg-rim-clear on clear glass).
+   Relative colors are required: without them the declarations below would be
+   invalid at computed-value time and take the whole box-shadow with them, so
+   older browsers keep the plain :root rim instead. */
+@supports (color: oklch(from red l c h)) and (color: color(from red display-p3 r g b)) {
+  .lg-glass--clear,
+  .lg-glass--tinted {
+    --_rim-k: 1;
+    --_rim-side: var(--lg-rim-side);
+    --_rim-top: var(--lg-rim-top);
+    --_rim-glow: var(--lg-rim-glow);
+    --lg-highlight:
+      inset calc(var(--lg-rim-side-x) * -1px) 0 calc(var(--lg-rim-side-blur) * 1px) 0 color(from var(--_rim-side) display-p3 r g b / calc(alpha * var(--_rim-k))),
+      inset calc(var(--lg-rim-side-x) * 1px) 0 calc(var(--lg-rim-side-blur) * 1px) 0 color(from var(--_rim-side) display-p3 r g b / calc(alpha * var(--_rim-k))),
+      inset 0 -1px 2px 0 color(from var(--_rim-top) display-p3 r g b / calc(alpha * var(--_rim-k))),
+      inset 0 1px 2px 0 color(from var(--_rim-top) display-p3 r g b / calc(alpha * var(--_rim-k))),
+      inset 0 -8px 4px 0 color(from var(--_rim-glow) display-p3 r g b / calc(alpha * var(--_rim-k))),
+      inset 0 8px 4px 0 color(from var(--_rim-glow) display-p3 r g b / calc(alpha * var(--_rim-k)));
+    --lg-shadow: 0 0 0 0.1px var(--lg-outline), var(--lg-highlight), 0 4px 40px 0 var(--lg-shadow-color);
+    --lg-shadow-compact: 0 0 0 0.1px var(--lg-outline), var(--lg-highlight), 0 4px 20px 0 var(--lg-shadow-color);
+  }
+
+  .lg-glass--clear {
+    --_rim-k: var(--lg-rim-clear);
+  }
+
+  /* Tinted: lighter and darker shades of the tint in place of white and black.
+     Lightness moves relative to the tint's own (in OKLCH, so the hue holds),
+     which gives a light and a dark tint the same contrast plain glass has. */
+  .lg-glass--tinted {
+    --_tint: var(--lg-glass-tint, var(--lg-accent));
+    --_rim-light: oklch(from var(--_tint) calc(l + (1 - l) * var(--lg-rim-lift)) calc(c * var(--lg-rim-chroma)) h / var(--lg-rim-light-alpha));
+    --_rim-side: oklch(from var(--_tint) calc(l * var(--lg-rim-sink)) c h / var(--lg-rim-shade-alpha));
+    --_rim-top: var(--_rim-light);
+    --_rim-glow: oklch(from var(--_tint) l c h / 0.04);
+    --lg-stroke-gradient: linear-gradient(
+      to bottom,
+      var(--_rim-light) 0%,
+      oklch(from var(--_tint) calc(l * 0.7) c h / 0.25) 25%,
+      oklch(from var(--_tint) calc(l * 0.5) c h / 0.8) 50%,
+      oklch(from var(--_tint) calc(l * 0.7) c h / 0.25) 75%,
+      var(--_rim-light) 100%
+    );
+    /* A glow in the tint's own color rather than a darkened one, which reads as
+       a smudge. */
+    --lg-shadow-color: oklch(
+      from color-mix(in oklch, var(--_tint) calc(var(--lg-shadow-tint) * 100%), black)
+      l c h / var(--lg-shadow-tint-alpha)
+    );
+  }
+}
+
+/* HDR: the SDR edge is already near white, so brightening it only makes it
+   whiter. Start from the tint barely lifted, at full chroma, and push that past
+   white instead. */
+@media (dynamic-range: high) {
+  @supports (color: oklch(from red l c h)) and (color: color(from red display-p3 r g b)) {
+    .lg-glass--tinted {
+      --_rim-hdr: oklch(from var(--_tint) calc(l + (1 - l) * var(--lg-rim-hdr-lift)) c h);
+      --_rim-top: color(from var(--_rim-hdr) display-p3
+        calc(r * var(--lg-rim-hdr-gain)) calc(g * var(--lg-rim-hdr-gain)) calc(b * var(--lg-rim-hdr-gain))
+        / var(--lg-rim-light-alpha));
+    }
+  }
+}
+
 /* Outside 0.5px gradient stroke without affecting layout: a ring cut out with
    the padding + mask-composite: exclude trick. */
 .lg-glass::after {
@@ -69,6 +140,10 @@
   mask-composite: exclude;
 
   pointer-events: none;
+}
+
+.lg-glass--clear::after {
+  opacity: calc(var(--lg-stroke-opacity) * var(--lg-stroke-clear));
 }
 
 .lg-glass--circle::after {

@@ -7,7 +7,7 @@
 
 A JS/CSS re-implementation of a Liquid Glass-inspired design system and components, ready to use for the web. Framework-agnostic vanilla core; Web Component wrappers are planned.
 
-> Work in progress (version 0.2.0). The foundation and every component below are ported. The API can still change.
+> Work in progress (version 0.3.0). The foundation and every component below are ported. The API can still change.
 
 **[📖 Read the docs and try the live playgrounds →](https://summacristian.github.io/Vitrium/)** · **[📦 npm](https://www.npmjs.com/package/vitrium)**
 

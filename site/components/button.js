@@ -37,7 +37,7 @@ export default {
       render(s, stage) {
         btn = build(s);
         apply(s);
-        stage.append(btn);
+        stage.append(h('div', { class: 'demo-zoom' }, btn));
       },
       patch(s, stage, key) {
         // The button reacts to its own content changing, so these are plain DOM edits.
@@ -47,7 +47,7 @@ export default {
           if (next.ariaLabel) btn.ariaLabel = next.ariaLabel; else btn.removeAttribute('aria-label');
         } else if (key === 'icon') btn.querySelector('svg').replaceWith(toNode(demoIcons[s.icon].svg));
         // A tint or material can't be interpolated, so those fade. Dragging the color picker updates live.
-        else if (key === 'material' || key === 'tintMode') crossfade(btn, stage, () => apply(s));
+        else if (key === 'material' || key === 'tintMode') crossfade(btn, btn.parentElement, () => apply(s));
         else apply(s);
       },
       code: (s) => `import { createButton } from 'vitrium';

@@ -59,7 +59,7 @@ export default {
         stage.style.minHeight = '15rem';
         log = readout('Tap, drag the pill, or use the arrow keys');
         build(s);
-        stage.append(h('div', { class: 'demo-stack' }, host, log));
+        stage.append(h('div', { class: 'demo-stack' }, h('div', { class: 'demo-zoom demo-zoom--wide' }, host), log));
       },
       patch(s, stage, key) {
         if (key === 'orientation') control.setOrientation(s.orientation);

@@ -26,7 +26,7 @@ export default {
           value: s.value, color: colorOf(s.colorMode, s.color), label: 'Demo',
           onChange: (on) => { log.textContent = `onChange(${on})`; },
         });
-        stage.append(h('div', { class: 'demo-stack' }, toggle.el, log));
+        stage.append(h('div', { class: 'demo-stack' }, h('div', { class: 'demo-zoom' }, toggle.el), log));
       },
       // The thumb springs and the track fades to its new color, so changes are set on the live toggle.
       patch(s, stage, key) {

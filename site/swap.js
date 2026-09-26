@@ -28,15 +28,18 @@ export function swapIcon(el, next) {
 export function crossfade(el, container, apply) {
   if (reduceMotion()) { apply(); return; }
   const ghost = el.cloneNode(true);
-  const box = container.getBoundingClientRect();
-  const before = el.getBoundingClientRect();
+  // Rects are in screen px; inside a zoomed container (a .demo-zoom stage) the ghost's px are zoomed again, so undo it.
+  const k = container.currentCSSZoom ?? 1;
+  const rect = (node) => { const r = node.getBoundingClientRect(); return { left: r.left / k, top: r.top / k, width: r.width / k, height: r.height / k }; };
+  const box = rect(container);
+  const before = rect(el);
   Object.assign(ghost.style, { position: 'absolute', left: `${before.left - box.left}px`, top: `${before.top - box.top}px`, width: `${before.width}px`, height: `${before.height}px`, margin: '0', boxSizing: 'border-box', pointerEvents: 'none', transition: 'none' });
   ghost.removeAttribute('id');
   ghost.setAttribute('aria-hidden', 'true');
   container.append(ghost);
   apply();
   // If the change resized the element, keep the old look centered on the new one so the two fade in place.
-  const after = el.getBoundingClientRect();
+  const after = rect(el);
   ghost.style.left = `${after.left + after.width / 2 - box.left - before.width / 2}px`;
   ghost.style.top = `${after.top + after.height / 2 - box.top - before.height / 2}px`;
   const opts = { duration: FADE_MS, easing: 'ease', fill: 'both' };

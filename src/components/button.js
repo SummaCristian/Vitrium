@@ -51,7 +51,8 @@ function watchContent(btn) {
     // The circle's stroke mask is radial and only fits a square, so it waits for the resize to finish.
     if (pill) btn.classList.remove('lg-glass--circle');
     btn.getAnimations().filter((a) => a.id === 'lg-button-width').forEach((a) => a.cancel());
-    const w1 = btn.getBoundingClientRect().width;
+    // Layout width, like the observer's: a scaled button (or one mid-press) would otherwise animate to its visual size.
+    const w1 = btn.offsetWidth;
     const settle = () => btn.classList.toggle('lg-glass--circle', !btn.querySelector('.lg-button-label'));
     if (matchMedia('(prefers-reduced-motion: reduce)').matches || !w0) { settle(); return; }
     added.forEach((n) => n.animate(IN, EASE));

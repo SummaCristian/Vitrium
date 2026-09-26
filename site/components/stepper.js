@@ -52,11 +52,11 @@ export default {
         value = valueCell(2);
         log = readout('Press +, press and hold, or Tab to it and use Enter');
         build(s);
-        stage.append(h('div', { class: 'demo-stack' }, row('Guests', value.el, host), log));
+        stage.append(h('div', { class: 'demo-stack' }, h('div', { class: 'demo-zoom' }, row('Guests', value.el, host)), log));
       },
       patch(s, stage, key) {
         if (key === 'disabled') stepper.setDisabled(s.disabled);
-        else crossfade(host, stage, () => build(s));
+        else crossfade(host, host.closest('.demo-zoom'), () => build(s));
       },
       code(s) {
         const [min, max] = RANGES[s.range];

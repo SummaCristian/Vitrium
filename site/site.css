@@ -507,6 +507,14 @@ code.ic { font: 0.88em ui-monospace, 'SF Mono', Menlo, monospace; padding: 0.12e
 
 /* Component pages: labeled groups of demos on a backdrop card */
 .demo-stack { display: grid; gap: 12px; justify-items: center; }
+/* Enlarges a small component in its playground so it reads at a glance. CSS zoom rather than a transform, so it takes up
+   its enlarged size in the layout. Positioned, because crossfade() places its ghost inside it. Wide controls get less,
+   and a phone less still, so nothing overflows the stage. */
+.demo-zoom { position: relative; zoom: 1.5; }
+.demo-zoom.demo-zoom--wide { zoom: 1.3; }
+@media (max-width: 520px) {
+  .demo-zoom, .demo-zoom.demo-zoom--wide { zoom: 1.15; }
+}
 .demo-cap { font-size: 0.8rem; font-weight: 700; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45); }
 .readout { font-size: 0.85rem; opacity: 0.75; min-height: 1.4em; }
 .toggle-cell { display: grid; justify-items: center; gap: 8px; font-size: 0.85rem; min-width: 4.5rem; }

@@ -311,6 +311,9 @@ export function createPillDragCore({
   // cell still just selects, via the click listener above.
   let dragging = false, grabbed = false, absoluteDrag = false;
   let startX = 0, startY = 0, grantTime = 0, dragOriginPos = 0, itemsOrigin = 0;
+  // Screen px per layout px, read at grab time, so the pill tracks the pointer
+  // when the control is scaled (CSS zoom or a transform on an ancestor).
+  let ptrScale = 1;
   let holdTimer = 0, captureEl = null;
   let samples = [];
 
@@ -326,9 +329,10 @@ export function createPillDragCore({
 
   // "Main" is whichever screen axis the cells run along; "cross" is the other
   // one (used to tell a tap from a drag, and for the off-rail wobble).
-  const mainPos = (e) => vertical ? e.clientY : e.clientX;
-  const mainDelta = (e) => vertical ? e.clientY - startY : e.clientX - startX;
-  const crossDelta = (e) => vertical ? e.clientX - startX : e.clientY - startY;
+  // All in layout px: pointer coordinates are divided by ptrScale.
+  const mainPos = (e) => (vertical ? e.clientY : e.clientX) / ptrScale;
+  const mainDelta = (e) => (vertical ? e.clientY - startY : e.clientX - startX) / ptrScale;
+  const crossDelta = (e) => (vertical ? e.clientX - startX : e.clientY - startY) / ptrScale;
 
   const pillEdgeAtPointer = (e) => (mainPos(e) - itemsOrigin) - pillMain.value / 2;
 
@@ -357,10 +361,11 @@ export function createPillDragCore({
     grabbed = false;
     absoluteDrag = !onHit;
     startX = e.clientX; startY = e.clientY;
+    const r = items.getBoundingClientRect();
+    ptrScale = (vertical ? r.height / items.offsetHeight : r.width / items.offsetWidth) || 1;
+    itemsOrigin = (vertical ? r.top : r.left) / ptrScale;
     grantTime = performance.now();
     samples = [{ x: mainPos(e), t: grantTime }];
-    const r = items.getBoundingClientRect();
-    itemsOrigin = vertical ? r.top : r.left;
 
     if (absoluteDrag) holdTimer = setTimeout(() => engage(e), HOLD_MS);
     else engage(e); // grabbing the pill itself: no wait

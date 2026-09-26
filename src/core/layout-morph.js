@@ -30,17 +30,25 @@ const CONFIG = { stiffness: 220, damping: 20, mass: 1 };
 
 const radiusOf = (el) => parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0;
 
+// The element's box in its own CSS px. getBoundingClientRect() is in screen px, which differ under CSS zoom (the
+// element or an ancestor), while the width/height/translate written below are in CSS px and get zoomed again.
+const rectOf = (el) => {
+  const r = el.getBoundingClientRect();
+  const z = el.currentCSSZoom ?? 1;
+  return { left: r.left / z, top: r.top / z, width: r.width / z, height: r.height / z };
+};
+
 export function layoutMorph(targets, apply, { onDone, config = CONFIG } = {}) {
   const before = targets.map(t => ({
     ...t,
-    r: t.el.getBoundingClientRect(),
+    r: rectOf(t.el),
     radius: t.mode === 'box' ? radiusOf(t.el) : 0,
   }));
 
   apply();
 
   const items = before.map(b => {
-    const r1 = b.el.getBoundingClientRect();
+    const r1 = rectOf(b.el);
     const box = b.mode === 'box';
     return {
       ...b,

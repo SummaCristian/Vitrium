@@ -15,22 +15,33 @@
      white on HDR displays (see the dynamic-range block below). */
   --lg-specular: rgb(255 255 255);
 
-  /* The rim, as three colors: shaded left/right sides, lit top/bottom edges
-     and a faint inner glow. --lg-highlight assembles them; the dark theme
-     only swaps the parts. */
+  /* The rim, as two colors: shaded left/right sides and lit top/bottom edges.
+     --lg-highlight assembles them; the dark theme only swaps the parts.
+
+     Each edge is a soft band: what an inset shadow's offset uncovers, fading
+     out over one sigma of its blur (the side's --lg-rim-side-blur, 2px on top
+     and bottom). It's drawn as two unblurred layers, half the color at the
+     offset and 30% one sigma deeper, rather than as blurred inset shadows:
+     Chrome caches a blurred outer shadow but not a blurred inset one, so every
+     one of those was a full-size Gaussian blur of the element each time it
+     was drawn, and at a phone's pixel ratio the rims were most of what an
+     older GPU spent drawing a page. The two layers were fitted against the
+     blurred version at 1x and 3.5x. Mixed in display-p3 so the HDR specular
+     keeps its range. */
   --lg-rim-side-alpha: 0.25;
   --lg-rim-side-x: 1;
   --lg-rim-side-blur: 2;
   --lg-rim-side: rgba(0, 0, 0, var(--lg-rim-side-alpha));
   --lg-rim-top: var(--lg-specular);
-  --lg-rim-glow: rgba(0, 0, 0, 0.02);
   --lg-highlight:
-    inset calc(var(--lg-rim-side-x) * -1px) 0 calc(var(--lg-rim-side-blur) * 1px) 0 var(--lg-rim-side),
-    inset calc(var(--lg-rim-side-x) * 1px) 0 calc(var(--lg-rim-side-blur) * 1px) 0 var(--lg-rim-side),
-    inset 0 -1px 2px 0 var(--lg-rim-top),
-    inset 0 1px 2px 0 var(--lg-rim-top),
-    inset 0 -8px 4px 0 var(--lg-rim-glow),
-    inset 0 8px 4px 0 var(--lg-rim-glow);
+    inset calc(var(--lg-rim-side-x) * -1px) 0 0 0 color-mix(in display-p3, var(--lg-rim-side) 50%, transparent),
+    inset calc(var(--lg-rim-side-x) * -1px) 0 0 calc(var(--lg-rim-side-blur) * 0.5px) color-mix(in display-p3, var(--lg-rim-side) 30%, transparent),
+    inset calc(var(--lg-rim-side-x) * 1px) 0 0 0 color-mix(in display-p3, var(--lg-rim-side) 50%, transparent),
+    inset calc(var(--lg-rim-side-x) * 1px) 0 0 calc(var(--lg-rim-side-blur) * 0.5px) color-mix(in display-p3, var(--lg-rim-side) 30%, transparent),
+    inset 0 -1px 0 0 color-mix(in display-p3, var(--lg-rim-top) 50%, transparent),
+    inset 0 -1px 0 1px color-mix(in display-p3, var(--lg-rim-top) 30%, transparent),
+    inset 0 1px 0 0 color-mix(in display-p3, var(--lg-rim-top) 50%, transparent),
+    inset 0 1px 0 1px color-mix(in display-p3, var(--lg-rim-top) 30%, transparent);
 
   /* Tinted glass derives its rim from the tint instead (see .lg-glass--tinted):
      the top/bottom edges are the tint moved `lift` of the way to white with
@@ -125,7 +136,6 @@
   --lg-rim-side-x: 1.5;
   --lg-rim-side-blur: 3;
   --lg-rim-top: rgba(255, 255, 255, 0.2);
-  --lg-rim-glow: rgba(255, 255, 255, 0.02);
   --lg-rim-lift: 0.5;
   --lg-rim-chroma: 0.8;
   --lg-rim-light-alpha: 0.45;
@@ -158,7 +168,6 @@
     --lg-rim-side-x: 1.5;
     --lg-rim-side-blur: 3;
     --lg-rim-top: rgba(255, 255, 255, 0.2);
-    --lg-rim-glow: rgba(255, 255, 255, 0.02);
     --lg-rim-lift: 0.5;
     --lg-rim-chroma: 0.8;
     --lg-rim-light-alpha: 0.45;

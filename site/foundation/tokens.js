@@ -46,7 +46,6 @@ const NOTES = {
   '--lg-rim-side-blur': 'Blur of the shaded side edges, in px.',
   '--lg-rim-side': 'Color of the shaded side edges.',
   '--lg-rim-top': 'Color of the lit top and bottom edges.',
-  '--lg-rim-glow': 'Faint inner glow along the top and bottom.',
   '--lg-rim-lift': 'Tinted glass: how far the lit edges move from the tint toward white.',
   '--lg-rim-chroma': 'Tinted glass: how much of the tint\'s color the lit edges keep.',
   '--lg-rim-light-alpha': 'Tinted glass: opacity of the lit edges.',

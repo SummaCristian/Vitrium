@@ -57,7 +57,8 @@
    stacks built on it here, on its own element. Descendants inherit them, so
    don't nest glass inside a clear or tinted surface.
 
-   Every rim color is faded by --_rim-k (1, or --lg-rim-clear on clear glass).
+   Every rim color is faded by --_rim-k (1, or --lg-rim-clear on clear glass),
+   on top of the two layers' own 50% / 30% (see --lg-highlight in tokens.css).
    Relative colors are required: without them the declarations below would be
    invalid at computed-value time and take the whole box-shadow with them, so
    older browsers keep the plain :root rim instead. */
@@ -67,14 +68,15 @@
     --_rim-k: 1;
     --_rim-side: var(--lg-rim-side);
     --_rim-top: var(--lg-rim-top);
-    --_rim-glow: var(--lg-rim-glow);
     --lg-highlight:
-      inset calc(var(--lg-rim-side-x) * -1px) 0 calc(var(--lg-rim-side-blur) * 1px) 0 color(from var(--_rim-side) display-p3 r g b / calc(alpha * var(--_rim-k))),
-      inset calc(var(--lg-rim-side-x) * 1px) 0 calc(var(--lg-rim-side-blur) * 1px) 0 color(from var(--_rim-side) display-p3 r g b / calc(alpha * var(--_rim-k))),
-      inset 0 -1px 2px 0 color(from var(--_rim-top) display-p3 r g b / calc(alpha * var(--_rim-k))),
-      inset 0 1px 2px 0 color(from var(--_rim-top) display-p3 r g b / calc(alpha * var(--_rim-k))),
-      inset 0 -8px 4px 0 color(from var(--_rim-glow) display-p3 r g b / calc(alpha * var(--_rim-k))),
-      inset 0 8px 4px 0 color(from var(--_rim-glow) display-p3 r g b / calc(alpha * var(--_rim-k)));
+      inset calc(var(--lg-rim-side-x) * -1px) 0 0 0 color(from var(--_rim-side) display-p3 r g b / calc(alpha * var(--_rim-k) * 0.5)),
+      inset calc(var(--lg-rim-side-x) * -1px) 0 0 calc(var(--lg-rim-side-blur) * 0.5px) color(from var(--_rim-side) display-p3 r g b / calc(alpha * var(--_rim-k) * 0.3)),
+      inset calc(var(--lg-rim-side-x) * 1px) 0 0 0 color(from var(--_rim-side) display-p3 r g b / calc(alpha * var(--_rim-k) * 0.5)),
+      inset calc(var(--lg-rim-side-x) * 1px) 0 0 calc(var(--lg-rim-side-blur) * 0.5px) color(from var(--_rim-side) display-p3 r g b / calc(alpha * var(--_rim-k) * 0.3)),
+      inset 0 -1px 0 0 color(from var(--_rim-top) display-p3 r g b / calc(alpha * var(--_rim-k) * 0.5)),
+      inset 0 -1px 0 1px color(from var(--_rim-top) display-p3 r g b / calc(alpha * var(--_rim-k) * 0.3)),
+      inset 0 1px 0 0 color(from var(--_rim-top) display-p3 r g b / calc(alpha * var(--_rim-k) * 0.5)),
+      inset 0 1px 0 1px color(from var(--_rim-top) display-p3 r g b / calc(alpha * var(--_rim-k) * 0.3));
     --lg-shadow: 0 0 0 0.1px var(--lg-outline), var(--lg-highlight), 0 4px 40px 0 var(--lg-shadow-color);
     --lg-shadow-compact: 0 0 0 0.1px var(--lg-outline), var(--lg-highlight), 0 4px 20px 0 var(--lg-shadow-color);
   }
@@ -91,7 +93,6 @@
     --_rim-light: oklch(from var(--_tint) calc(l + (1 - l) * var(--lg-rim-lift)) calc(c * var(--lg-rim-chroma)) h / var(--lg-rim-light-alpha));
     --_rim-side: oklch(from var(--_tint) calc(l * var(--lg-rim-sink)) c h / var(--lg-rim-shade-alpha));
     --_rim-top: var(--_rim-light);
-    --_rim-glow: oklch(from var(--_tint) l c h / 0.04);
     --lg-stroke-gradient: linear-gradient(
       to bottom,
       var(--_rim-light) 0%,

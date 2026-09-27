@@ -29,7 +29,7 @@ export default {
           ['`--lg-blur-clear`', 'The blur of the clear variant.'],
           ['`--lg-tint`, `--lg-tint-clear`', 'The fill of regular and clear glass.'],
           ['`--lg-outline`, `--lg-specular`, `--lg-highlight`', 'The rim and the lit edge.'],
-          ['`--lg-rim-side-*`, `--lg-rim-top`, `--lg-rim-glow`', 'The parts of the rim, if you only want to change one.'],
+          ['`--lg-rim-side-*`, `--lg-rim-top`', 'The parts of the rim, if you only want to change one.'],
           ['`--lg-rim-lift`, `--lg-rim-sink` and the other `--lg-rim-*`', 'How tinted glass derives its rim from the tint.'],
           ['`--lg-shadow-tint`, `--lg-shadow-tint-alpha`', 'The colored glow tinted glass casts.'],
           ['`--lg-shadow`, `--lg-shadow-compact`', 'How far the glass floats above the page.'],

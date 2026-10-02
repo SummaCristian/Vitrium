@@ -533,9 +533,21 @@ export function createSheet({
   /* Touch: touch events, because only they let us cancel the FIRST move of a
      gesture (a pointer event can't), which is how a resize keeps the browser from
      starting a native scroll. */
+  // A finger on a plain tap target (a card, a row with role="button") still
+  // drags the sheet: nothing is cancelled until the move leaves the dead zone,
+  // so a tap stays a tap, and skipping it left a swipe that started on one
+  // doing nothing at all (below the largest detent the content can't scroll).
+  // Only a control that takes its own drags — its touch-action doesn't let a
+  // vertical pan through (a slider, a segmented control) — keeps the touch.
+  const ownsTouch = (target) => {
+    if (!onControl(target)) return false;
+    const ta = getComputedStyle(target.closest(INTERACTIVE)).touchAction;
+    return !/auto|manipulation|pan-y/.test(ta);
+  };
+
   let touchId = null;
   function onTouchStart(e) {
-    if (touchId != null || e.touches.length !== 1 || onControl(e.target)) return;
+    if (touchId != null || e.touches.length !== 1 || ownsTouch(e.target)) return;
     touchId = e.touches[0].identifier;
     beginDrag(e.touches[0].clientY, e.target);
   }

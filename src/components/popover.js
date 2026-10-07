@@ -3,7 +3,9 @@
 // liquid: on the glide spring, the axis pointing away from the arrow runs ahead
 // and the one across it drags behind, so it pushes out as a tongue and then
 // fills out (and on the way back narrows first, then draws in). For as long as
-// the distance calls for, like the morphs (see core/motion-path.js).
+// the distance calls for, like the morphs (see core/motion-path.js). When its
+// content changes size while it's open (setContent(), or the content changing
+// itself), the glass glides to the new size the same way instead of jumping.
 //
 //   // Click-to-toggle on a trigger:
 //   const pop = createPopover({ trigger: button, content: node, placement: 'bottom' });
@@ -66,7 +68,10 @@ export function createPopover({
   pop.id = `lg-popover-${++popoverUid}`;
   if (label) pop.setAttribute('aria-label', label);
   const body = pop.appendChild(el('div', 'lg-popover__body'));
-  if (content != null) body.appendChild(toNode(content));
+  // The content sits in its own box so its natural size can be watched, and held
+  // at its new size while the body (clipping it) catches up.
+  const inner = body.appendChild(el('div', 'lg-popover__content'));
+  if (content != null) inner.appendChild(toNode(content));
   const arrowEl = arrow ? pop.appendChild(el('div', 'lg-popover__arrow')) : null;
   document.body.appendChild(pop);
   if (deform) attachLiquidGlass(pop);
@@ -126,6 +131,39 @@ export function createPopover({
     // Held at the end on the way back, until the hidden state takes over.
     grow = pop.animate(frames, { duration, easing: 'linear', fill: reverse ? 'forwards' : 'none' });
   }
+
+  // Content resizes. The observer reports the content's new natural size after layout
+  // and before paint, so the body can be put back at the old size in time and glide to the
+  // new one: the content is pinned at its new size meanwhile (no reflow per frame) and the
+  // body clips it. floating-ui re-places the popover as its box changes, every frame, so it
+  // grows away from its anchor and the arrow keeps pointing.
+  let contentSize = null;      // [w, h] the body last settled at
+  let resizing = null;
+  function settleResize() {
+    resizing = null;
+    inner.style.width = inner.style.height = '';
+    body.style.overflow = '';
+  }
+  const resizeWatch = new ResizeObserver(() => {
+    if (resizing) return;   // the pinned content can't change size; this is the body's own glide
+    const w = inner.offsetWidth, h = inner.offsetHeight;
+    const from = contentSize;
+    contentSize = [w, h];
+    if (!from || !revealed || !pop.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (Math.abs(from[0] - w) < 0.5 && Math.abs(from[1] - h) < 0.5) return;
+    inner.style.width = `${w}px`;
+    inner.style.height = `${h}px`;
+    body.style.overflow = 'clip';
+    const r = pop.getBoundingClientRect();
+    const duration = fitDuration(pop, '--lg-popover-dur', travelDistance(
+      { left: r.left, top: r.top, width: r.width - (w - from[0]), height: r.height - (h - from[1]) }, r));
+    resizing = body.animate(
+      [{ width: `${from[0]}px`, height: `${from[1]}px` }, { width: `${w}px`, height: `${h}px` }],
+      { duration, easing: getComputedStyle(pop).getPropertyValue('--lg-ease-glide').trim() || 'ease' });
+    const done = resizing;
+    done.finished.then(() => { if (resizing === done) settleResize(); }, () => {});
+  });
+  resizeWatch.observe(inner);
 
   async function position() {
     if (!anchor) return;
@@ -264,10 +302,11 @@ export function createPopover({
     update: () => position(),
     // Change where it wants to sit. While open it glides there.
     setPlacement(next) { wanted = next; glideNext = true; if (open) position(); },
-    setContent(next) { body.replaceChildren(toNode(next)); },
+    setContent(next) { inner.replaceChildren(toNode(next)); },
     get isOpen() { return open; },
     destroy() {
       hide();
+      resizeWatch.disconnect();
       pop.remove();
     },
   };

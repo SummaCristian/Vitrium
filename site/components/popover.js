@@ -188,7 +188,7 @@ card.el.addEventListener('pointerleave', close);`),
       section('Sizes', {},
         h('p', {}, 'A popover has no fixed size. It hugs its content, up to a maximum width, and grows with it. Small is a line of text, medium is a title and a list, and large is a paragraph with actions.'),
         h('div', { class: 'card lg-glass' }, h('div', { class: 'row' }, small, medium, large)),
-        h('p', {}, 'The default maximum width is 22rem, or the viewport minus 8px on a narrow screen, and text wraps beyond it. Raise it for a large popover with `--lg-popover-max-width`, set on the popover\'s `el`. Content can change while it is open: the popover watches its own size, and moves to stay attached. Open the medium one and press "Show more".'),
+        h('p', {}, 'The default maximum width is 22rem, or the viewport minus 8px on a narrow screen, and text wraps beyond it. Raise it for a large popover with `--lg-popover-max-width`, set on the popover\'s `el`. Content can change while it is open: the popover glides to its new size and moves to stay attached. Open the medium one and press "Show more".'),
         codeBlock(`
 const popover = createPopover({ trigger, content });
 popover.el.style.setProperty('--lg-popover-max-width', '30rem');

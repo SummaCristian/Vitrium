@@ -48,6 +48,12 @@
   position: relative;
 }
 
+/* Contains its children's margins, so its measured size is the space they take
+   (the popover glides between those sizes when the content changes). */
+.lg-popover__content {
+  display: flow-root;
+}
+
 /* The arrow is a rotated square straddling the popover's edge: half behind the
    box, half poking out. It shares the glass material (tint + the same blur) so
    the part outside reads as the same surface. (A clip-path notch cut into the

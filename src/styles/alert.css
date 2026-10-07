@@ -38,6 +38,9 @@
 
 .lg-alert {
   --lg-ring-strength: var(--lg-ring-strength-large);
+  /* Floats high above the page (see --lg-elevation-* in tokens.css). */
+  --lg-elevation: var(--lg-elevation-high);
+  --lg-elevation-strength: var(--lg-elevation-high-strength);
   position: relative;
   width: min(100%, var(--lg-alert-width, 300px));
   max-height: 100%;

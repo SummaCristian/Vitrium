@@ -100,6 +100,9 @@
 
 .lg-sheet__glass {
   --lg-ring-strength: var(--lg-ring-strength-large);
+  /* Floats high above the page (see --lg-elevation-* in tokens.css). */
+  --lg-elevation: var(--lg-elevation-high);
+  --lg-elevation-strength: var(--lg-elevation-high-strength);
   position: absolute;
   inset: 0;
   border-radius: var(--lg-sheet-radius, 28px);

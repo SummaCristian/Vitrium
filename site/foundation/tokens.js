@@ -26,7 +26,7 @@ export const blurOffTokens = (theme) => new Map([
 ]);
 
 const GROUPS = [
-  ['Material', /^--lg-(tint|outline|shadow|specular|rim|highlight|stroke|blur)/],
+  ['Material', /^--lg-(tint|outline|shadow|specular|rim|highlight|stroke|blur|elevation|contact)/],
   ['Text', /^--lg-text/],
   ['Color', /^--lg-(accent|toggle-on|danger)$/],
   ['Sliding pill', /^--lg-pill/],
@@ -60,8 +60,16 @@ const NOTES = {
   '--lg-ring-color': 'Color of the ring shadow glass casts.',
   '--lg-ring-offset': 'How far below the glass its ring shadow lands.',
   '--lg-ring-blur': 'Softness of the ring shadow.',
+  '--lg-elevation-low': 'Elevation of .lg-elevation-low: the ring\'s offset, blur and spread, as a multiple of the default.',
+  '--lg-elevation-high': 'Elevation of .lg-elevation-high: the ring\'s offset, blur and spread, as a multiple of the default.',
+  '--lg-elevation-low-strength': 'Ring strength of .lg-elevation-low, as a multiple of the default.',
+  '--lg-elevation-high-strength': 'Ring strength of .lg-elevation-high, as a multiple of the default.',
   '--lg-ring-soften': 'Blur over the ring of circles and tinted glass, which smooths where its parts meet.',
   '--lg-ring-spread': 'Extra width of the ring shadow, on each side of the edge.',
+  '--lg-contact-color': 'Color of the tight shadow right under the glass. Fades as the surface rises.',
+  '--lg-contact-offset': 'How far below the glass the contact shadow lands, at the default elevation.',
+  '--lg-contact-blur': 'Softness of the contact shadow, at the default elevation.',
+  '--lg-ring-drop': 'How far the ring\'s top edge sits below the glass\'s top, at the default elevation. None at low, more on higher surfaces.',
   '--lg-ring-strength': 'Multiplier on the ring shadow\'s opacity.',
   '--lg-ring-strength-large': 'Ring strength on large surfaces: sheet, alert, popover.',
   '--lg-ring-strength-nested': 'Ring strength of glass inside glass.',

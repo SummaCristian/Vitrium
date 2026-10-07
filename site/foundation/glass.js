@@ -60,6 +60,8 @@ export default {
     function apply(s) {
       el.classList.toggle('lg-glass--clear', s.variant === 'clear');
       el.classList.toggle('liquid-glass', s.press);
+      el.classList.toggle('lg-elevation-low', s.elevation === 'low');
+      el.classList.toggle('lg-elevation-high', s.elevation === 'high');
       Object.assign(el.style, SHAPES[s.shape]);
       // The circle's stroke is masked radially and only works on an exact circle, so it is added
       // once the box has finished growing into one, and dropped as soon as it starts leaving.
@@ -75,9 +77,11 @@ export default {
       options: [
         { key: 'variant', label: 'Variant', type: 'choice', choices: ['regular', 'clear'], default: 'regular' },
         { key: 'shape', label: 'Shape', type: 'choice', choices: ['pill', 'panel', 'circle'], default: 'pill' },
+        { key: 'elevation', label: 'Elevation', type: 'choice', choices: ['low', 'default', 'high'], default: 'default' },
         { key: 'tint', label: 'Tint', type: 'choice', choices: ['none', 'custom'], default: 'none' },
         { key: 'color', label: 'Tint color', type: 'color', default: '#0a7aff', when: (s) => s.tint === 'custom' },
         { key: 'press', label: 'Press physics', type: 'bool', default: true },
+        { key: 'backdrop', label: 'Colored backdrop', type: 'bool', default: true },
         { key: 'ui', label: 'Scrolling UI behind', type: 'bool', default: false },
       ],
       render(s, stage) {
@@ -87,6 +91,7 @@ export default {
       },
       patch(s, stage, key) {
         if (key === 'ui') { ui.classList.toggle('on', s.ui); return; }
+        if (key === 'backdrop') { canvas.classList.toggle('stage--plain', !s.backdrop); return; }
         // Dragging the color picker fires constantly, so that updates live, without a fade.
         if (key === 'variant' || key === 'tint') crossfade(el, stage, () => apply(s)); else apply(s);
       },
@@ -149,6 +154,16 @@ setGlassTint(el, null);        // back to plain glass`)),
           [h('code', {}, 'lg-ring-layer'), 'Draws it on this empty child instead.'],
           [h('code', {}, 'lg-ring--soft'), 'Blurs the ring slightly. Use it on small circles and strongly filled rings, where its edge can show crisp.'],
         ]),
+        h('h3', {}, 'Elevation'),
+        h('p', {}, 'Try it in the playground above: the Elevation option moves the ring between low, default and high.'),
+        h('p', {}, 'How high a surface floats changes its shadow, the way a soft light from above would. A low surface casts a tight shadow close to its edge, with a dark contact shadow right under it, so it reads as resting on the page. A high one casts its ring farther below and much softer and broader, and the contact shadow fades out. Add `lg-elevation-low` or `lg-elevation-high`; with neither, the surface sits at the default height. The level drives the ring\'s offset, blur, top edge (`--lg-ring-drop`) and strength, and the contact shadow (`--lg-contact-*`).'),
+        codeBlock(`
+<div class="lg-glass lg-elevation-low">…</div>
+<div class="lg-glass lg-elevation-high">…</div>
+
+/* any other height: 1 is the default */
+.my-card { --lg-elevation: 2.5; --lg-elevation-strength: 1.8; }`, 'text'),
+        h('p', {}, 'Put the class on the surface or on any element around it, such as a component\'s root: `<div class="lg-seg lg-elevation-low">` lowers the whole control. Glass inside other glass starts back at the default, so a button in a high sheet sits on the sheet. Sheets, popovers and alerts are high already. A higher surface reaches farther, so give it more room (see Room to show).'),
         h('h3', {}, 'Moving from the drop shadow'),
         h('p', {}, 'The ring replaces the drop shadow, so a ring surface shouldn\'t have both. On a ring surface `--lg-shadow` and `--lg-shadow-compact` already leave it out; elsewhere they keep it, for surfaces that don\'t cast a ring. If you wrote the stack out by hand, swap it for `--lg-shadow-rim`, the outline and rim alone:'),
         codeBlock(`
@@ -165,6 +180,6 @@ box-shadow: var(--lg-shadow-rim);`, 'text'),
 };
 
 function classes(s) {
-  return ['lg-glass', s.variant === 'clear' && 'lg-glass--clear', s.shape === 'circle' && 'lg-glass--circle', s.press && 'liquid-glass'].filter(Boolean);
+  return ['lg-glass', s.variant === 'clear' && 'lg-glass--clear', s.shape === 'circle' && 'lg-glass--circle', s.elevation !== 'default' && `lg-elevation-${s.elevation}`, s.press && 'liquid-glass'].filter(Boolean);
 }
 

@@ -2,6 +2,9 @@
 
 .lg-popover {
   --lg-ring-strength: var(--lg-ring-strength-large);
+  /* Floats high above the page (see --lg-elevation-* in tokens.css). */
+  --lg-elevation: var(--lg-elevation-high);
+  --lg-elevation-strength: var(--lg-elevation-high-strength);
   position: fixed;
   z-index: var(--lg-z-popover, 1000);
   top: 0;

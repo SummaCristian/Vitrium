@@ -65,10 +65,32 @@
      and only the edges bend it away, so what lands on the page is a soft ring
      in the surface's shape, dropped by --lg-ring-offset. Its top half shows
      through the glass and its bottom half peeks out below (see .lg-glass::before). */
-  --lg-ring-color: rgba(0, 0, 0, 0.085);
+  --lg-ring-color: rgba(0, 0, 0, 0.11);
   --lg-ring-offset: 12px;
   --lg-ring-blur: 20px;
   --lg-ring-spread: 2px;
+  /* How far the ring's top edge sits below the glass's top at the default
+     elevation, so its blur stays behind the glass instead of above it. None
+     at the low level, more on higher ones. */
+  --lg-ring-drop: 8px;
+  /* Contact shadow: a tight, dark shadow right under the edge, where the glass
+     blocks the most light. It is strongest on a low surface and fades as the
+     surface rises, while the ring takes over (see --_contact in glass.css). */
+  --lg-contact-color: rgba(0, 0, 0, 0.14);
+  --lg-contact-offset: 1px;
+  --lg-contact-blur: 4px;
+  /* Elevation: how high a surface floats. It multiplies the offset, blur and
+     spread above, so a higher surface casts a ring that lands farther away,
+     softer and in a wider band. 1 is the ring as tuned here; assign a level
+     with .lg-elevation-low or .lg-elevation-high, or any height with
+     --lg-elevation on the surface. */
+  --lg-elevation-low: 0.5;
+  --lg-elevation-high: 1.75;
+  /* Each level's multiplier on the ring's opacity (--lg-ring-strength): a
+     higher ring spreads its color over a much wider blur, so it needs more to
+     stay visible. Above 1 needs relative colors; older browsers stop at 1. */
+  --lg-elevation-low-strength: 0.8;
+  --lg-elevation-high-strength: 2;
   /* Blur over the ring of circles and tinted glass, which melts the crisp
      edge where the ring's halves and the fill meet. */
   --lg-ring-soften: 6px;

@@ -260,18 +260,21 @@ code { font: 0.9em ui-monospace, 'SF Mono', Menlo, monospace; }
 @keyframes blob2 { 0%, 100% { --b2x: 85%; --b2y: 35%; } 40% { --b2x: 68%; --b2y: 12%; } 70% { --b2x: 92%; --b2y: 80%; } }
 @keyframes blob3 { 0%, 100% { --b3x: 50%; --b3y: 105%; } 35% { --b3x: 32%; --b3y: 85%; } 65% { --b3x: 72%; --b3y: 92%; } }
 @keyframes blob4 { 0%, 100% { --b4x: 55%; --b4y: 0%; } 35% { --b4x: 42%; --b4y: 40%; } 70% { --b4x: 75%; --b4y: 25%; } }
+@property --blobs { syntax: '<number>'; inherits: false; initial-value: 1; }
 .stage--backdrop {
+  transition: --blobs 0.4s ease;
   box-shadow: var(--lg-shadow);
   background:
-    radial-gradient(circle at var(--b1x) var(--b1y), #ff7a59 0, transparent 58%),
-    radial-gradient(circle at var(--b2x) var(--b2y), #4f8cff 0, transparent 62%),
-    radial-gradient(circle at var(--b3x) var(--b3y), #3ce065 0, transparent 64%),
-    radial-gradient(circle at var(--b4x) var(--b4y), #c05cff 0, transparent 54%),
+    radial-gradient(circle at var(--b1x) var(--b1y), color-mix(in srgb, #ff7a59 calc(var(--blobs) * 100%), transparent) 0, transparent 58%),
+    radial-gradient(circle at var(--b2x) var(--b2y), color-mix(in srgb, #4f8cff calc(var(--blobs) * 100%), transparent) 0, transparent 62%),
+    radial-gradient(circle at var(--b3x) var(--b3y), color-mix(in srgb, #3ce065 calc(var(--blobs) * 100%), transparent) 0, transparent 64%),
+    radial-gradient(circle at var(--b4x) var(--b4y), color-mix(in srgb, #c05cff calc(var(--blobs) * 100%), transparent) 0, transparent 54%),
     var(--background-color-secondary);
   animation: blob1 17s ease-in-out infinite, blob2 23s ease-in-out infinite, blob3 29s ease-in-out infinite, blob4 19s ease-in-out infinite;
 }
+.stage--backdrop.stage--plain { --blobs: 0; }
 .stage--backdrop.paused { animation-play-state: paused; }
-@media (prefers-reduced-motion: reduce) { .stage--backdrop { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .stage--backdrop { animation: none; transition: none; } }
 .muted { opacity: 0.5; }
 .token-name { display: grid; align-items: center; justify-items: start; margin: -3px -6px; padding: 3px 6px; border: 0; border-radius: 8px; background: none; color: inherit; font: inherit; text-align: start; }
 .token-name:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
@@ -305,6 +308,8 @@ table.tokens { table-layout: auto; }
 /* The glass playground's demo element. At rest it restates the press physics' own transitions
    (liquid-glass.css) and adds the morph ones, since a `transition` here would otherwise replace them. */
 .glass-demo {
+  /* The stage is a .card, which dims its own ring (--lg-ring-strength-large) and passes that down: the demo is a free-standing surface. */
+  --lg-ring-strength: 1;
   display: grid; place-items: center; box-sizing: border-box; font-weight: 600;
   transition:
     translate var(--lg-press-out-dur) var(--lg-ease-spring),
@@ -314,7 +319,9 @@ table.tokens { table-layout: auto; }
     height var(--lg-morph-dur) var(--lg-ease-morph),
     border-radius var(--lg-morph-dur) var(--lg-ease-morph);
 }
-@media (prefers-reduced-motion: reduce) { .glass-demo { transition: none; } }
+/* Changing elevation moves the ring: ease it, here only, since the lifted pill sets the same properties every frame. */
+.glass-demo::before { transition: translate 0.35s var(--lg-ease-morph), box-shadow 0.35s var(--lg-ease-morph); }
+@media (prefers-reduced-motion: reduce) { .glass-demo, .glass-demo::before { transition: none; } }
 
 /* The scrolling UI behind the glass playground: a feed that slides up forever. It holds the same content
    twice, so moving it by exactly half its height lands on an identical frame. */

@@ -21,9 +21,9 @@
   --lg-ring-strength: var(--lg-lift);
 }
 
-/* The ring starts under the lens and drops to its full offset as it lifts. */
+/* The ring starts under the lens and stretches to its full offset as it lifts. */
 .lg-pill::before {
-  translate: 0 calc(var(--lg-ring-offset) * var(--lg-lift));
+  inset: calc(var(--_ring-drop) * var(--lg-lift)) 0 calc(var(--_ring-offset) * var(--lg-lift) * -1);
 }
 
 .lg-pill.lg-pill--lifted {

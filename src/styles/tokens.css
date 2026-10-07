@@ -65,7 +65,7 @@
      and only the edges bend it away, so what lands on the page is a soft ring
      in the surface's shape, dropped by --lg-ring-offset. Its top half shows
      through the glass and its bottom half peeks out below (see .lg-glass::before). */
-  --lg-ring-color: rgba(0, 0, 0, 0.1);
+  --lg-ring-color: rgba(0, 0, 0, 0.085);
   --lg-ring-offset: 12px;
   --lg-ring-blur: 20px;
   --lg-ring-spread: 2px;

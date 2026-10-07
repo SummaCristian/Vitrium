@@ -61,6 +61,13 @@
   min-width: 0;
 }
 
+/* The bar's backdrop-filter traps the lens in its own stacking context, so a
+   lifted lens would slide under the prominent circle (a later sibling). Raise
+   the whole group while the lens is lifted. */
+.lg-tabbar__group:has(.lg-pill--lifted) {
+  z-index: 1;
+}
+
 .lg-tabbar__bar {
   position: relative;
   /* setTabs() animates an inline width measured from offsetWidth (which

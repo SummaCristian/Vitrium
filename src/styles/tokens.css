@@ -64,26 +64,45 @@
   /* Glass doesn't cast a solid drop shadow: light passes through the middle
      and only the edges bend it away, so what lands on the page is a soft ring
      in the surface's shape, dropped by --lg-ring-offset. Its top half shows
-     through the glass and its bottom half peeks out below (see .lg-glass::before). */
-  --lg-ring-color: rgba(0, 0, 0, 0.11);
+     through the glass and its bottom half peeks out below (see .lg-glass::before).
+
+     The ring has three parts, in the order they show up going outward from the
+     glass's edge: a spread band (constant shadow), then a blur falloff, then
+     nothing. For the shadow to read as *cast by the rim* rather than *painted
+     on the page*, the band needs to be a real band (a few px) and the blur
+     needs to be on the order of the offset, not much larger. When blur >>>
+     offset the ring fuzzes into a haze and stops reading as a shadow at all. */
+  --lg-ring-color: rgba(0, 0, 0, 0.09);
   --lg-ring-offset: 12px;
-  --lg-ring-blur: 20px;
-  --lg-ring-spread: 2px;
+  --lg-ring-blur: 14px;
+  --lg-ring-spread: 4px;
   /* How far the ring's top edge sits below the glass's top at the default
      elevation, so its blur stays behind the glass instead of above it. None
-     at the low level, more on higher ones. */
-  --lg-ring-drop: 8px;
+     at the low level, more on higher ones. Roughly half the blur is the right
+     amount: any less and the top of the blur spills above the glass; any more
+     and the ring is visibly a different, shorter shape than the glass. */
+  --lg-ring-drop: 7px;
   /* Contact shadow: a tight, dark shadow right under the edge, where the glass
-     blocks the most light. It is strongest on a low surface and fades as the
-     surface rises, while the ring takes over (see --_contact in glass.css). */
+     blocks the most light. It is full-strength at the default elevation and
+     fades as the surface rises, while the ring takes over (see --_contact in
+     glass.css). Its color is stronger than the ring's because it's tight:
+     a small dark smudge needs more alpha than a wide soft band to read. */
   --lg-contact-color: rgba(0, 0, 0, 0.14);
-  --lg-contact-offset: 1px;
-  --lg-contact-blur: 4px;
+  --lg-contact-offset: 1.5px;
+  --lg-contact-blur: 3px;
   /* Elevation: how high a surface floats. It multiplies the offset, blur and
      spread above, so a higher surface casts a ring that lands farther away,
      softer and in a wider band. 1 is the ring as tuned here; assign a level
      with .lg-elevation-low or .lg-elevation-high, or any height with
-     --lg-elevation on the surface. */
+     --lg-elevation on the surface.
+
+     Offset grows roughly linearly with elevation; blur grows *sub-linearly*,
+     the way a penumbra does as the occluder gets farther from the shadow
+     surface (the light source subtends a smaller angle, so the penumbra grows
+     slower than the distance). If blur grew faster than offset, a high surface
+     would be a smudge; if it grew at the same rate, the ring would just be a
+     bigger copy of itself. Sub-linear is what makes a lifted surface read as
+     lifted. */
   --lg-elevation-low: 0.5;
   --lg-elevation-high: 1.75;
   /* Each level's multiplier on the ring's opacity (--lg-ring-strength): a
@@ -92,8 +111,9 @@
   --lg-elevation-low-strength: 0.8;
   --lg-elevation-high-strength: 2;
   /* Blur over the ring of circles and tinted glass, which melts the crisp
-     edge where the ring's halves and the fill meet. */
-  --lg-ring-soften: 6px;
+     edge where the ring's halves and the fill meet. Kept small: it's a seam
+     fixer, not a stylistic blur. */
+  --lg-ring-soften: 3px;
   /* Multiplier on the ring's opacity. Large surfaces set it lower, and glass
      inside glass uses --lg-ring-strength-nested. */
   --lg-ring-strength: 1;

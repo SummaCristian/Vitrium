@@ -666,7 +666,10 @@ export function createSheet({
       if (morph) {
         const k = 1 - m;   // 1 at the source, 0 at the sheet
         sx = 1 - k * (1 - morph.sx); sy = 1 - k * (1 - morph.sy);
-        tx += k * morph.tx; ty = k * morph.ty;
+        // Past the sheet (the present spring's overshoot, k < 0) it only grows: the translation
+        // stops at the sheet's own box, or it would swing out past the bottom edge, into Safari's safe area.
+        const travel = Math.max(k, 0);
+        tx += travel * morph.tx; ty = travel * morph.ty;
         // Counter-scale the radius so it reads as the source's corners, easing to the sheet's.
         const rv = lerp(morph.radius, parseFloat(sheet.style.getPropertyValue('--lg-sheet-radius')) || 28, clamp01(m));
         radius = `${rv / Math.max(sx, 0.01)}px / ${rv / Math.max(sy, 0.01)}px`;

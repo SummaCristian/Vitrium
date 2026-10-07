@@ -127,3 +127,43 @@ test('a swipe on glass that claims its touches stretches it and never scrolls wh
   const [, ty] = during.translate.split(' ').map(parseFloat);
   expect(ty).toBeLessThan(-10);   // pulled up, toward the finger
 });
+
+test.describe('an alert', () => {
+  // The alert is a modal layer over the page: nothing on it may scroll the page beneath. Only its own body scrolls,
+  // when it's longer than the alert.
+  async function present(page, message) {
+    await page.evaluate(async ([src, message]) => {
+      const { createAlert } = await import(src);
+      document.body.style.minHeight = '4000px';
+      window.scrollTo(0, 300);
+      window.testAlert = createAlert({ title: 'Delete this list?', message, actions: [{ id: 'cancel', label: 'Cancel', role: 'cancel' }, { id: 'ok', label: 'Delete', role: 'destructive' }] });
+      window.testAlert.present();
+    }, [`/@fs${encodeURI(process.cwd())}/src/index.js`, message]);
+    await page.waitForTimeout(400);
+    return page.locator('.lg-alert-layer[data-show] .lg-alert').boundingBox();
+  }
+  const scrollY = (page) => page.evaluate(() => window.scrollY);
+
+  test('a swipe on its edge or its body never scrolls the page behind', async ({ page }) => {
+    const b = await present(page, 'This can’t be undone.');
+    const y0 = await scrollY(page);
+    for (const from of [{ x: b.x + b.width / 2, y: b.y + 4 }, { x: b.x + b.width / 2, y: b.y + b.height - 4 }, { x: b.x + b.width / 2, y: b.y + b.height / 3 }]) {
+      await touchDrag(page, from, { x: from.x, y: from.y - 180 });
+      await page.waitForTimeout(150);
+      expect(await scrollY(page)).toBe(y0);
+      await touchDrag(page, from, { x: from.x, y: from.y + 180 });
+      await page.waitForTimeout(150);
+      expect(await scrollY(page)).toBe(y0);
+    }
+  });
+
+  test('a long body still scrolls by touch, without moving the page', async ({ page }) => {
+    const b = await present(page, 'Long. '.repeat(600));
+    const y0 = await scrollY(page);
+    const from = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+    await touchDrag(page, from, { x: from.x, y: from.y - 200 });
+    await page.waitForTimeout(150);
+    expect(await page.locator('.lg-alert-layer[data-show] .lg-alert__body').evaluate((n) => n.scrollTop)).toBeGreaterThan(50);
+    expect(await scrollY(page)).toBe(y0);
+  });
+});

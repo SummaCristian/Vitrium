@@ -95,7 +95,8 @@ export function createAlert({
 
   // Glass press / drag on the alert's own surface; its buttons and any controls in
   // `content` are inner controls, so they keep their own gestures.
-  attachLiquidGlass(box);
+  // A modal layer: a drag on the glass never scrolls the page beneath (its own body still scrolls, see alert.css).
+  attachLiquidGlass(box, { claimTouch: true });
 
   document.body.appendChild(layer);
   const modal = createModalLayer(layer);

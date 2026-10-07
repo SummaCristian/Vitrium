@@ -5,6 +5,10 @@
   inset: 0;
   z-index: var(--lg-z-alert, 1100);
   display: grid;
+  /* One row the height of the layer: an auto row would size to the alert, and its
+     max-height: 100% would never bite (a long one ran off the screen instead of
+     scrolling its body). */
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
   place-items: center;
   padding: 16px;
   box-sizing: border-box;
@@ -54,8 +58,6 @@
     translate var(--lg-press-out-dur) var(--lg-ease-spring),
     scale var(--lg-press-out-dur) var(--lg-ease-spring),
     filter 0.2s ease;
-  /* liquid-glass claims touch gestures; a long alert body has to stay scrollable. */
-  touch-action: pan-y;
 }
 
 .lg-alert.liquid-glass.lg-pressing {
@@ -94,6 +96,9 @@
   padding: 0 6px 16px;
   overflow: auto;
   overscroll-behavior: contain;
+  /* The glass claims its touches (a modal layer: nothing on it scrolls the page),
+     so a long body has to let them through to scroll itself. */
+  touch-action: pan-y;
 }
 
 .lg-alert__title {

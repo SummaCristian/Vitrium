@@ -16,6 +16,8 @@
 // the duration (`.lg-morph-anim`) and its contents fade back in on close. The
 // trip bows off the straight line (motion-path.js), the same path both ways,
 // and takes longer the farther it goes (--lg-morph-panel-dur is a 400px trip).
+// The corners ease from the trigger's to the panel's as the eye sees them,
+// undoing the FLIP's uneven scale so they never stretch into ellipses.
 //
 // A `dialog` panel traps keyboard focus while open (Tab and Shift+Tab cycle its
 // controls; focus that escapes is pulled back), since it declares itself modal.
@@ -26,7 +28,7 @@
 // tear the freshly opened panel back down.
 import { snapGeometry, morphGeometry, hideInnerBoxInstantly, unhideInnerBox } from './flip-morph.js';
 import { attachLiquidGlass } from './liquid-glass.js';
-import { playArc, cssTiming, fitDuration, travelDistance } from './motion-path.js';
+import { playArc, playRadius, radiusKeyframes, visibleRadius, cssTiming, fitDuration, travelDistance } from './motion-path.js';
 
 const MORPH_MS = 340;   // keep in sync with --lg-morph-panel-dur in morph-popup.css (each trip scales it to its distance)
 const EDGE = 8;         // px kept clear of the viewport edge
@@ -107,17 +109,33 @@ export function createMorphPopup({
   let morphCleanup = null;
   let scrollLocked = false;
   let preventScroll = null;
-  let anims = [];   // the bow, playing beside the morph's transform transition
+  let anims = [];   // the bow and the corners, playing beside the morph's transform transition
   let morphMs = MORPH_MS;   // this trip's duration, fitted to its distance
 
   const centreOf = (r) => [r.left + r.width / 2, r.top + r.height / 2];
-  // Bows the morph between the trigger's box and the panel's, read source → destination either way.
+  // The corner radius each end visibly has: the trigger's own (a pill's is half its height), the panel's `radius`.
+  const triggerRadius = (r) => visibleRadius(r, parseFloat(getComputedStyle(trigger).borderTopLeftRadius) || 999);
+  const panelRadius = (r) => visibleRadius(r, radius);
+
+  // The corners of a trip from `start` to `end` with the panel's real box pinned at `end`
+  // (see flip-morph.js): the first frame's is what the inverted box starts on.
+  const cornerArgs = (start, end, reverse) => reverse
+    ? [end, start, end, panelRadius(start), triggerRadius(end)]
+    : [end, start, end, triggerRadius(start), panelRadius(end)];
+  const startCorners = (start, end, reverse) =>
+    radiusKeyframes(...cornerArgs(start, end, reverse), { easing: () => 0 })[0].borderRadius;
+
+  // Bows the morph between the trigger's box and the panel's (read source → destination either
+  // way), and eases the corners from one to the other.
   function playMorphMotion(start, end, reverse) {
     const [triggerRect, panelRect] = reverse ? [end, start] : [start, end];
     const [tx, ty] = centreOf(triggerRect);
     const [px, py] = centreOf(panelRect);
     const timing = cssTiming(panel, '--lg-morph-panel-dur', '--lg-morph-panel-ease');
-    anims = [playArc(panel, px - tx, py - ty, { ...timing, reverse })];
+    anims = [
+      playArc(panel, px - tx, py - ty, { ...timing, reverse }),
+      playRadius(panel, ...cornerArgs(start, end, reverse), timing),
+    ];
   }
   function stopMotion() { for (const a of anims) a?.cancel(); anims = []; }
 
@@ -229,6 +247,7 @@ export function createMorphPopup({
   function afterOpen() {
     if (!isOpen) return;
     settled = true;
+    stopMotion();   // landed: the panel's own radius takes over, at the same value
     panel.focus({ preventScroll: true });
     onAfterOpen?.();
   }
@@ -276,7 +295,7 @@ export function createMorphPopup({
       // transform, then release it: nothing is laid out or painted per frame.
       morphMs = fitDuration(panel, '--lg-morph-panel-dur', travelDistance(from, target));
       morphGeometry(panel, from, target, {
-        fromRadius: from.borderRadius,
+        fromRadius: startCorners(from, target, false),
         toRadius: target.borderRadius,
         onSettle: () => {
           if (mySeq !== seq) return;
@@ -339,6 +358,7 @@ export function createMorphPopup({
       stopMotion();   // a cut-short open's: the measured rect already has it
       morphMs = fitDuration(panel, '--lg-morph-panel-dur', travelDistance(visualRect, to));
       morphGeometry(panel, visualRect, to, {
+        fromRadius: startCorners(visualRect, to, true),
         toRadius: to.borderRadius,
         onSettle: () => {
           if (mySeq !== seq) return;

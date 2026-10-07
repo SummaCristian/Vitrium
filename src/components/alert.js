@@ -29,7 +29,9 @@
 // focus a button on click, so it can't always be guessed; without `from` it uses
 // the focused element, and falls back to a pop if there's none). The trip bows off
 // the straight line (core/motion-path.js), along one path both ways, and takes
-// longer the farther it goes (--lg-alert-morph-dur is a 400px trip). Reduced motion
+// longer the farther it goes (--lg-alert-morph-dur is a 400px trip); its corners
+// ease from the source's to the alert's as the eye sees them, undoing the uneven
+// scale so they never stretch into ellipses. Reduced motion
 // always pops. Like the other glass surfaces it also presses and deforms under a
 // finger (on its own surface; its buttons and content keep their gestures).
 //
@@ -38,7 +40,7 @@
 // Returns { el, present({ from }), dismiss(), setTransition(mode), isOpen, destroy() }.
 import { attachLiquidGlass } from '../core/liquid-glass.js';
 import { createModalLayer, FOCUSABLE } from '../core/modal-layer.js';
-import { playArc, cssTiming, fitDuration, travelDistance } from '../core/motion-path.js';
+import { playArc, playRadius, radiusKeyframes, cssTiming, fitDuration, travelDistance } from '../core/motion-path.js';
 import { el, toNode } from './dom.js';
 
 const MORPH_MS = 360;   // keep in sync with --lg-alert-morph-dur in tokens.css (each morph scales it to its distance)
@@ -119,7 +121,7 @@ export function createAlert({
   // source's corner radius. `box` is measured at its resting place (no transform).
   // Instant by default (the start of an open); `animate` lets the transition play it (a close).
   // Fits the morph's duration to the distance, and returns the geometry of the trip for
-  // playMorphMotion(): both rects.
+  // playMorphMotion(): both rects and both corner radii.
   function coverSource(node, { animate = false } = {}) {
     if (!animate) {
       box.style.transition = 'none';
@@ -127,10 +129,11 @@ export function createAlert({
     }
     const to = box.getBoundingClientRect();
     const from = node.getBoundingClientRect();
-    const trip = { from, to };
+    const trip = { from, to, sourceRadius: radiusOf(node), boxRadius: parseFloat(getComputedStyle(box).borderTopLeftRadius) || 0 };
     morphMs = fitDuration(box, '--lg-alert-morph-dur', travelDistance(from, to));
     box.style.transformOrigin = 'top left';
-    box.style.borderRadius = `${radiusOf(node) / Math.min(from.height / to.height, 1)}px`;
+    // The source's corners, as they look once the box is scaled down onto it.
+    box.style.borderRadius = radiusKeyframes(to, from, from, trip.sourceRadius, trip.sourceRadius)[0].borderRadius;
     box.style.transform =
       `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${from.width / to.width}, ${from.height / to.height})`;
     box.getBoundingClientRect();   // register the inverted state before transitions come back
@@ -138,14 +141,20 @@ export function createAlert({
     return trip;
   }
 
-  // The bow beside the transform transition (see core/motion-path.js).
+  // The bow and the corners, beside the transform transition (see core/motion-path.js).
+  // The box's real size is its resting one throughout: the transform scales it onto the source.
   let anims = [];
   let morphMs = MORPH_MS;   // the current morph's duration, fitted to its distance
-  function playMorphMotion({ from, to }, reverse) {
+  function playMorphMotion({ from, to, sourceRadius, boxRadius }, reverse) {
     const timing = cssTiming(box, '--lg-alert-morph-dur', '--lg-ease-glide');
     const dx = (to.left + to.width / 2) - (from.left + from.width / 2);
     const dy = (to.top + to.height / 2) - (from.top + from.height / 2);
-    anims = [playArc(box, dx, dy, { ...timing, reverse })];
+    anims = [
+      playArc(box, dx, dy, { ...timing, reverse }),
+      reverse
+        ? playRadius(box, to, to, from, boxRadius, sourceRadius, timing)
+        : playRadius(box, to, from, to, sourceRadius, boxRadius, timing),
+    ];
   }
   function stopMotion() { for (const a of anims) a?.cancel(); anims = []; }
 

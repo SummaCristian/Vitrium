@@ -167,3 +167,40 @@ export function playArc(el, dx, dy, { duration, easing, reverse = false }) {
   if (!el.animate || !duration || Math.hypot(dx, dy) < 1) return null;
   return el.animate(arcKeyframes(dx, dy, { easing, reverse }), { duration, easing: 'linear', composite: 'add' });
 }
+
+/* --- Corner radius through a FLIP morph -------------------------------------------- */
+// A morph run as a FLIP keeps the element's real box at one size and scales it
+// to look like another, and the scale is rarely the same on both axes, so a
+// border-radius written in the box's own px comes out stretched into an
+// ellipse (a pill's 20px corner reading as 40 x 15). A pill's `999px` also
+// stays clamped to fully round until the very end of a plain transition, then
+// squares off all at once. Instead the radius the eye sees is eased from the
+// start's to the end's on the move's own timing, and divided back out by each
+// axis's scale at that instant.
+//   box         the element's real (untransformed) rect
+//   start, end  the rects it looks like at either end of the move
+//   r0, r1      the corner radii it should look like there, in px
+export function radiusKeyframes(box, start, end, r0, r1, { easing = glide } = {}) {
+  const ease = typeof easing === 'function' ? easing : easingFunction(easing);
+  const frames = [];
+  for (let i = 0; i <= FRAMES; i++) {
+    const p = ease(i / FRAMES);
+    const w = start.width + (end.width - start.width) * p;
+    const h = start.height + (end.height - start.height) * p;
+    // Never rounder than the box it's on, as the browser would clamp it.
+    const r = Math.max(0, Math.min(r0 + (r1 - r0) * p, w / 2, h / 2));
+    const sx = Math.max(w / box.width, 0.001), sy = Math.max(h / box.height, 0.001);
+    frames.push({ offset: i / FRAMES, borderRadius: `${r / sx}px / ${r / sy}px` });
+  }
+  return frames;
+}
+
+// Plays radiusKeyframes on `el` for `duration` ms. Holds the last frame until
+// cancelled, so the hand-over at the end can't flash the box's own radius.
+export function playRadius(el, box, start, end, r0, r1, { duration, easing }) {
+  if (!el.animate || !duration) return null;
+  return el.animate(radiusKeyframes(box, start, end, r0, r1, { easing }), { duration, easing: 'linear', fill: 'forwards' });
+}
+
+// The corner radius a rect visibly has for a CSS radius of `radius` px (a pill's 999px is half its short side).
+export const visibleRadius = (rect, radius) => Math.max(0, Math.min(radius, rect.width / 2, rect.height / 2));

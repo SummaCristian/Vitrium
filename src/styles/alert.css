@@ -175,8 +175,8 @@
   opacity: 1;
   transform: none;
   transition:
-    transform var(--lg-morph-dur) var(--lg-ease-morph),
-    border-radius var(--lg-morph-dur) var(--lg-ease-morph),
+    transform var(--lg-alert-morph-dur) var(--lg-ease-glide),
+    border-radius var(--lg-alert-morph-dur) var(--lg-ease-glide),
     translate var(--lg-press-out-dur) var(--lg-ease-spring),
     scale var(--lg-press-out-dur) var(--lg-ease-spring),
     filter 0.2s ease;

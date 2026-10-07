@@ -27,7 +27,9 @@
 // the element that summoned it and shrinks it back into it, as one glass shape,
 // like the chip pickers do: pass `present({ from: button })` (Safari doesn't
 // focus a button on click, so it can't always be guessed; without `from` it uses
-// the focused element, and falls back to a pop if there's none). Reduced motion
+// the focused element, and falls back to a pop if there's none). The trip bows off
+// the straight line (core/motion-path.js), along one path both ways, and takes
+// longer the farther it goes (--lg-alert-morph-dur is a 400px trip). Reduced motion
 // always pops. Like the other glass surfaces it also presses and deforms under a
 // finger (on its own surface; its buttons and content keep their gestures).
 //
@@ -36,9 +38,10 @@
 // Returns { el, present({ from }), dismiss(), setTransition(mode), isOpen, destroy() }.
 import { attachLiquidGlass } from '../core/liquid-glass.js';
 import { createModalLayer, FOCUSABLE } from '../core/modal-layer.js';
+import { playArc, cssTiming, fitDuration, travelDistance } from '../core/motion-path.js';
 import { el, toNode } from './dom.js';
 
-const MORPH_MS = 450;   // keep in sync with --lg-morph-dur in tokens.css
+const MORPH_MS = 360;   // keep in sync with --lg-alert-morph-dur in tokens.css (each morph scales it to its distance)
 const POP_EXIT_MS = 220;
 
 const reduceMotion = typeof matchMedia === 'function'
@@ -115,6 +118,8 @@ export function createAlert({
   // Put the box where the source is: translate + scale about the top left, and the
   // source's corner radius. `box` is measured at its resting place (no transform).
   // Instant by default (the start of an open); `animate` lets the transition play it (a close).
+  // Fits the morph's duration to the distance, and returns the geometry of the trip for
+  // playMorphMotion(): both rects.
   function coverSource(node, { animate = false } = {}) {
     if (!animate) {
       box.style.transition = 'none';
@@ -122,20 +127,36 @@ export function createAlert({
     }
     const to = box.getBoundingClientRect();
     const from = node.getBoundingClientRect();
+    const trip = { from, to };
+    morphMs = fitDuration(box, '--lg-alert-morph-dur', travelDistance(from, to));
     box.style.transformOrigin = 'top left';
     box.style.borderRadius = `${radiusOf(node) / Math.min(from.height / to.height, 1)}px`;
     box.style.transform =
       `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${from.width / to.width}, ${from.height / to.height})`;
     box.getBoundingClientRect();   // register the inverted state before transitions come back
     box.style.transition = '';
+    return trip;
   }
+
+  // The bow beside the transform transition (see core/motion-path.js).
+  let anims = [];
+  let morphMs = MORPH_MS;   // the current morph's duration, fitted to its distance
+  function playMorphMotion({ from, to }, reverse) {
+    const timing = cssTiming(box, '--lg-alert-morph-dur', '--lg-ease-glide');
+    const dx = (to.left + to.width / 2) - (from.left + from.width / 2);
+    const dy = (to.top + to.height / 2) - (from.top + from.height / 2);
+    anims = [playArc(box, dx, dy, { ...timing, reverse })];
+  }
+  function stopMotion() { for (const a of anims) a?.cancel(); anims = []; }
 
   // Once landed, the deform's scale must pivot about the centre again, not the morph's corner.
   let settleTimer = 0;
 
   function clearMorphStyles() {
+    stopMotion();
     box.classList.remove('lg-alert--morph', 'is-morphed-out');
     for (const p of ['transition', 'transform', 'transformOrigin', 'borderRadius']) box.style[p] = '';
+    box.style.removeProperty('--lg-alert-morph-dur');
     layer.style.removeProperty('--lg-alert-exit');
     if (source) source.style.visibility = '';
   }
@@ -148,15 +169,15 @@ export function createAlert({
 
     const back = source;
     const morphOut = box.classList.contains('lg-alert--morph') && back?.isConnected;
-    layer.style.setProperty('--lg-alert-exit', `${morphOut ? MORPH_MS : POP_EXIT_MS}ms`);
-
     if (morphOut) {
       // Content out at once (it would only be squashed by the shrink), then the glass returns.
       box.classList.add('is-morphed-out');
       clearTimeout(settleTimer);
       box.style.transformOrigin = 'top left';
-      coverSource(back, { animate: true });
+      stopMotion();
+      playMorphMotion(coverSource(back, { animate: true }), true);
     }
+    layer.style.setProperty('--lg-alert-exit', `${morphOut ? morphMs : POP_EXIT_MS}ms`);
     layer.removeAttribute('data-show');
 
     const restore = () => {
@@ -167,7 +188,7 @@ export function createAlert({
       opener = null;
     };
     clearTimeout(exitTimer);
-    if (morphOut) exitTimer = setTimeout(restore, MORPH_MS);
+    if (morphOut) exitTimer = setTimeout(restore, morphMs);
     else restore();
 
     const done = resolve;
@@ -211,10 +232,11 @@ export function createAlert({
 
     source = from ?? opener;
     const morph = canMorph(source);
+    let trip = null;
     if (morph) {
       // Start on the source, content hidden; the next frame releases it to its resting box.
       box.classList.add('lg-alert--morph', 'is-morphed-out');
-      coverSource(source);
+      trip = coverSource(source);
       source.style.visibility = 'hidden';
     } else {
       source = null;
@@ -233,7 +255,8 @@ export function createAlert({
         box.style.transform = '';
         box.style.borderRadius = '';
         box.classList.remove('is-morphed-out');
-        settleTimer = setTimeout(() => { if (open) box.style.transformOrigin = ''; }, MORPH_MS);
+        playMorphMotion(trip, false);
+        settleTimer = setTimeout(() => { if (open) box.style.transformOrigin = ''; }, morphMs);
       });
     }
 

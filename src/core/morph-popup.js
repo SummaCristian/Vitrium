@@ -13,7 +13,9 @@
 // to its final box and visually offset back to the trigger's rect with a
 // `transform` (FLIP, see flip-morph.js), then released so the compositor
 // animates it to rest: no layout or paint per frame. The trigger is hidden for
-// the duration (`.lg-morph-anim`) and its contents fade back in on close.
+// the duration (`.lg-morph-anim`) and its contents fade back in on close. The
+// trip bows off the straight line (motion-path.js), the same path both ways,
+// and takes longer the farther it goes (--lg-morph-panel-dur is a 400px trip).
 //
 // A `dialog` panel traps keyboard focus while open (Tab and Shift+Tab cycle its
 // controls; focus that escapes is pulled back), since it declares itself modal.
@@ -24,8 +26,9 @@
 // tear the freshly opened panel back down.
 import { snapGeometry, morphGeometry, hideInnerBoxInstantly, unhideInnerBox } from './flip-morph.js';
 import { attachLiquidGlass } from './liquid-glass.js';
+import { playArc, cssTiming, fitDuration, travelDistance } from './motion-path.js';
 
-const MORPH_MS = 420;   // keep in sync with --lg-morph-panel-dur in morph-popup.css
+const MORPH_MS = 340;   // keep in sync with --lg-morph-panel-dur in morph-popup.css (each trip scales it to its distance)
 const EDGE = 8;         // px kept clear of the viewport edge
 
 const reduceMotion = typeof matchMedia === 'function'
@@ -104,6 +107,19 @@ export function createMorphPopup({
   let morphCleanup = null;
   let scrollLocked = false;
   let preventScroll = null;
+  let anims = [];   // the bow, playing beside the morph's transform transition
+  let morphMs = MORPH_MS;   // this trip's duration, fitted to its distance
+
+  const centreOf = (r) => [r.left + r.width / 2, r.top + r.height / 2];
+  // Bows the morph between the trigger's box and the panel's, read source → destination either way.
+  function playMorphMotion(start, end, reverse) {
+    const [triggerRect, panelRect] = reverse ? [end, start] : [start, end];
+    const [tx, ty] = centreOf(triggerRect);
+    const [px, py] = centreOf(panelRect);
+    const timing = cssTiming(panel, '--lg-morph-panel-dur', '--lg-morph-panel-ease');
+    anims = [playArc(panel, px - tx, py - ty, { ...timing, reverse })];
+  }
+  function stopMotion() { for (const a of anims) a?.cancel(); anims = []; }
 
   const canMorph = () => !reduceMotion.matches;
 
@@ -116,7 +132,7 @@ export function createMorphPopup({
 
   function onMorphEnd(cb) {
     morphCleanup?.();
-    const fallback = setTimeout(() => { morphCleanup?.(); cb(); }, MORPH_MS + 60);
+    const fallback = setTimeout(() => { morphCleanup?.(); cb(); }, morphMs + 60);
     const handler = (e) => {
       if (e.target !== panel || e.propertyName !== 'transform') return;
       morphCleanup?.();
@@ -233,6 +249,7 @@ export function createMorphPopup({
     trigger.classList.remove('lg-morph-content-hidden');
     unhideInnerBox(inner);
 
+    stopMotion();
     overlay.hidden = false;
     panel.style.display = 'flex';
     trigger.classList.add('lg-morph-anim');
@@ -257,11 +274,13 @@ export function createMorphPopup({
       if (mySeq !== seq) return;
       // Pin the real box straight to `target`, fake the trigger's look with a
       // transform, then release it: nothing is laid out or painted per frame.
+      morphMs = fitDuration(panel, '--lg-morph-panel-dur', travelDistance(from, target));
       morphGeometry(panel, from, target, {
         fromRadius: from.borderRadius,
         toRadius: target.borderRadius,
         onSettle: () => {
           if (mySeq !== seq) return;
+          playMorphMotion(from, target, false);
           overlay.classList.add('is-active');
           panel.classList.add('lg-morph--open');
           onMorphEnd(() => {
@@ -288,6 +307,7 @@ export function createMorphPopup({
 
     const clear = () => {
       if (mySeq !== seq) return;
+      stopMotion();
       panel.classList.remove('lg-morph--closing');
       panel.style.display = 'none';
       clearPanelStyles();
@@ -311,14 +331,18 @@ export function createMorphPopup({
     // A superseded open may have left transitions disabled: re-enable so the
     // return morph always animates.
     panel.style.transition = '';
+    // Where it is on screen, bow included: the trip back starts from there.
     const visualRect = panel.getBoundingClientRect();
     requestAnimationFrame(() => {
       if (mySeq !== seq) return;
       const to = triggerBox();
+      stopMotion();   // a cut-short open's: the measured rect already has it
+      morphMs = fitDuration(panel, '--lg-morph-panel-dur', travelDistance(visualRect, to));
       morphGeometry(panel, visualRect, to, {
         toRadius: to.borderRadius,
         onSettle: () => {
           if (mySeq !== seq) return;
+          playMorphMotion(visualRect, to, true);
           onMorphEnd(() => {
             if (mySeq !== seq) return;
             // Hand the frame back to the trigger: its glass box matches the
@@ -360,6 +384,7 @@ export function createMorphPopup({
 
   function destroy() {
     beginOp();
+    stopMotion();
     isOpen = false;
     window.removeEventListener('resize', onViewportResize);
     document.removeEventListener('focusin', pullFocusBack);

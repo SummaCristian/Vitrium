@@ -116,6 +116,7 @@ import { createPillDragCore } from '../core/pill-drag-core.js';
 import { attachLiquidGlass } from '../core/liquid-glass.js';
 import { Spring, onSpringFrame } from '../core/spring.js';
 import { createPillParts, el, toNode } from './dom.js';
+import { arcOffset } from '../core/motion-path.js';
 
 // Spring for the bar's size along its axis when the tab set changes size.
 const WIDTH_SPRING = { stiffness: 300, damping: 24, mass: 1 };
@@ -360,7 +361,26 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
   const groupSX = new Spring(1);
   const groupSY = new Spring(1);
   const circleX = new Spring(0);
-  const groupMoving = () => !(groupX.resting && groupY.resting && groupSX.resting && groupSY.resting);
+  // The group's glide bows off the straight line (core/motion-path.js): groupArc is
+  // its progress along the travel (0 -> 1), on the same spring as the glide itself.
+  const groupArc = new Spring(1);
+  groupArc.eps = 0.002;   // a progress, not px: the default would snap the bow's last few px
+  let arcTravel = [0, 0];
+  const groupArcOffset = () => arcOffset(arcTravel[0], arcTravel[1], groupArc.value);
+  const groupMoving = () => !(groupX.resting && groupY.resting && groupSX.resting && groupSY.resting && groupArc.resting);
+
+  // Sends the group home from the offset in groupX / groupY. A bow still in flight is
+  // folded into that offset first, so the new glide starts exactly where the group is.
+  function glideGroup(config) {
+    const [ax, ay] = groupArcOffset();
+    groupX.value += ax;
+    groupY.value += ay;
+    arcTravel = [-groupX.value, -groupY.value];
+    groupArc.set(0);
+    groupArc.to(1, config);
+    groupX.to(0, config);
+    groupY.to(0, config);
+  }
   let ghostsActive = 0;
   let circleMoving = false;
 
@@ -399,7 +419,8 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     if (groupMoving()) {
       const [dfx, dfy] = deform2(groupX.v, groupY.v);
       const sx = groupSX.value * dfx, sy = groupSY.value * dfy;
-      group.style.translate = `${groupX.value}px ${groupY.value}px`;
+      const [ax, ay] = groupArcOffset();
+      group.style.translate = `${groupX.value + ax}px ${groupY.value + ay}px`;
       group.style.scale = `${sx} ${sy}`;
       // The tabs' content undoes the squash (see tabbar.css), so only the glass morphs.
       group.style.setProperty('--lg-sx', sx);
@@ -686,8 +707,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
       // its velocity instead of stopping dead.
       groupX.value += dx;
       groupY.value += dy;
-      groupX.to(0, groupMoving() ? MOVE_FAR : MOVE);
-      groupY.to(0, groupMoving() ? MOVE_FAR : MOVE);
+      glideGroup(groupMoving() ? MOVE_FAR : MOVE);
     }
 
     // The circle emerges from the bar's edge...
@@ -739,7 +759,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
   // waiting for the tail would make each step of the sequence drag.
   const near = (sp, tol) => Math.abs(sp.value - sp.target) < tol && Math.abs(sp.v) < 40;
   const isSettled = () => (!barAnimating || near(barW, 1))
-    && near(groupX, 1) && near(groupY, 1) && near(groupSX, 0.01) && near(groupSY, 0.01)
+    && near(groupX, 1) && near(groupY, 1) && near(groupArc, 0.01) && near(groupSX, 0.01) && near(groupSY, 0.01)
     && near(circleX, 1) && ghostsActive === 0;
 
   function settled(maxMs = 3000) {
@@ -835,9 +855,10 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
       travel = Math.hypot(dx, dy);
       groupX.set(dx);
       groupY.set(dy);
+      groupArc.set(1);   // the rects already include any bow in flight, as they do the offset
       groupSX.set(now.width ? old.width / now.width : 1);
       groupSY.set(now.height ? old.height / now.height : 1);
-      groupX.to(0, MOVE_FAR); groupY.to(0, MOVE_FAR);
+      glideGroup(MOVE_FAR);
       groupSX.to(1, MOVE_SIZE); groupSY.to(1, MOVE_SIZE);
       renderMotion();
     }
@@ -872,7 +893,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     orientToken++;
     barAnimating = false;
     bar.style.width = bar.style.height = '';
-    barW.set(0); groupX.set(0); groupY.set(0); groupSX.set(1); groupSY.set(1); circleX.set(0);
+    barW.set(0); groupX.set(0); groupY.set(0); groupArc.set(1); groupSX.set(1); groupSY.set(1); circleX.set(0);
     for (const node of [group, pBtn]) if (node) node.style.translate = node.style.scale = '';
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -991,6 +1012,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
       barW.dispose();
       groupX.dispose();
       groupY.dispose();
+      groupArc.dispose();
       groupSX.dispose();
       groupSY.dispose();
       circleX.dispose();

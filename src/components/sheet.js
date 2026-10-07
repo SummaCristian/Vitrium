@@ -101,6 +101,7 @@
 //           hidden, refresh, destroy }.
 import { Spring, onSpringFrame } from '../core/spring.js';
 import * as physics from '../core/sheet-physics.js';
+import { arcOffset, glideSpring, travelDistance } from '../core/motion-path.js';
 import { el, toNode } from './dom.js';
 
 const SETTLE = { stiffness: 260, damping: 30, mass: 1 };
@@ -262,6 +263,7 @@ export function createSheet({
       tx: (o.left + o.width / 2) - (r.left + r.width / 2),
       ty: o.bottom - r.bottom,
       radius,
+      distance: travelDistance(o, r),
     };
   }
   const showSource = () => { if (source) source.style.visibility = ''; };
@@ -354,7 +356,8 @@ export function createSheet({
       presence.set(0);
       if (morph) source.style.visibility = 'hidden';   // the sheet stands in for it
     }
-    presence.to(1, PRESENT);
+    // A morph glides like the pickers (no pop overshoot), for as long as its distance calls for.
+    presence.to(1, morph ? glideSpring(morph.distance) : PRESENT);
     applyBackground();
     if (modal) sheet.focus({ preventScroll: true });
     watch();
@@ -369,7 +372,7 @@ export function createSheet({
     pulled = 0;
     // The source may have moved (the page scrolled) since the sheet came in.
     if (morph) morph = measureMorph(source) ?? morph;
-    presence.to(0, DISMISS);
+    presence.to(0, morph ? glideSpring(morph.distance) : DISMISS);
     applyBackground();   // makes the page live again before focus goes back to it
     if (restoreFocus) {
       // A hidden source can't take focus: it gets it once the sheet has shrunk back into it.
@@ -669,7 +672,9 @@ export function createSheet({
         // Past the sheet (the present spring's overshoot, k < 0) it only grows: the translation
         // stops at the sheet's own box, or it would swing out past the bottom edge, into Safari's safe area.
         const travel = Math.max(k, 0);
-        tx += travel * morph.tx; ty = travel * morph.ty;
+        // Bowed off the straight line (core/motion-path.js): the same path in and out, since `travel` is where along it the glass is.
+        const [ax, ay] = arcOffset(-morph.tx, -morph.ty, 1 - travel);
+        tx += travel * morph.tx + ax; ty = travel * morph.ty + ay;
         // Counter-scale the radius so it reads as the source's corners, easing to the sheet's.
         const rv = lerp(morph.radius, parseFloat(sheet.style.getPropertyValue('--lg-sheet-radius')) || 28, clamp01(m));
         radius = `${rv / Math.max(sx, 0.01)}px / ${rv / Math.max(sy, 0.01)}px`;

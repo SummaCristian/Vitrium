@@ -14,7 +14,8 @@
 //                glides if the layout moves it)
 // Targets may be nested (a cell inside a bar inside a group): a child's glide
 // is corrected for its parent target's own motion, so each still travels from
-// where it visibly was to where it visibly ends up.
+// where it visibly was to where it visibly ends up. Each glides along a bowed
+// path rather than a straight line (motion-path.js).
 //
 // The elements must not have a CSS `transition` on translate/scale while it
 // runs (this writes them every frame); .liquid-glass, for one, has a spring on
@@ -25,6 +26,7 @@
 // Returns cancel(): stops the morph and clears every inline style it set,
 // without calling onDone.
 import { Spring, onSpringFrame } from './spring.js';
+import { arcOffset } from './motion-path.js';
 
 const CONFIG = { stiffness: 220, damping: 20, mass: 1 };
 
@@ -75,7 +77,17 @@ export function layoutMorph(targets, apply, { onDone, config = CONFIG } = {}) {
     const parent = ancestors.find(a => !ancestors.some(o => o !== a && a.el.contains(o.el)));
     it.edx = it.dx - (parent?.dx ?? 0);
     it.edy = it.dy - (parent?.dy ?? 0);
+    it.parent = parent;
   }
+  // A target's own bow at progress s (the travel is new place - old, the reverse of its delta),
+  // less its parent's, which it already rides on.
+  const arcOf = (it, s) => arcOffset(-it.dx, -it.dy, s);
+  const ownArc = (it, s) => {
+    const [x, y] = arcOf(it, s);
+    if (!it.parent) return [x, y];
+    const [px, py] = arcOf(it.parent, s);
+    return [x - px, y - py];
+  };
 
   // Border-box sizing so the interpolated width/height match the measured boxes.
   for (const it of items) if (it.mode === 'box') it.el.style.boxSizing = 'border-box';
@@ -115,7 +127,8 @@ export function layoutMorph(targets, apply, { onDone, config = CONFIG } = {}) {
         it.el.style.height = `${it.h1 + k * (it.r.height - it.h1)}px`;
         it.el.style.borderRadius = `${Math.max(0, it.radius1 + k * (it.radius - it.radius1))}px`;
       }
-      it.el.style.translate = `${k * it.edx}px ${k * it.edy}px`;
+      const [ax, ay] = ownArc(it, sp.value);
+      it.el.style.translate = `${k * it.edx + ax}px ${k * it.edy + ay}px`;
       if (it.mode === 'lens') it.el.style.scale = `${1 + k * (it.sx - 1)} ${1 + k * (it.sy - 1)}`;
     }
     if (sp.resting) finish(true);

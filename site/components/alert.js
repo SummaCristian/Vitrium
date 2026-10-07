@@ -234,7 +234,7 @@ modal.deactivate();   // everything back as it was`),
         table(['Variable', 'What it does'], [
           ['`--lg-alert-width`', 'The width of the box.'],
           ['`--lg-z-alert`', 'Its stacking order. The `zIndex` option sets it for one alert.'],
-          ['`--lg-morph-dur`, `--lg-ease-morph`', 'The morph\'s duration and easing.'],
+          ['`--lg-alert-morph-dur`, `--lg-ease-glide`', 'The morph\'s duration (for a 400px trip; each one is fitted to its distance) and easing.'],
           ['`--lg-accent`, `--lg-danger`', 'The default and destructive actions.'],
         ])),
 

@@ -40,6 +40,7 @@ import {
   computePosition, autoUpdate, flip, shift, offset, arrow as arrowMiddleware,
 } from '@floating-ui/dom';
 import { attachLiquidGlass } from '../core/liquid-glass.js';
+import { arcKeyframes, glideDuration } from '../core/motion-path.js';
 import { el, toNode } from './dom.js';
 
 const openPopovers = new Set();
@@ -95,8 +96,9 @@ export function createPopover({
     pop.style.top = `${y}px`;
     if (from && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
       const to = pop.getBoundingClientRect();
-      pop.animate([{ translate: `${from.left - to.left}px ${from.top - to.top}px` }, { translate: '0 0' }],
-        { duration: 450, easing: 'cubic-bezier(0.34, 1.3, 0.64, 1)' });
+      // On the glide spring, along a bowed path (core/motion-path.js), for as long as the distance calls for.
+      const dx = to.left - from.left, dy = to.top - from.top;
+      pop.animate(arcKeyframes(dx, dy, { travel: true }), { duration: glideDuration(Math.hypot(dx, dy)), easing: 'linear' });
     }
 
     if (arrowEl && middlewareData.arrow) {

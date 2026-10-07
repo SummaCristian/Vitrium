@@ -99,6 +99,8 @@ const NOTES = {
   '--lg-press-out-dur': 'How long the spring back takes.',
   '--lg-morph-dur': 'Duration of a control changing size or shape.',
   '--lg-ease-morph': 'Easing of morphs.',
+  '--lg-alert-morph-dur': 'Duration of an alert\'s morph, for a 400px trip (each one is fitted to its distance).',
+  '--lg-ease-glide': 'Critically damped spring for a box carried somewhere along a curved path (morphs out of a trigger, glides).',
   '--lg-radius-pill': 'Fully rounded corners.',
 };
 

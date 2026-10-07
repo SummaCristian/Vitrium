@@ -19,8 +19,8 @@
 }
 
 .lg-morph {
-  --lg-morph-panel-ease: cubic-bezier(0.32, 0.72, 0, 1);
-  --lg-morph-panel-dur: 0.42s;   /* keep in sync with MORPH_MS in morph-popup.js */
+  --lg-morph-panel-ease: var(--lg-ease-glide);
+  --lg-morph-panel-dur: 0.34s;   /* a 400px trip (each one is fitted to its distance); keep in sync with MORPH_MS in morph-popup.js */
 
   position: fixed;
   z-index: var(--lg-z-popup, 1200);

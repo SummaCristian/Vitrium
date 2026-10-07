@@ -409,14 +409,6 @@
    Not `aspect-ratio`: it made the rail's thickness depend on its height,
    which Safari resolved differently at first layout and mid-animation.) */
 
-/* Not near the viewport's bottom edge here (a rail, or a row at the top), so
-   the safe-area shadow shrink (0 4px 20px) isn't needed: use the full glass
-   shadow. */
-.lg-tabbar--vertical .lg-tabbar__bar,
-.lg-tabbar--compact .lg-tabbar__bar,
-.lg-tabbar--row-top .lg-tabbar__bar {
-  box-shadow: var(--lg-shadow);
-}
 
 /* While the orientation sequence runs, the optional action button steps aside
    (it fades out, and back in as the bar expands). */

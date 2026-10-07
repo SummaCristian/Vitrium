@@ -61,6 +61,38 @@
   --lg-shadow-tint: 0.85;
   --lg-shadow-tint-alpha: 0.2;
 
+  /* Glass doesn't cast a solid drop shadow: light passes through the middle
+     and only the edges bend it away, so what lands on the page is a soft ring
+     in the surface's shape, dropped by --lg-ring-offset. Its top half shows
+     through the glass and its bottom half peeks out below (see .lg-glass::before). */
+  --lg-ring-color: rgba(0, 0, 0, 0.1);
+  --lg-ring-offset: 12px;
+  --lg-ring-blur: 20px;
+  --lg-ring-spread: 2px;
+  /* Blur over the ring of circles and tinted glass, which melts the crisp
+     edge where the ring's halves and the fill meet. */
+  --lg-ring-soften: 6px;
+  /* Multiplier on the ring's opacity. Large surfaces set it lower, and glass
+     inside glass uses --lg-ring-strength-nested. */
+  --lg-ring-strength: 1;
+  --lg-ring-strength-large: 0.45;
+  --lg-ring-strength-nested: 0.6;
+  /* Tinted glass: opacity of the ring in its own color (the hue follows
+     --lg-shadow-tint). */
+  --lg-ring-tint-alpha: 0.3;
+  /* Light that comes through the glass, filling the ring: none for light
+     glass, a faint dark for dark glass, and the tint's own color (at
+     --lg-ring-tint-fill) for tinted glass. */
+  --lg-ring-fill: transparent;
+  --lg-ring-tint-fill: 0.12;
+  /* The ring and fill fade from top to bottom: --lg-ring-top of their strength
+     at the top, where they show through the glass, reaching full strength
+     --lg-ring-full of the way down. */
+  --lg-ring-top: 0.45;
+  --lg-ring-full: 80%;
+  /* Clear glass fades its ring and fill by this factor. */
+  --lg-ring-clear: 0.55;
+
   /* Clear glass fades its rim and stroke by these factors, like the rest of
      the material. */
   --lg-rim-clear: 0.6;
@@ -143,6 +175,10 @@
   --lg-rim-shade-alpha: 0.9;
   --lg-shadow-tint: 1;
   --lg-shadow-tint-alpha: 0.1;
+  --lg-ring-color: rgba(0, 0, 0, 0.2);
+  --lg-ring-fill: rgba(0, 0, 0, 0.04);
+  --lg-ring-tint-alpha: 0.2;
+  --lg-ring-tint-fill: 0.08;
   --lg-stroke-gradient: linear-gradient(
     to bottom,
     rgba(223, 223, 223, 0.35) 0%,
@@ -175,6 +211,10 @@
     --lg-rim-shade-alpha: 0.9;
     --lg-shadow-tint: 1;
     --lg-shadow-tint-alpha: 0.1;
+    --lg-ring-color: rgba(0, 0, 0, 0.2);
+    --lg-ring-fill: rgba(0, 0, 0, 0.04);
+    --lg-ring-tint-alpha: 0.2;
+    --lg-ring-tint-fill: 0.08;
     --lg-stroke-gradient: linear-gradient(
       to bottom,
       rgba(223, 223, 223, 0.35) 0%,

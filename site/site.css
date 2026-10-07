@@ -192,7 +192,7 @@ h3 { font-size: clamp(1.15rem, 1.09rem + 0.3vw, 1.25rem); font-weight: 600; }
 .lede { font-size: 1.2rem; max-width: var(--measure, none); opacity: 0.85; }
 .stack { display: grid; gap: 16px; }
 .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-.card { padding: 1.25rem 1.5rem; border-radius: var(--radius-xl); display: grid; grid-template-columns: minmax(0, 1fr); justify-items: start; gap: 12px; color: var(--text-color-primary); }
+.card { --lg-ring-strength: var(--lg-ring-strength-large); padding: 1.25rem 1.5rem; border-radius: var(--radius-xl); display: grid; grid-template-columns: minmax(0, 1fr); justify-items: start; gap: 12px; color: var(--text-color-primary); }
 .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
 .lg-btn { border: 0; font: inherit; cursor: default; }
 .lg-btn.pill { padding: 0.7rem 1.4rem; }
@@ -205,7 +205,7 @@ a.lg-btn { text-decoration: none; color: inherit; display: inline-block; }
 .card-link p { opacity: 0.75; font-size: 0.95rem; }
 
 /* Code sits on a glass card; the <pre> scrolls inside it. */
-.code-card { border-radius: var(--radius-lg); }
+.code-card { --lg-ring-strength: var(--lg-ring-strength-large); border-radius: var(--radius-lg); }
 .code-copy { position: absolute; top: 8px; inset-inline-end: 8px; width: 2.25rem; height: 2.25rem; }
 .code-copy { display: grid; place-items: center; }
 .code-copy > svg { grid-area: 1 / 1; width: 1.1rem; height: 1.1rem;

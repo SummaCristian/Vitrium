@@ -10,8 +10,9 @@ const LIFT_THRESHOLD = 1.001;
 export const isLifted = (scale) => scale > LIFT_THRESHOLD;
 
 // Toggles the lifted class and sets --lg-lift (0 at rest, 1 at full lift), which
-// pill.css turns into the drop shadow. It follows the scale spring, so the shadow
-// rises and settles with the scale rather than at its end. `held` keeps the lens
+// pill.css turns into the ring shadow's offset and strength. It follows the
+// scale spring, so the shadow drops away and settles with the scale rather
+// than at its end. `held` keeps the lens
 // fully lifted with no scale change (keyboard focus).
 export function applyLift(pill, scale, tapScale, { held = false, liftedClass = 'lg-pill--lifted' } = {}) {
   const lifted = isLifted(scale);

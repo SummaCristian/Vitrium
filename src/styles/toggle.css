@@ -55,6 +55,12 @@
     inset 0 0.5px 0 rgba(255, 255, 255, 0.6);
 }
 
+/* The thumb is too small to lift as far as other glass: the full ring offset
+   left its shadow looking detached. */
+.lg-toggle .lg-pill {
+  --lg-ring-offset: 5px;
+}
+
 .lg-toggle .lg-pill.lg-pill--lifted .lg-pill-inner {
   background: var(--lg-pill-bg);
 }

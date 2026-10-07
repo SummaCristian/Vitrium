@@ -108,14 +108,14 @@ export default {
 
     return [
       section('Overview', {},
-        h('p', {}, 'Glass is a set of classes, not a component. Put `lg-glass` on any element to give it the material: a translucent, blurred tint with a lit rim, a thin gradient stroke and a soft drop shadow. Every control in the library is built on it.'),
+        h('p', {}, 'Glass is a set of classes, not a component. Put `lg-glass` on any element to give it the material: a translucent, blurred tint with a lit rim, a thin gradient stroke and the soft ring of shadow it casts. Every control in the library is built on it.'),
         h('p', {}, 'The material reads its colors from tokens, so it follows the theme, and it switches to a near-opaque fallback when backdrop blur is off.')),
       section('Anatomy', {},
-        h('p', {}, 'A glass surface is five layers on one element: the tint, the backdrop blur, an inner rim highlight made from inset shadows, a 0.5px gradient stroke drawn outside the edge, and a drop shadow. On displays with HDR headroom the rim goes brighter than white.')),
+        h('p', {}, 'A glass surface is five layers on one element: the tint, the backdrop blur, an inner rim highlight made from inset shadows, a 0.5px gradient stroke drawn outside the edge, and a ring shadow. Glass bends light at its edges and lets it through the middle, so it casts a ring rather than a solid shadow: dropped a little below the surface, faint where it shows through the glass and strongest where it peeks out underneath. On displays with HDR headroom the rim goes brighter than white.')),
       section('Playground', {}, h('p', {}, 'The colorful backdrop is only here so the blur has something to work on.'), playground),
       section('Tinting', {},
         h('p', {}, '`setGlassTint(el, color)` tints an element and picks a legible text color for it. Pass `null` to remove the tint. The regular material shows the color more strongly than the clear one.'),
-        h('p', {}, 'The rim follows the tint: the lit edges are a lighter shade of it and the sides a deeper one, in place of white and black, and the drop shadow becomes a faint glow in the same color. Clear glass, tinted or not, also fades its rim and stroke. Both need a browser with relative color syntax (Chrome 119, Safari 18, Firefox 128); older ones show the plain rim.'),
+        h('p', {}, 'The rim follows the tint: the lit edges are a lighter shade of it and the sides a deeper one, in place of white and black, and the ring takes a darker shade of it, with a wash of the tint inside, like colored light passing through. Clear glass, tinted or not, also fades its rim, stroke and ring. Both need a browser with relative color syntax (Chrome 119, Safari 18, Firefox 128); older ones show the plain rim.'),
         codeBlock(`
 import { setGlassTint } from 'vitrium';
 

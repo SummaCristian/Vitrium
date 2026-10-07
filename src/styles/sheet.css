@@ -99,6 +99,7 @@
 .lg-sheet:focus { outline: none; }
 
 .lg-sheet__glass {
+  --lg-ring-strength: var(--lg-ring-strength-large);
   position: absolute;
   inset: 0;
   border-radius: var(--lg-sheet-radius, 28px);

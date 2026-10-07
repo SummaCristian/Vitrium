@@ -26,6 +26,98 @@
   color: var(--lg-text-secondary);
 }
 
+/* Every glass surface casts the ring below, including the ones that build the
+   material by hand instead of with .lg-glass (the segmented control's track,
+   the tab bar, and the lifted lens in pill.css), so the ring lives here for
+   all of them.
+
+   They cast the ring instead of a drop shadow, so their shadow stacks are
+   restated without one. Component rules that add to var(--lg-shadow) (a focus
+   ring, say) pick these up. backdrop-filter already makes most of them a
+   stacking context; isolation keeps the ring on top of whatever is behind the
+   glass where it doesn't. */
+.lg-glass,
+.lg-seg__track,
+.lg-tabbar__bar {
+  --lg-shadow: 0 0 0 0.1px var(--lg-outline), var(--lg-highlight);
+  --lg-shadow-compact: var(--lg-shadow);
+  isolation: isolate;
+}
+
+/* The ring shadow (see --lg-ring-* in tokens.css): an outer and an inset
+   shadow from the same edge, on a copy of the shape dropped by the offset.
+   z-index -1 paints it under the content but over the tint, which is where its
+   top half shows through the glass. */
+.lg-glass::before,
+.lg-seg__track::before,
+.lg-tabbar__bar::before,
+.lg-pill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  translate: 0 var(--lg-ring-offset);
+  --_ring-k: calc(var(--lg-ring-strength) * var(--_ring-clear, 1));
+  --_ring: color-mix(in srgb, var(--lg-ring-color) calc(var(--_ring-k) * 100%), transparent);
+  /* Inside the ring, the light that came through the glass: colored by a tint,
+     dimmed by dark glass, untouched by plain light glass (--lg-ring-fill). */
+  background: color-mix(in srgb, var(--lg-ring-fill) calc(var(--_ring-k) * 100%), transparent);
+  box-shadow:
+    0 0 var(--lg-ring-blur) var(--lg-ring-spread) var(--_ring),
+    inset 0 0 var(--lg-ring-blur) var(--lg-ring-spread) var(--_ring);
+  /* A shadow can't take a gradient, so the ring and fill are faded by a mask
+     instead: --lg-ring-top at the top, where they show through the glass, up
+     to full strength at the bottom, below it (see the @supports below). */
+  --_ring-reach: calc((var(--lg-ring-blur) + var(--lg-ring-spread) + var(--lg-ring-soften)) * 2);
+  pointer-events: none;
+}
+
+/* Where the ring's two halves meet, and at the fill's edge, there's a step
+   that can show as a crisp copy of the shape below the glass: on circles,
+   where the inner half overlaps itself and fills the whole shape, and on
+   tinted glass, whose fill is strong. A light blur melts it there. Not
+   everywhere: on the rest it smears the ring into a plain drop shadow. */
+.lg-glass--circle::before,
+.lg-glass--tinted::before {
+  filter: blur(var(--lg-ring-soften));
+}
+
+/* The mask is grown by the shadow's reach, and no-clip lets it cover the outer
+   half of the ring. Where no-clip isn't supported the mask would cut that half
+   off, so it's left out and the ring stays even. Safari parses no-clip but
+   still clips to the box, which leaves the ring's inner half and fill as a
+   plain offset shape, so it's left out there too (font: -apple-system-body
+   is WebKit-only). */
+@supports (mask-clip: no-clip) and (not (font: -apple-system-body)) {
+  .lg-glass::before,
+  .lg-seg__track::before,
+  .lg-tabbar__bar::before,
+  .lg-pill::before {
+    -webkit-mask: linear-gradient(to bottom, rgb(0 0 0 / var(--lg-ring-top)), #000 var(--lg-ring-full))
+      center / calc(100% + var(--_ring-reach)) calc(100% + var(--_ring-reach)) no-repeat;
+    mask: linear-gradient(to bottom, rgb(0 0 0 / var(--lg-ring-top)), #000 var(--lg-ring-full))
+      center / calc(100% + var(--_ring-reach)) calc(100% + var(--_ring-reach)) no-repeat;
+    mask-clip: no-clip;
+  }
+}
+
+.lg-glass--clear::before {
+  --_ring-clear: var(--lg-ring-clear);
+}
+
+.lg-glass--tinted::before {
+  --lg-ring-fill: color-mix(in srgb, var(--lg-glass-tint, var(--lg-accent)) calc(var(--lg-ring-tint-fill) * 100%), transparent);
+}
+
+/* Glass on glass: the ring lands on the lighter surface below, where it reads
+   much darker than on the page, so it's dimmed. Large surfaces (sheet, alert,
+   popover) dim their own ring the same way, in their stylesheets. */
+.lg-glass .lg-glass,
+.lg-glass .lg-seg__track {
+  --lg-ring-strength: var(--lg-ring-strength-nested);
+}
+
 .lg-glass--clear {
   background: var(--lg-tint-clear);
   -webkit-backdrop-filter: blur(var(--lg-blur-clear));
@@ -77,8 +169,8 @@
       inset 0 -1px 0 1px color(from var(--_rim-top) display-p3 r g b / calc(alpha * var(--_rim-k) * 0.3)),
       inset 0 1px 0 0 color(from var(--_rim-top) display-p3 r g b / calc(alpha * var(--_rim-k) * 0.5)),
       inset 0 1px 0 1px color(from var(--_rim-top) display-p3 r g b / calc(alpha * var(--_rim-k) * 0.3));
-    --lg-shadow: 0 0 0 0.1px var(--lg-outline), var(--lg-highlight), 0 4px 40px 0 var(--lg-shadow-color);
-    --lg-shadow-compact: 0 0 0 0.1px var(--lg-outline), var(--lg-highlight), 0 4px 20px 0 var(--lg-shadow-color);
+    --lg-shadow: 0 0 0 0.1px var(--lg-outline), var(--lg-highlight);
+    --lg-shadow-compact: var(--lg-shadow);
   }
 
   .lg-glass--clear {
@@ -107,6 +199,7 @@
       from color-mix(in oklch, var(--_tint) calc(var(--lg-shadow-tint) * 100%), black)
       l c h / var(--lg-shadow-tint-alpha)
     );
+    --lg-ring-color: oklch(from var(--lg-shadow-color) l c h / var(--lg-ring-tint-alpha));
   }
 }
 

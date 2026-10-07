@@ -31,8 +31,9 @@ export default {
           ['`--lg-outline`, `--lg-specular`, `--lg-highlight`', 'The rim and the lit edge.'],
           ['`--lg-rim-side-*`, `--lg-rim-top`', 'The parts of the rim, if you only want to change one.'],
           ['`--lg-rim-lift`, `--lg-rim-sink` and the other `--lg-rim-*`', 'How tinted glass derives its rim from the tint.'],
-          ['`--lg-shadow-tint`, `--lg-shadow-tint-alpha`', 'The colored glow tinted glass casts.'],
-          ['`--lg-shadow`, `--lg-shadow-compact`', 'How far the glass floats above the page.'],
+          ['`--lg-shadow-tint`, `--lg-shadow-tint-alpha`', 'The color of the ring tinted glass casts.'],
+          ['`--lg-shadow`, `--lg-shadow-compact`', 'The drop shadow of surfaces that aren\'t glass.'],
+          ['`--lg-ring-offset`, `--lg-ring-color`, `--lg-ring-strength`', 'How far the glass floats above the page, and how dark its ring shadow is.'],
         ]),
         h('p', {}, 'When blur is switched off, the library replaces the tints with near-opaque ones so the glass stays readable. Its rules have the same weight as a theme\'s, so a tint you set for dark mode can beat them and leave you with see-through glass and no blur. Guard your tint overrides:'),
         codeBlock(`

@@ -1,6 +1,7 @@
 /* Popover (components/popover.js): a glass panel anchored to an element. */
 
 .lg-popover {
+  --lg-ring-strength: var(--lg-ring-strength-large);
   position: fixed;
   z-index: var(--lg-z-popover, 1000);
   top: 0;

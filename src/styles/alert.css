@@ -33,6 +33,7 @@
 }
 
 .lg-alert {
+  --lg-ring-strength: var(--lg-ring-strength-large);
   position: relative;
   width: min(100%, var(--lg-alert-width, 300px));
   max-height: 100%;

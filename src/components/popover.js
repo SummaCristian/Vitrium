@@ -1,5 +1,9 @@
 // Popover: a glass panel anchored to an element, with a pointer arrow that
-// follows wherever it ends up, that scales in out of the arrow.
+// follows wherever it ends up, that grows out of the arrow like something
+// liquid: on the glide spring, the axis pointing away from the arrow runs ahead
+// and the one across it drags behind, so it pushes out as a tongue and then
+// fills out (and on the way back narrows first, then draws in). For as long as
+// the distance calls for, like the morphs (see core/motion-path.js).
 //
 //   // Click-to-toggle on a trigger:
 //   const pop = createPopover({ trigger: button, content: node, placement: 'bottom' });
@@ -40,7 +44,7 @@ import {
   computePosition, autoUpdate, flip, shift, offset, arrow as arrowMiddleware,
 } from '@floating-ui/dom';
 import { attachLiquidGlass } from '../core/liquid-glass.js';
-import { arcKeyframes, glideDuration } from '../core/motion-path.js';
+import { arcKeyframes, glideDuration, glideAhead, glideBehind, fitDuration, travelDistance } from '../core/motion-path.js';
 import { el, toNode } from './dom.js';
 
 const openPopovers = new Set();
@@ -48,6 +52,7 @@ let popoverUid = 0;
 
 const OPPOSITE = { top: 'bottom', bottom: 'top', left: 'right', right: 'left' };
 const ARROW_HALF = 5;   // half the arrow's 10px square
+const FROM_SCALE = 0.5;  // the closed scale it grows from; keep in sync with popover.css
 const FOCUSABLE = [
   'a[href]', 'button:not([disabled])', 'input:not([disabled]):not([type="hidden"])',
   'select:not([disabled])', 'textarea:not([disabled])', '[tabindex]:not([tabindex="-1"])',
@@ -79,6 +84,48 @@ export function createPopover({
   let byKeyboard = false;
   let wanted = placement;      // what was asked for; the placed one may differ after a flip
   let glideNext = false;       // the next position is a deliberate move, so glide there
+  let origin = null;           // [x, y] it grows out of, in its own box (the arrow's point)
+  let side = 'bottom';         // which side of its anchor it sits on
+  let grow = null;             // the current grow / shrink
+
+  const FRAMES = 32;
+  // Grows out of the arrow (or draws back into it), scaling about the arrow's point: the
+  // axis pointing away from the arrow on the glide's leading clock, the one across it on the
+  // trailing one (swapped on the way back). The corners keep their real radius through the
+  // uneven scale. Its duration is fitted to how far the box's corners go; call it just before
+  // toggling data-show (the CSS jumps to the end state, which this then covers).
+  function playGrow(reverse) {
+    grow?.cancel();
+    grow = null;
+    if (!pop.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const w = pop.offsetWidth, h = pop.offsetHeight;
+    const left = parseFloat(pop.style.left) || 0, top = parseFloat(pop.style.top) || 0;
+    const [ox, oy] = origin ?? [w / 2, h / 2];
+    const k = 1 - FROM_SCALE;
+    const small = { left: left + ox * k, top: top + oy * k, width: w * FROM_SCALE, height: h * FROM_SCALE };
+    const duration = fitDuration(pop, '--lg-popover-dur', travelDistance(small, { left, top, width: w, height: h }));
+
+    const vertical = side === 'top' || side === 'bottom';
+    const ty = parseFloat(pop.style.getPropertyValue('--lg-popover-closed-ty')) || 0;
+    const radius = parseFloat(getComputedStyle(pop).borderTopLeftRadius) || 0;
+    const frames = [];
+    for (let i = 0; i <= FRAMES; i++) {
+      const t = i / FRAMES;
+      // Progress (0 closed, 1 open) along the axis away from the arrow, and across it.
+      const away = reverse ? 1 - glideBehind(t) : glideAhead(t);
+      const across = reverse ? 1 - glideAhead(t) : glideBehind(t);
+      const sx = FROM_SCALE + k * (vertical ? across : away);
+      const sy = FROM_SCALE + k * (vertical ? away : across);
+      const r = Math.min(radius, (w * sx) / 2, (h * sy) / 2);
+      frames.push({
+        offset: t,
+        transform: `scale(${sx}, ${sy}) translateY(${ty * (1 - away)}px)`,
+        borderRadius: `${r / sx}px / ${r / sy}px`,
+      });
+    }
+    // Held at the end on the way back, until the hidden state takes over.
+    grow = pop.animate(frames, { duration, easing: 'linear', fill: reverse ? 'forwards' : 'none' });
+  }
 
   async function position() {
     if (!anchor) return;
@@ -103,7 +150,7 @@ export function createPopover({
 
     if (arrowEl && middlewareData.arrow) {
       const { x: ax, y: ay } = middlewareData.arrow;
-      const side = placed.split('-')[0];
+      side = placed.split('-')[0];
       const staticSide = OPPOSITE[side];
       // Reset every side first: after a flip, the previous one would linger.
       arrowEl.style.left = ax != null ? `${ax}px` : '';
@@ -113,6 +160,10 @@ export function createPopover({
       arrowEl.dataset.side = staticSide;
 
       // Scale in from the arrow, so it reads as growing out of its anchor.
+      const w = pop.offsetWidth, h = pop.offsetHeight;
+      origin = side === 'bottom' || side === 'top'
+        ? [ax != null ? ax + ARROW_HALF : w / 2, side === 'bottom' ? 0 : h]
+        : [side === 'right' ? 0 : w, ay != null ? ay + ARROW_HALF : h / 2];
       if (side === 'bottom' || side === 'top') {
         pop.style.transformOrigin = `${ax != null ? ax + ARROW_HALF : '50%'}${ax != null ? 'px' : ''} ${side === 'bottom' ? 'top' : 'bottom'}`;
         pop.style.setProperty('--lg-popover-closed-ty', side === 'bottom' ? '-6px' : '6px');
@@ -128,6 +179,7 @@ export function createPopover({
     position().then(() => {
       if (!open || revealed) return;
       revealed = true;
+      playGrow(false);
       pop.setAttribute('data-show', '');
       if (byKeyboard) pop.focus({ preventScroll: true });
     });
@@ -195,6 +247,7 @@ export function createPopover({
     openPopovers.delete(api);
     document.removeEventListener('pointerdown', onDocPointerDown, true);
     document.removeEventListener('keydown', onDocKeydown);
+    if (pop.hasAttribute('data-show')) playGrow(true);
     pop.removeAttribute('data-show');
     trigger?.setAttribute('aria-expanded', 'false');
     onHide?.();

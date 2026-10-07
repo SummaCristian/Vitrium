@@ -71,6 +71,13 @@ export function glideSpring(distance) {
   return { stiffness: w * w, damping: 2 * w, mass: 1 };
 }
 
+// The glide's two pulled-apart clocks, at time t (0..1 of the duration): the one
+// that runs ahead of the spring and the one that drags behind it. Both land on 1
+// with it. For shaping something as well as moving it (a popover that extrudes
+// out of its arrow before it fills out).
+export const glideAhead = (t) => glide(LEAD * t);
+export const glideBehind = (t) => glide(t) ** DRAG;
+
 // The time at which the glide spring reaches progress s.
 function glideTime(s) {
   let lo = 0, hi = 1;

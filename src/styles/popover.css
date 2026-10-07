@@ -16,15 +16,17 @@
   box-sizing: border-box;
 
   /* Closed: invisible, non-interactive AND out of the tab order / a11y tree
-     (visibility flips only after the fade, so it doesn't cut it short). */
+     (visibility flips only after the shrink, so it doesn't cut it short).
+     It grows out of its arrow, liquid-like, by a Web Animation (popover.js), so
+     `transform` isn't transitioned here: a transition would override it. The
+     closed scale is kept in sync with FROM_SCALE there. */
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transform: scale(0.78) translateY(var(--lg-popover-closed-ty, -6px));
+  transform: scale(0.5) translateY(var(--lg-popover-closed-ty, -6px));
   transition:
-    opacity 120ms ease-out,
-    transform 200ms var(--lg-ease-morph),
-    visibility 0s linear 200ms;
+    opacity 150ms ease-out,
+    visibility 0s linear var(--lg-popover-dur);
   will-change: opacity, transform;
 }
 
@@ -34,8 +36,7 @@
   pointer-events: auto;
   transform: scale(1) translateY(0);
   transition:
-    opacity 120ms ease-out,
-    transform 200ms var(--lg-ease-morph),
+    opacity 150ms ease-out,
     visibility 0s;
 }
 
@@ -87,15 +88,14 @@
   gap: 6px;
 }
 
-/* With the liquid-glass deform on (the default), the surface's own scale-in on
-   `transform`, its fade and the visibility flip are merged with the deform's
-   translate/scale spring into one declaration: a plain `transition` on either
-   side would otherwise replace the other wholesale. */
+/* With the liquid-glass deform on (the default), the surface's fade and its
+   visibility flip are merged with the deform's translate/scale spring into one
+   declaration: a plain `transition` on either side would otherwise replace the
+   other wholesale. */
 .lg-popover.liquid-glass {
   transition:
-    opacity 120ms ease-out,
-    transform 200ms var(--lg-ease-morph),
-    visibility 0s linear 200ms,
+    opacity 150ms ease-out,
+    visibility 0s linear var(--lg-popover-dur),
     translate var(--lg-press-out-dur) var(--lg-ease-spring),
     scale var(--lg-press-out-dur) var(--lg-ease-spring),
     filter 0.2s ease;
@@ -103,8 +103,7 @@
 
 .lg-popover.liquid-glass[data-show] {
   transition:
-    opacity 120ms ease-out,
-    transform 200ms var(--lg-ease-morph),
+    opacity 150ms ease-out,
     visibility 0s,
     translate var(--lg-press-out-dur) var(--lg-ease-spring),
     scale var(--lg-press-out-dur) var(--lg-ease-spring),
@@ -113,8 +112,7 @@
 
 .lg-popover.liquid-glass.lg-pressing {
   transition:
-    opacity 120ms ease-out,
-    transform 200ms var(--lg-ease-morph),
+    opacity 150ms ease-out,
     visibility 0s,
     translate var(--lg-press-in-dur) var(--lg-press-in-ease),
     scale var(--lg-press-in-dur) var(--lg-press-in-ease),
@@ -123,8 +121,7 @@
 
 .lg-popover.liquid-glass.lg-dragging {
   transition:
-    opacity 120ms ease-out,
-    transform 200ms var(--lg-ease-morph),
+    opacity 150ms ease-out,
     visibility 0s,
     translate 0s, scale 0s, filter 0.2s ease;
 }

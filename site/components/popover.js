@@ -140,7 +140,7 @@ popover.show(anchor);       // anchor it to any element`,
 
     return [
       section('Overview', {},
-        h('p', {}, 'A popover is a glass panel attached to an element, with an arrow pointing at it. It scales in out of the arrow, so it reads as growing from what opened it, and it stays attached while the page scrolls, resizes or changes.'),
+        h('p', {}, 'A popover is a glass panel attached to an element, with an arrow pointing at it. It grows out of the arrow like something liquid, pushing out from what opened it before it fills out, and draws back in the same way. It stays attached while the page scrolls, resizes or changes.'),
         h('p', {}, 'It decides for itself where to sit. Ask for a side and an alignment, and if there is no room it flips to the other side or slides along the edge to stay on screen, with the arrow following so it still points at the anchor.')),
 
       section('Playground', {},
@@ -221,6 +221,7 @@ popover.setContent(newContent);   // it resizes and re-positions on its own`)),
         table(['Token or variable', 'What it does'], [
           ['`--lg-popover-max-width`', 'Widest the popover gets. Default: `min(22rem, 100vw - 16px)`.'],
           ['`--lg-z-popover`', 'Its stacking order. Default: 1000.'],
+          ['`--lg-popover-dur`, `--lg-ease-glide`', 'How long it takes to grow out of its arrow (for a 400px trip; each one is fitted to its distance), and the easing.'],
           ['`--lg-text`, glass tokens', 'The text color and the material. See Glass and Tokens.'],
         ]),
         h('p', {}, 'Two helper classes style simple content: `.lg-popover__title` for a heading, and a plain `<ul>` inside the popover is laid out as a spaced list. The popover is a glass surface like any other, so it also has the press-and-stretch physics; pass `deform: false` to turn that off, which suits a tooltip.')),

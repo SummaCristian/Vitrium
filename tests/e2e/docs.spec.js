@@ -316,6 +316,23 @@ test.describe('home', () => {
     await page.waitForTimeout(800);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
+
+  test('every page fits a phone without scrolling sideways', async ({ page }) => {
+    // Anything wider than the screen (a long line of inline code, say) widens the whole page, and the fixed layers
+    // (the tab bar, a sheet, an alert) then line up against the wrong width.
+    await page.setViewportSize({ width: 390, height: 900 });
+    await open(page, 'home', '.tile');
+    const routes = await page.evaluate(() => [...new Set([...document.querySelectorAll('a[href^="#/"]')].map((a) => a.getAttribute('href')))]);
+    expect(routes.length).toBeGreaterThan(10);
+    const wide = [];
+    for (const route of routes) {
+      await page.goto(`/${route}`);
+      await page.waitForTimeout(400);
+      const w = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+      if (w > 0) wide.push(`${route} (+${w}px)`);
+    }
+    expect(wide).toEqual([]);
+  });
 });
 
 test.describe('segmented control blur', () => {

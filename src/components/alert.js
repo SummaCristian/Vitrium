@@ -226,9 +226,35 @@ export function createAlert({
   }
 
   layer.querySelector('.lg-alert-scrim').addEventListener('click', cancel);
-  // The scrim isn't scrollable: keep a wheel or touch over it from scrolling the page behind.
-  layer.addEventListener('wheel', (e) => { if (!box.contains(e.target)) e.preventDefault(); }, { passive: false });
-  layer.addEventListener('touchmove', (e) => { if (e.cancelable && !box.contains(e.target)) e.preventDefault(); }, { passive: false });
+  // Nothing on the layer may scroll the page behind it: a wheel or a touch scroll goes through only to something in
+  // the alert that can still scroll that way (a long body), and is cancelled otherwise. overscroll-behavior can't do
+  // this alone: Safari lets a scroll chain on from an element with nothing to scroll (a short body), to the page.
+  // (dx, dy) is the scroll asked for, + = toward the end.
+  const canTake = (from, dx, dy) => {
+    for (let n = from; n && n !== layer; n = n.parentElement) {
+      const sy = dy && n.scrollHeight > n.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(n).overflowY);
+      const sx = dx && n.scrollWidth > n.clientWidth + 1 && /(auto|scroll)/.test(getComputedStyle(n).overflowX);
+      if (sy && (dy < 0 ? n.scrollTop > 0 : n.scrollTop + n.clientHeight < n.scrollHeight - 1)) return true;
+      if (sx && (dx < 0 ? n.scrollLeft > 0 : n.scrollLeft + n.clientWidth < n.scrollWidth - 1)) return true;
+    }
+    return false;
+  };
+  layer.addEventListener('wheel', (e) => {
+    if (!canTake(e.target, e.deltaX, e.deltaY)) e.preventDefault();
+  }, { passive: false });
+  let touchAt = null;
+  layer.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    touchAt = t ? [t.clientX, t.clientY] : null;
+  }, { passive: true });
+  layer.addEventListener('touchmove', (e) => {
+    const t = e.touches[0];
+    if (!t || !e.cancelable) return;
+    // A finger moving up scrolls toward the end.
+    const [x0, y0] = touchAt ?? [t.clientX, t.clientY];
+    touchAt = [t.clientX, t.clientY];
+    if (e.touches.length > 1 || !canTake(e.target, x0 - t.clientX, y0 - t.clientY)) e.preventDefault();
+  }, { passive: false });
 
   function present({ from } = {}) {
     if (open) return promise;

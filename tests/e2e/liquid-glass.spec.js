@@ -157,6 +157,33 @@ test.describe('an alert', () => {
     }
   });
 
+  test('a trackpad or wheel scroll anywhere on it never scrolls the page behind', async ({ page }) => {
+    const b = await present(page, 'This can’t be undone.');
+    const y0 = await scrollY(page);
+    for (const at of [{ x: b.x + b.width / 2, y: b.y + 4 }, { x: b.x + b.width / 2, y: b.y + b.height / 3 }, { x: b.x + b.width / 2, y: b.y + b.height - 4 }, { x: 8, y: 8 }]) {
+      await page.mouse.move(at.x, at.y);
+      await page.mouse.wheel(0, 400);
+      await page.waitForTimeout(150);
+      expect(await scrollY(page)).toBe(y0);
+      await page.mouse.wheel(0, -400);
+      await page.waitForTimeout(150);
+      expect(await scrollY(page)).toBe(y0);
+    }
+  });
+
+  test('a long body scrolls by wheel, and once at its end the page still stays put', async ({ page }) => {
+    const b = await present(page, 'Long. '.repeat(600));
+    const y0 = await scrollY(page);
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+    const body = page.locator('.lg-alert-layer[data-show] .lg-alert__body');
+    await page.mouse.wheel(0, 300);
+    await expect.poll(() => body.evaluate((n) => n.scrollTop)).toBeGreaterThan(50);
+    // Run it to the end, then keep going.
+    await body.evaluate((n) => { n.scrollTop = n.scrollHeight; });
+    for (let i = 0; i < 3; i++) { await page.mouse.wheel(0, 400); await page.waitForTimeout(120); }
+    expect(await scrollY(page)).toBe(y0);
+  });
+
   test('a long body still scrolls by touch, without moving the page', async ({ page }) => {
     const b = await present(page, 'Long. '.repeat(600));
     const y0 = await scrollY(page);

@@ -74,6 +74,7 @@ const NOTES = {
   '--lg-highlight':'Inset shadows that light the rim.',
   '--lg-shadow': 'Full shadow stack of a floating surface.',
   '--lg-shadow-compact': 'Smaller shadow stack, for controls.',
+  '--lg-shadow-rim': 'The outline and rim alone, with no drop shadow: the stack for a surface that casts the ring.',
   '--lg-stroke-gradient': '0.5px gradient stroke, top to bottom.',
   '--lg-stroke-opacity': 'Strength of the stroke.',
   '--lg-blur-sm': 'Small backdrop blur.',

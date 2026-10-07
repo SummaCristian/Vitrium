@@ -127,8 +127,39 @@ setGlassTint(el, null);        // back to plain glass`)),
           [h('code', {}, 'lg-glass--clear'), 'A lighter tint and shallower blur, for surfaces that should stay out of the way of what is behind them.'],
           [h('code', {}, 'lg-glass--tinted'), 'Colored glass. Set `--lg-glass-tint`, or call `setGlassTint()`, which also picks a legible text color.'],
           [h('code', {}, 'lg-glass--circle'), 'Required on true circles, where the stroke ring has to be masked radially.'],
+          [h('code', {}, 'lg-ring'), 'Only the ring shadow, for a surface you build yourself. See below.'],
           [h('code', {}, 'liquid-glass'), 'Adds the press-and-stretch physics. See Motion.'],
         ])),
+      section('Ring shadow', {},
+        h('p', {}, '`lg-glass` casts the ring on its own. To give it to a surface that builds its look by hand, without the rest of the material, add `lg-ring`. It reads the same `--lg-ring-*` tokens, so it follows the theme and any tuning you do, and it dims inside other glass the same way.'),
+        h('p', {}, '`lg-ring` draws on the element\'s `::before`. If the element already uses its pseudo-elements, give it an empty `lg-ring-layer` child instead, which draws the same ring. Either way the element has to be positioned (`relative` is enough).'),
+        codeBlock(`
+<div class="my-card lg-ring">…</div>
+
+<!-- ::before and ::after already taken -->
+<div class="my-card"><div class="lg-ring-layer"></div>…</div>
+
+.my-card {
+  position: relative;
+  border-radius: 20px;
+  --lg-ring-strength: var(--lg-ring-strength-large); /* large surfaces cast a fainter ring */
+}`, 'text'),
+        table(['Class', 'What it does'], [
+          [h('code', {}, 'lg-ring'), 'Draws the ring on the element\'s `::before`.'],
+          [h('code', {}, 'lg-ring-layer'), 'Draws it on this empty child instead.'],
+          [h('code', {}, 'lg-ring--soft'), 'Blurs the ring slightly. Use it on small circles and strongly filled rings, where its edge can show crisp.'],
+        ]),
+        h('h3', {}, 'Moving from the drop shadow'),
+        h('p', {}, 'The ring replaces the drop shadow, so a ring surface shouldn\'t have both. On a ring surface `--lg-shadow` and `--lg-shadow-compact` already leave it out; elsewhere they keep it, for surfaces that don\'t cast a ring. If you wrote the stack out by hand, swap it for `--lg-shadow-rim`, the outline and rim alone:'),
+        codeBlock(`
+/* before */
+box-shadow: 0 0 0 0.1px var(--lg-outline), var(--lg-highlight), 0 4px 40px 0 var(--lg-shadow-color);
+
+/* after */
+box-shadow: var(--lg-shadow-rim);`, 'text'),
+        h('h3', {}, 'Room to show'),
+        h('p', {}, 'The ring lands `--lg-ring-offset` (12px) below the surface and blurs past its edges, so it reaches about 34px below and 22px to the sides. A parent with `overflow: hidden` or `clip` cuts it off: give the parent that much padding, or lower the offset where space is tight. A fixed bar near the bottom edge of the screen needs the same clearance.'),
+        h('p', {}, 'When blur is switched off the ring keeps its shape but skips the top-to-bottom fade and the blur, which is what costs the most. Safari skips the fade too, so its ring is even all the way round.')),
     ];
   },
 };

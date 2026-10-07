@@ -10,6 +10,14 @@
    .lg-glass--circle  use on true circles (equal width/height): the stroke ring
                       is masked radially, because the box-corner mask used for
                       pills seams at the cardinal points of a perfect circle.
+   .lg-ring           only the ring shadow glass casts, for a surface built by
+                      hand. .lg-glass already includes it. Takes ::before, and
+                      needs a positioned element.
+   .lg-ring-layer     the same ring on an empty child element instead, for a
+                      surface whose pseudo-elements are taken. The parent needs
+                      to be positioned.
+   .lg-ring--soft     blurs the ring of a .lg-ring surface, as circles and
+                      tinted glass do, where its edge would show crisp.
 
    Combine with .liquid-glass (liquid-glass.css) for the press/deform physics. */
 
@@ -28,19 +36,24 @@
 
 /* Every glass surface casts the ring below, including the ones that build the
    material by hand instead of with .lg-glass (the segmented control's track,
-   the tab bar, and the lifted lens in pill.css), so the ring lives here for
-   all of them.
+   the tab bar, and the lifted lens in pill.css, plus anything a host app
+   marks with .lg-ring or gives a .lg-ring-layer child), so the ring lives here
+   for all of them.
 
    They cast the ring instead of a drop shadow, so their shadow stacks are
-   restated without one. Component rules that add to var(--lg-shadow) (a focus
-   ring, say) pick these up. backdrop-filter already makes most of them a
-   stacking context; isolation keeps the ring on top of whatever is behind the
-   glass where it doesn't. */
+   restated without one: --lg-shadow-rim, the outline and rim alone, restated
+   here so it picks up the element's own rim colors. Component rules that add
+   to var(--lg-shadow) (a focus ring, say) pick these up. backdrop-filter
+   already makes most of them a stacking context; isolation keeps the ring on
+   top of whatever is behind the glass where it doesn't. */
 .lg-glass,
+.lg-ring,
+:has(> .lg-ring-layer),
 .lg-seg__track,
 .lg-tabbar__bar {
-  --lg-shadow: 0 0 0 0.1px var(--lg-outline), var(--lg-highlight);
-  --lg-shadow-compact: var(--lg-shadow);
+  --lg-shadow-rim: 0 0 0 0.1px var(--lg-outline), var(--lg-highlight);
+  --lg-shadow: var(--lg-shadow-rim);
+  --lg-shadow-compact: var(--lg-shadow-rim);
   isolation: isolate;
 }
 
@@ -49,6 +62,8 @@
    z-index -1 paints it under the content but over the tint, which is where its
    top half shows through the glass. */
 .lg-glass::before,
+.lg-ring::before,
+.lg-ring-layer,
 .lg-seg__track::before,
 .lg-tabbar__bar::before,
 .lg-pill::before {
@@ -79,7 +94,9 @@
    tinted glass, whose fill is strong. A light blur melts it there. Not
    everywhere: on the rest it smears the ring into a plain drop shadow. */
 .lg-glass--circle::before,
-.lg-glass--tinted::before {
+.lg-glass--tinted::before,
+.lg-ring--soft::before,
+.lg-ring--soft > .lg-ring-layer {
   filter: blur(var(--lg-ring-soften));
 }
 
@@ -91,6 +108,8 @@
    is WebKit-only). */
 @supports (mask-clip: no-clip) and (not (font: -apple-system-body)) {
   .lg-glass::before,
+  .lg-ring::before,
+  .lg-ring-layer,
   .lg-seg__track::before,
   .lg-tabbar__bar::before,
   .lg-pill::before {
@@ -113,9 +132,23 @@
 /* Glass on glass: the ring lands on the lighter surface below, where it reads
    much darker than on the page, so it's dimmed. Large surfaces (sheet, alert,
    popover) dim their own ring the same way, in their stylesheets. */
-.lg-glass .lg-glass,
-.lg-glass .lg-seg__track {
+:is(.lg-glass, .lg-ring, :has(> .lg-ring-layer))
+  :is(.lg-glass, .lg-ring, :has(> .lg-ring-layer), .lg-seg__track) {
   --lg-ring-strength: var(--lg-ring-strength-nested);
+}
+
+/* With blur off (core/blur-capability.js) the device was judged too slow for
+   backdrop blur, so the ring drops its mask and blur filter too: the plain
+   two-shadow ring is all that's left, even from top to bottom. */
+:root[data-blur="off"] .lg-glass::before,
+:root[data-blur="off"] .lg-ring::before,
+:root[data-blur="off"] .lg-ring-layer,
+:root[data-blur="off"] .lg-seg__track::before,
+:root[data-blur="off"] .lg-tabbar__bar::before,
+:root[data-blur="off"] .lg-pill::before {
+  -webkit-mask: none;
+  mask: none;
+  filter: none;
 }
 
 .lg-glass--clear {
@@ -169,8 +202,9 @@
       inset 0 -1px 0 1px color(from var(--_rim-top) display-p3 r g b / calc(alpha * var(--_rim-k) * 0.3)),
       inset 0 1px 0 0 color(from var(--_rim-top) display-p3 r g b / calc(alpha * var(--_rim-k) * 0.5)),
       inset 0 1px 0 1px color(from var(--_rim-top) display-p3 r g b / calc(alpha * var(--_rim-k) * 0.3));
-    --lg-shadow: 0 0 0 0.1px var(--lg-outline), var(--lg-highlight);
-    --lg-shadow-compact: var(--lg-shadow);
+    --lg-shadow-rim: 0 0 0 0.1px var(--lg-outline), var(--lg-highlight);
+    --lg-shadow: var(--lg-shadow-rim);
+    --lg-shadow-compact: var(--lg-shadow-rim);
   }
 
   .lg-glass--clear {

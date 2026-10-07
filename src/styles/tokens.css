@@ -130,6 +130,13 @@
      control, pill) rather than floating buttons. */
   --lg-shadow-compact: 0 0 0 0.1px var(--lg-outline), var(--lg-highlight), 0 4px 20px 0 var(--lg-shadow-color);
 
+  /* The outline and rim alone, with no drop shadow: the stack for a surface
+     that casts the ring (see .lg-ring in glass.css), which restates it on each
+     ring surface so it picks up that surface's own rim colors. --lg-shadow
+     and --lg-shadow-compact are the same on ring surfaces; on :root they keep
+     their drop shadow, for surfaces that don't cast a ring. */
+  --lg-shadow-rim: 0 0 0 0.1px var(--lg-outline), var(--lg-highlight);
+
   /* Text on glass. */
   --lg-text: #1d1d1f;
   --lg-text-secondary: #4a4a4f;

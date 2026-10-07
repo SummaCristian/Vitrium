@@ -111,7 +111,7 @@
   border-radius: 50%;
   background: color-mix(in srgb, var(--lg-text) 28%, transparent);
   color: var(--lg-tint);
-  cursor: pointer;
+  cursor: default;
   -webkit-tap-highlight-color: transparent;
   opacity: 0;
   scale: 0.6;

@@ -21,7 +21,7 @@
   background: none;
   color: var(--lg-text);
   font: inherit;
-  cursor: pointer;
+  cursor: default;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   transition: background 0.12s ease, opacity 0.2s ease;
@@ -39,7 +39,6 @@
 
 .lg-stepper__button[aria-disabled="true"] {
   opacity: 0.35;
-  cursor: default;
 }
 
 .lg-stepper__button:focus-visible {

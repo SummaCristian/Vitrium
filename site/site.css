@@ -194,10 +194,10 @@ h3 { font-size: clamp(1.15rem, 1.09rem + 0.3vw, 1.25rem); font-weight: 600; }
 .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .card { padding: 1.25rem 1.5rem; border-radius: var(--radius-xl); display: grid; grid-template-columns: minmax(0, 1fr); justify-items: start; gap: 12px; color: var(--text-color-primary); }
 .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
-.lg-btn { border: 0; font: inherit; cursor: pointer; }
+.lg-btn { border: 0; font: inherit; cursor: default; }
 .lg-btn.pill { padding: 0.7rem 1.4rem; }
 a.lg-btn { text-decoration: none; color: inherit; display: inline-block; }
-.card-link { text-decoration: none; color: inherit; cursor: pointer; text-align: start; }
+.card-link { text-decoration: none; color: inherit; cursor: default; text-align: start; }
 /* A card that is a link presses down and springs back: the press of the glass physics, without its drag, so a swipe that
    starts on one still scrolls the page on a phone. */
 .card-link { transition: scale var(--lg-press-out-dur) var(--lg-ease-spring); }
@@ -524,8 +524,7 @@ code.ic { font: 0.88em ui-monospace, 'SF Mono', Menlo, monospace; padding: 0.12e
 
 /* Popover page */
 .popover-arena { position: relative; width: 100%; height: 320px; }
-.popover-anchor { position: absolute; left: calc(50% - 28px); top: calc(50% - 28px); width: 56px; height: 56px; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--lg-text); cursor: grab; touch-action: none; }
-.popover-anchor:active { cursor: grabbing; }
+.popover-anchor { position: absolute; left: calc(50% - 28px); top: calc(50% - 28px); width: 56px; height: 56px; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--lg-text); touch-action: none; }
 .popover-anchor:focus-visible { outline: 2px solid var(--lg-accent); outline-offset: 3px; }
 .popover-note { margin: 0 0 0.75rem; font-size: 0.95rem; opacity: 0.85; }
 
@@ -632,12 +631,12 @@ body.sheet-preview h1, body.sheet-preview p { color: #fff; text-shadow: 0 1px 4p
 .core-panels { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); width: 100%; }
 .core-panel { padding: 0 0 14px; border-radius: 22px; display: grid; gap: 8px; justify-items: center; text-align: center; }
 .core-panel p { margin: 0; font-size: 0.85rem; opacity: 0.8; padding: 0 12px; }
-.core-grip { width: 100%; padding: 10px 0; font-weight: 700; border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent); cursor: grab; }
+.core-grip { width: 100%; padding: 10px 0; font-weight: 700; border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent); }
 .core-note { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 14px; border: 0; font: inherit; background: color-mix(in srgb, currentColor 8%, transparent); color: inherit; resize: none; }
 .dial { position: relative; display: inline-block; padding: 4px; border-radius: 999px; }
 .dial__items { position: relative; display: flex; }
 .dial__cell, .dial .lg-pill-active-cell { display: flex; align-items: center; justify-content: center; box-sizing: border-box; padding: 8px 20px; font: inherit; font-weight: 700; }
-.dial__cell { border: 0; background: none; color: var(--lg-text-muted); cursor: pointer; touch-action: none; }
+.dial__cell { border: 0; background: none; color: var(--lg-text-muted); cursor: default; touch-action: none; }
 .dial .lg-pill-active-cell { color: var(--lg-accent); white-space: nowrap; }
 .dial__cell:focus-visible { outline: 2px solid var(--lg-accent); outline-offset: -3px; border-radius: 999px; }
 .core-calc { gap: 14px; }
@@ -685,7 +684,7 @@ body.sheet-preview h1, body.sheet-preview p { color: #fff; text-shadow: 0 1px 4p
 .board-opt { display: flex; align-items: center; gap: 12px; }
 .board-opt > span { font-size: 0.8rem; font-weight: 700; opacity: 0.7; }
 .swatches { display: flex; gap: 8px; }
-.swatch { width: 26px; height: 26px; border-radius: 50%; border: 0; cursor: pointer; box-shadow: 0 0 0 2px transparent, inset 0 0 0 1px rgba(0, 0, 0, 0.15); transition: box-shadow 0.2s ease, scale 0.25s var(--lg-ease-spring); }
+.swatch { width: 26px; height: 26px; border-radius: 50%; border: 0; cursor: default; box-shadow: 0 0 0 2px transparent, inset 0 0 0 1px rgba(0, 0, 0, 0.15); transition: box-shadow 0.2s ease, scale 0.25s var(--lg-ease-spring); }
 .swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--background-color-secondary), 0 0 0 4px currentColor; scale: 1.1; }
 .swatch:focus-visible { outline: 2px solid var(--lg-accent); outline-offset: 3px; }
 .tile-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); align-items: stretch; }

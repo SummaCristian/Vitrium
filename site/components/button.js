@@ -71,7 +71,7 @@ document.body.append(button);`,
 
     const textButton = h('button', {
       type: 'button', class: 'lg-glass liquid-glass',
-      style: 'padding: 0.7rem 1.4rem; border: 0; border-radius: 999px; font: inherit; color: var(--lg-text); cursor: pointer',
+      style: 'padding: 0.7rem 1.4rem; border: 0; border-radius: 999px; font: inherit; color: var(--lg-text)',
     }, 'Save');
 
     return [

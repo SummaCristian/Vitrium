@@ -17,7 +17,7 @@
   -webkit-user-select: none;
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
-  cursor: pointer;
+  cursor: default;
 }
 
 /* The same off-state track the toggle uses. */

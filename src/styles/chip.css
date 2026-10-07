@@ -14,7 +14,7 @@
   font: inherit;
   text-align: start;
   color: var(--lg-text);
-  cursor: pointer;
+  cursor: default;
   -webkit-tap-highlight-color: transparent;
 
   /* Must restate the liquid-glass spring (translate/scale/filter) next to our own

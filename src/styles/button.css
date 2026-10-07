@@ -13,7 +13,7 @@
   justify-content: center;
   font: inherit;
   color: var(--lg-text-secondary);
-  cursor: pointer;
+  cursor: default;
   -webkit-tap-highlight-color: transparent;
   /* Must restate the liquid-glass spring (translate/scale/filter): a
      `transition` here would otherwise replace it, and a released deform would

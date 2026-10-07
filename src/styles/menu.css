@@ -24,7 +24,7 @@
   border-radius: 16px;
   color: var(--lg-text);
   font-size: 15px;
-  cursor: pointer;
+  cursor: default;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -38,7 +38,6 @@
 
 .lg-menu__item[aria-disabled="true"] {
   opacity: 0.4;
-  cursor: default;
 }
 
 /* The icon / check slot: reserved on every row when any row uses it, so labels line up. */

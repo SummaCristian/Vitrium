@@ -74,7 +74,7 @@ export function createPopover({
   if (content != null) inner.appendChild(toNode(content));
   const arrowEl = arrow ? pop.appendChild(el('div', 'lg-popover__arrow')) : null;
   document.body.appendChild(pop);
-  if (deform) attachLiquidGlass(pop);
+  if (deform) attachLiquidGlass(pop, { claimTouch: true });   // floats above the page: a drag on it never scrolls it
 
   if (trigger) {
     trigger.setAttribute('aria-haspopup', role === 'tooltip' ? 'true' : role);

@@ -17,7 +17,7 @@ export function mountThemeSwitcher(slot) {
     onSelect: (v, { silent }) => { if (!silent) setTheme(v, 'switcher'); },
   });
 
-  const trigger = createButton({ icon: CONTRAST_ICON, label: 'Theme' });
+  const trigger = createButton({ icon: CONTRAST_ICON, label: 'Theme', claimTouch: true });
   const menuItems = () => THEMES.map((t) => ({ id: t, label: LABELS[t], checked: t === getTheme(), onSelect: () => setTheme(t, 'menu') }));
   const menu = createMenu({ trigger, label: 'Theme', width: 160, items: menuItems() });
 

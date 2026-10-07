@@ -6,14 +6,17 @@ import { icons } from './icons.js';
 import { toNode } from './dom.js';
 import { setGlassTint } from './glass-tint.js';
 
-// createButton({ icon, text, label, onClick })
+// createButton({ icon, text, label, onClick, claimTouch })
 //   icon    Node or trusted HTML/SVG string (see icons.js)
 //   text    visible text. Icon only: a circle. Text only or icon + text: a pill.
 //   label   accessible name. Required for an icon-only button; otherwise the
 //           visible text is the name, and `label` overrides it if given.
 //   onClick(event)
 //   tint    optional CSS color for tinted glass
-export function createButton({ icon, text, label, onClick, className = '', tint } = {}) {
+//   claimTouch  the button sits on a layer above the content (a fixed header):
+//           a drag on it never scrolls the page. Off, a touch on it also drives
+//           the scroll of the content it's in. See liquid-glass.js.
+export function createButton({ icon, text, label, onClick, className = '', tint, claimTouch = false } = {}) {
   const btn = document.createElement('button');
   btn.type = 'button';
   const iconOnly = !text;
@@ -30,7 +33,7 @@ export function createButton({ icon, text, label, onClick, className = '', tint 
   btn.addEventListener('click', (e) => {
     onClick?.(e);
   });
-  attachLiquidGlass(btn);
+  attachLiquidGlass(btn, { claimTouch });
   watchContent(btn);
   return btn;
 }
@@ -73,6 +76,6 @@ export function createToolbar(items = []) {
   return bar;
 }
 
-export function createBackButton({ label = 'Back', onClick } = {}) {
-  return createButton({ icon: icons.chevronLeft, label, onClick, className: 'lg-back-button' });
+export function createBackButton({ label = 'Back', onClick, claimTouch } = {}) {
+  return createButton({ icon: icons.chevronLeft, label, onClick, className: 'lg-back-button', claimTouch });
 }

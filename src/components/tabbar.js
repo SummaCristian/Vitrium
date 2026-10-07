@@ -488,7 +488,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
       if (currentId === prominent.id) return;
       select(prominent.id, { silent: false });
     });
-    attachLiquidGlass(pBtn);
+    attachLiquidGlass(pBtn, { claimTouch: true });   // fixed chrome: a drag on it never scrolls the page
     tabEls.set(prominent.id, pBtn);
     root.insertBefore(pBtn, actionBtn);   // null-safe: appends when there's no action
     syncLayout();
@@ -504,7 +504,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     actionBtn.addEventListener('click', (e) => {
       action.onClick?.(e);
     });
-    attachLiquidGlass(actionBtn);
+    attachLiquidGlass(actionBtn, { claimTouch: true });
     root.appendChild(actionBtn);
   }
 

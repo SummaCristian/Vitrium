@@ -42,7 +42,7 @@ const head = h('div', { class: 'sidebar-head' });
 sidebar.el.prepend(head);
 const STORE_FOLD = 'lgw:sidebar-folded';
 let folded = (() => { try { return localStorage.getItem(STORE_FOLD) === '1'; } catch { return false; } })();
-const foldToggle = createButton({ icon: navIcons.sidebar, label: 'Hide sidebar', className: 'sidebar-toggle', onClick: () => setFolded(!folded) });
+const foldToggle = createButton({ icon: navIcons.sidebar, label: 'Hide sidebar', className: 'sidebar-toggle', claimTouch: true, onClick: () => setFolded(!folded) });
 
 function setFolded(next, { animate = true } = {}) {
   folded = next;
@@ -65,7 +65,7 @@ function setFolded(next, { animate = true } = {}) {
 setFolded(folded, { animate: false });
 
 const mobileNav = buildSidebar({ onNavigate: () => sheet.dismiss() });
-const menuBtn = createButton({ icon: navIcons.menu, label: 'Documentation menu', onClick: () => sheet.present({ from: menuBtn }) });
+const menuBtn = createButton({ icon: navIcons.menu, label: 'Documentation menu', claimTouch: true, onClick: () => sheet.present({ from: menuBtn }) });
 menuBtn.classList.add('menu-btn');
 document.getElementById('menu-slot').append(menuBtn);
 const sheet = createSheet({

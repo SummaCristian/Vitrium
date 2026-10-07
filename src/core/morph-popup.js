@@ -91,7 +91,7 @@ export function createMorphPopup({
     titleEl.appendChild(text);
     inner.appendChild(titleEl);
     // The title bar is the deform handle; the body below is a scrollable list.
-    attachLiquidGlass(panel, { from: '.lg-morph__title' });
+    attachLiquidGlass(panel, { from: '.lg-morph__title', claimTouch: true });
   }
 
   panel.appendChild(inner);

@@ -160,6 +160,7 @@ createButton({ icon: toSvg(Add01Icon), text: 'New' });`)),
           h('li', {}, h('strong', {}, 'A label is required. '), 'An icon-only button has no text, so `label` becomes its `aria-label`; without it a screen reader announces just "button". With `text`, the visible text is the name.'),
           h('li', {}, h('strong', {}, 'It is a real button. '), 'Enter and Space activate it, it takes part in the tab order, and it shows a focus ring in the accent color, offset 3px, on keyboard focus only.'),
           h('li', {}, h('strong', {}, 'A drag is not a click. '), 'Dragging a button past 8px is a stretch gesture, and the click on release is swallowed. A keyboard activation is never affected.'),
+          h('li', {}, h('strong', {}, 'It doesn\'t trap the scroll. '), 'A swipe that starts on a button in the page still scrolls the page, with the button pressed and lit until the finger lifts, as on iOS. A button on a layer above the content, like a fixed header, has nothing to scroll and shouldn\'t move the page beneath it: pass `claimTouch: true` and a drag on it is the glass\'s alone.'),
           h('li', {}, h('strong', {}, 'Touch target. '), 'At 3rem the button is above the usual 44px minimum. If you make it smaller, keep the hit area that big.'))),
 
       section('Styling', {},
@@ -178,6 +179,7 @@ createButton({ icon: toSvg(Add01Icon), text: 'New' });`)),
           ['onClick', '(event) => void', 'Click handler.'],
           ['tint', 'CSS color', 'Optional tinted glass.'],
           ['className', 'string', 'Extra classes, for example `lg-glass--clear`.'],
+          ['claimTouch', 'boolean', 'For a button on a layer above the content (a fixed header): a drag on it never scrolls the page. Default: `false`, a touch on it also scrolls the content it is in.'],
         ].map((r) => [h('code', {}, r[0]), h('code', {}, r[1]), r[2]])),
         h('h3', { class: 'sub-label' }, 'createToolbar(items)'),
         table(['Argument', 'Type', 'Description'], [
@@ -187,6 +189,7 @@ createButton({ icon: toSvg(Add01Icon), text: 'New' });`)),
         table(['Option', 'Type', 'Description'], [
           ['label', 'string', 'Accessible name. Default: `"Back"`.'],
           ['onClick', '(event) => void', 'Click handler.'],
+          ['claimTouch', 'boolean', 'As for `createButton`. A back button usually sits in a fixed header, so it usually wants `true`.'],
         ].map((r) => [h('code', {}, r[0]), h('code', {}, r[1]), r[2]])),
         h('p', {}, 'All three return plain DOM elements, and the buttons are real `<button>`s, so you can add your own listeners or attributes.')),
     ];

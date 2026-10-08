@@ -9,7 +9,7 @@ const layoutOf = (s) => ({ orientation: ORIENTATIONS[s.layout], compact: s.compa
 const VIEWPORTS = { phone: '390px', desktop: '100%' };
 // Start on the viewport that fits: a small window has no room for the desktop preview.
 const fittingViewport = () => (window.matchMedia('(min-width: 900px)').matches ? 'desktop' : 'phone');
-const stateOf = (s) => ({ ...layoutOf(s), row: s.row, rail: s.rail, railAlign: s.railAlign, tabs: s.tabs, prominent: s.prominent, transition: s.transition, clearance: s.clearance, large: s.viewport !== 'phone' });
+const stateOf = (s) => ({ ...layoutOf(s), row: s.row, rail: s.rail, railAlign: s.railAlign, tabs: s.tabs, prominent: s.prominent, transition: s.transition, clearance: s.clearance, glass: s.glass, large: s.viewport !== 'phone' });
 
 const SPACES = [
   ['top', 'A row at the top edge, or the compact bar.'],
@@ -53,6 +53,7 @@ export default {
         { key: 'tabs', label: 'Tabs', type: 'choice', choices: [2, 3, 4], default: 4 },
         { key: 'prominent', label: 'Last tab', type: 'choice', choices: ['none', 'tab', 'press'], default: 'none' },
         { key: 'transition', label: 'Page transition', type: 'bool', default: true },
+        { key: 'glass', label: 'Glass', type: 'choice', choices: ['regular', 'clear'], default: 'regular' },
         { key: 'clearance', label: 'Edge clearance', type: 'choice', choices: ['default', 'wide'], default: 'default' },
       ],
       render(s, stage) {
@@ -85,6 +86,7 @@ export default {
           orientation !== 'auto' && `  orientation: '${orientation}',`,
           compact && '  compact: true,',
           place.length && `  placement: { ${place.join(', ')} },`,
+          s.glass !== 'regular' && `  glass: '${s.glass}',`,
           s.transition && '  transition: true,',
           '  onSelect(id) {},',
         ].filter(Boolean);
@@ -196,6 +198,7 @@ body {
           ['breakpoint', 'number', 'Width in px from which `auto` is a rail. Default: 600.'],
           ['placement', '{ row?, rail?, railAlign? }', 'Which edge each layout uses.'],
           ['compact', 'boolean', 'One bar at the top instead of the rail. Default: `false`.'],
+          ['glass', "'regular' | 'clear'", 'Clear is the lighter glass: less tint, shallower blur. Default: `"regular"`.'],
           ['transition', 'boolean', 'Fade in the arriving tab\'s panel. Default: `false`.'],
           ['action', '{ label, icon, onClick }', 'A round button beside the bar.'],
           ['label', 'string', 'Accessible name of the tablist.'],
@@ -209,6 +212,7 @@ body {
           ['setOrientation(mode, { animate })', 'Change the orientation.'],
           ['setCompact(on, { animate })', 'Turn the compact layout on or off. `compact` reads it back.'],
           ['setPlacement(partial, { animate })', 'Change the placement. `placement` reads it back.'],
+          ['setGlass(mode)', 'Switch between `"regular"` and `"clear"` glass. `glass` reads it back.'],
           ['orientation', 'The current axis, `"horizontal"` or `"vertical"` (read-only).'],
           ['prominentEl', 'The prominent circle, or `null`. Give it a `view-transition-name` to morph an overlay out of it.'],
           ['action', 'The action button element, or `null`.'],

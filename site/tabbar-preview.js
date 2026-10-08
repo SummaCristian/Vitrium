@@ -21,7 +21,7 @@ const TEXT = {
 // The state the docs page sends. Every key is optional; what is missing keeps its last value.
 const DEFAULTS = {
   orientation: 'auto', compact: false, row: 'bottom', rail: 'start', railAlign: 'top',
-  tabs: 4, prominent: 'none', transition: true, clearance: 'default', large: true,
+  tabs: 4, prominent: 'none', transition: true, clearance: 'default', glass: 'regular', large: true,
 };
 
 const tabsFor = ({ tabs, prominent }) => {
@@ -53,7 +53,7 @@ function build() {
   const value = bar?.value ?? 'home';
   bar = createTabBar(document.getElementById('tabbar'), {
     tabs: tabsFor(state), value: tabsFor(state).some((t) => t.id === value && !t.press) ? value : 'home',
-    orientation: orientationOf(state), compact: state.compact, transition: state.transition, label: 'Sections',
+    glass: state.glass, orientation: orientationOf(state), compact: state.compact, transition: state.transition, label: 'Sections',
     placement: { row: state.row, rail: state.rail, railAlign: state.railAlign },
     onSelect: (id, { silent }) => { show(id); if (!silent) emit('onSelect', id); },
   });
@@ -74,6 +74,7 @@ function apply(next) {
     }
     if (state.tabs !== prev.tabs || state.prominent !== prev.prominent) bar.setTabs(tabsFor(state));
   }
+  if (state.glass !== prev.glass) bar.setGlass(state.glass);
   if (state.clearance !== prev.clearance) {
     const px = state.clearance === 'wide' ? '64px' : '';
     for (const side of ['top', 'bottom', 'start', 'end']) document.documentElement.style.setProperty(`--lg-tabbar-${side}-offset`, px || '');

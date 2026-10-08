@@ -84,6 +84,14 @@
   backdrop-filter: blur(var(--lg-blur-sm));
 }
 
+/* Clear glass (the `glass: 'clear'` option) adds `.lg-glass--clear`, whose tint and
+   blur have to beat the bar's own, which come from the same single-class weight. */
+.lg-tabbar__bar.lg-glass--clear {
+  background: var(--lg-tint-clear);
+  -webkit-backdrop-filter: blur(var(--lg-blur-clear));
+  backdrop-filter: blur(var(--lg-blur-clear));
+}
+
 .lg-tabbar__bar::after {
   content: "";
   position: absolute;

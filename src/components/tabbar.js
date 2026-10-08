@@ -111,6 +111,12 @@
 //   invisible until the animation ended. It has no fill either, so nothing is left on
 //   the panel afterwards.
 //
+// Glass:
+//   glass: 'regular' (default) | 'clear'
+//   Clear glass is the lighter variant (less tint, shallower blur, a fainter rim)
+//   that lets more of the page show through. It covers the bar and the prominent
+//   circle. tabs.setGlass(mode) changes it later; tabs.glass reads it back.
+//
 // `icon` is a Node or trusted SVG/HTML string; `label` is set as text.
 import { createPillDragCore } from '../core/pill-drag-core.js';
 import { attachLiquidGlass } from '../core/liquid-glass.js';
@@ -188,7 +194,7 @@ function splitTabs(tabs, unified = false) {
 
 let tabbarUid = 0;
 
-export function createTabBar(root, { tabs: initialTabs, value, onSelect, action, orientation = 'auto', breakpoint = 600, placement, label, compact = false, transition = false } = {}) {
+export function createTabBar(root, { tabs: initialTabs, value, onSelect, action, orientation = 'auto', breakpoint = 600, placement, label, compact = false, transition = false, glass = 'regular' } = {}) {
   root.classList.add('lg-tabbar');
   const uid = ++tabbarUid;
 
@@ -243,6 +249,18 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
   /* --- Main group -------------------------------------------------- */
   const group = el('div', 'lg-tabbar__group');
   const bar = el('div', 'lg-tabbar__bar');
+  // Clear glass is the shared `lg-glass--clear` class on each glass surface (the bar, the prominent circle).
+  let glassMode = 'regular';
+  const applyGlass = (node) => node?.classList.toggle('lg-glass--clear', glassMode === 'clear');
+  function setGlass(next) {
+    if (next !== 'regular' && next !== 'clear') {
+      console.warn(`vitrium: glass must be 'regular' or 'clear', got '${next}'; ignoring it.`);
+      return;
+    }
+    glassMode = next;
+    applyGlass(bar);
+    applyGlass(pBtn);
+  }
   const items = el('div', 'lg-tabbar__items', { role: 'tablist' });
   if (label) items.setAttribute('aria-label', label);
   items.setAttribute('aria-orientation', vertical ? 'vertical' : 'horizontal');
@@ -468,6 +486,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
 
   function buildProminent({ enter = false } = {}) {
     pBtn = el('button', 'lg-tabbar__prominent lg-glass lg-glass--circle', { type: 'button', role: 'tab' });
+    applyGlass(pBtn);
     pBtn.id = `lg-tabbar-${uid}-prominent`;
     // The circle sits outside the tablist element (it's a sibling of the bar), so
     // claim it: assistive tech then sees it as one more tab in the same list.
@@ -980,6 +999,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
   /* --- Init ---------------------------------------------------------------------- */
   syncMainEls();
   sizeTabs();
+  setGlass(glass);
   if (prominent) buildProminent();
   syncPageSpace();
   const all = [...mainTabs, ...(prominent ? [prominent] : [])];
@@ -997,6 +1017,8 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     setOrientation,
     setCompact,
     get compact() { return compactOpt; },
+    setGlass,
+    get glass() { return glassMode; },
     setPlacement,
     get placement() { return { ...place }; },
     get orientation() { return vertical ? 'vertical' : 'horizontal'; },

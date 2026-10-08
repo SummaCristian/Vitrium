@@ -89,6 +89,7 @@ const router = createRouter(page, routes, {
 });
 
 tabbar = createTabBar(document.getElementById('tabbar'), {
+  glass: 'clear',
   tabs,
   transition: true,
   compact: true,   // wide screens: one bar centred at the top; phones keep the bottom row

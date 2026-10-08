@@ -113,7 +113,7 @@ export const home = {
     const sheetBtn = button('Sheet', () => {});
     const places = h('div', { class: 'places' }, PLACES.map((p) => h('div', { class: 'place-row' }, h('span', { class: 'place-dot', style: `background: hsl(${p.length * 37} 80% 55%)` }), h('div', {}, h('strong', {}, p)))));
     const sheet = own(createSheet({
-      label: 'Places', modal: true, transition: 'morph', header: h('div', { class: 'sheet-header' }, h('strong', {}, 'Places')), content: places,
+      label: 'Places', modal: true, transition: 'morph', scrim: false, header: h('div', { class: 'sheet-header' }, h('strong', {}, 'Places')), content: places,
       detents: [{ id: 'half', size: 0.5 }, { id: 'full', size: 0.85 }], responsive: [{ minWidth: 600, width: 420, margin: { inline: 20 } }],
       onDismiss: (reason) => { overlayLog.textContent = `onDismiss('${reason}')`; },
     }));

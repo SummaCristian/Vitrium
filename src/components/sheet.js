@@ -101,13 +101,17 @@
 //           hidden, refresh, destroy }.
 import { Spring, onSpringFrame } from '../core/spring.js';
 import * as physics from '../core/sheet-physics.js';
-import { arcOffset, glideSpring, travelDistance } from '../core/motion-path.js';
+import { arcOffset, appleSpringConfig, dropletAlong, travelDistance } from '../core/motion-path.js';
 import { el, toNode } from './dom.js';
 
 const SETTLE = { stiffness: 260, damping: 30, mass: 1 };
 const PRESENT = { stiffness: 330, damping: 25, mass: 1 };   // a touch underdamped: a small overshoot
 const DISMISS = { stiffness: 340, damping: 38, mass: 1 };
 const POP_FROM = 0.9;         // a popped sheet starts at this scale
+const MORPH_BOUNCE = 0.3;     // a morph's spring: SwiftUI's `.bouncy` (core/motion-path.js appleSpring)
+// A size past `rest` (a spring's overshoot), softly limited to `room` px more: it tapers off
+// rather than stopping dead at the limit.
+const swell = (v, rest, room) => (v <= rest ? v : rest + (room > 0 ? room * Math.tanh((v - rest) / room) : 0));
 const PULL_SHRINK = 0.3;      // how much presence a full pull-down gives up before release
 const PULL_RANGE = 160;       // px of pull that counts as a "full" pull for that
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]), [contenteditable="true"]';
@@ -157,6 +161,7 @@ export function createSheet({
   const contentEl = el('div', 'lg-sheet__content', { id: `lg-sheet-${uid}-content` });
   const headerEl = header != null ? el('div', 'lg-sheet__header') : null;
   const footerEl = footer != null ? el('div', 'lg-sheet__footer') : null;
+  const safeProbe = el('div', 'lg-sheet-safe');   // padded by the safe-area insets, to measure them
 
   let handleEl = null;
   if (showHandle) {
@@ -174,7 +179,7 @@ export function createSheet({
   if (footerEl) { footerEl.appendChild(toNode(footer)); clip.appendChild(footerEl); }
   glass.appendChild(clip);
   sheet.appendChild(glass);
-  frame.appendChild(sheet);
+  frame.append(sheet, safeProbe);
   if (scrim) { scrim.appendChild(el('div', 'lg-sheet-scrim__dim')); container.appendChild(scrim); }
   if (shield) container.appendChild(shield);
   container.appendChild(frame);
@@ -248,6 +253,16 @@ export function createSheet({
   let wasBlocking = false;
   const initialId = () => pointFor(initialDetent)?.id ?? smallest().id;
 
+  // How far the glass may swell past its own box while a morph's spring overshoots (px): out to
+  // the safe area on either side (it swells about its centre, so the nearer side limits it) and
+  // above (its bottom stays put), never into it.
+  function swellRoom(r) {
+    const cs = getComputedStyle(safeProbe);
+    const inset = (side) => parseFloat(cs[`padding${side}`]) || 0;
+    const side = Math.min(r.left - inset('Left'), document.documentElement.clientWidth - inset('Right') - r.right);
+    return { width: Math.max(0, 2 * side), height: Math.max(0, r.top - inset('Top')) };
+  }
+
   // Where the glass sits when it's "at the source": the sheet's own box mapped onto
   // the source's (scale about the bottom-centre, which is where the glass scales
   // from, plus a translation), with the radius that keeps the source's corners.
@@ -263,6 +278,9 @@ export function createSheet({
       tx: (o.left + o.width / 2) - (r.left + r.width / 2),
       ty: o.bottom - r.bottom,
       radius,
+      from: { width: o.width, height: o.height },
+      to: { width: r.width, height: r.height },
+      room: swellRoom(r),
       distance: travelDistance(o, r),
     };
   }
@@ -356,8 +374,8 @@ export function createSheet({
       presence.set(0);
       if (morph) source.style.visibility = 'hidden';   // the sheet stands in for it
     }
-    // A morph glides like the pickers (no pop overshoot), for as long as its distance calls for.
-    presence.to(1, morph ? glideSpring(morph.distance) : PRESENT);
+    // A morph rides Apple's `.bouncy` spring (like the pickers' droplet), for as long as its distance calls for.
+    presence.to(1, morph ? appleSpringConfig(MORPH_BOUNCE, morph.distance) : PRESENT);
     applyBackground();
     if (modal) sheet.focus({ preventScroll: true });
     watch();
@@ -372,7 +390,7 @@ export function createSheet({
     pulled = 0;
     // The source may have moved (the page scrolled) since the sheet came in.
     if (morph) morph = measureMorph(source) ?? morph;
-    presence.to(0, morph ? glideSpring(morph.distance) : DISMISS);
+    presence.to(0, morph ? appleSpringConfig(MORPH_BOUNCE, morph.distance) : DISMISS);
     applyBackground();   // makes the page live again before focus goes back to it
     if (restoreFocus) {
       // A hidden source can't take focus: it gets it once the sheet has shrunk back into it.
@@ -668,16 +686,22 @@ export function createSheet({
     if (m < 0.999 || m > 1.001) {
       if (morph) {
         const k = 1 - m;   // 1 at the source, 0 at the sheet
-        sx = 1 - k * (1 - morph.sx); sy = 1 - k * (1 - morph.sy);
-        // Past the sheet (the present spring's overshoot, k < 0) it only grows: the translation
-        // stops at the sheet's own box, or it would swing out past the bottom edge, into Safari's safe area.
+        // Gathers into a droplet early on and spreads out of it into the sheet (core/motion-path.js);
+        // the spring's overshoot past the sheet (m > 1) swells it a little before it settles.
+        const sheetRadius = parseFloat(sheet.style.getPropertyValue('--lg-sheet-radius')) || 28;
+        const shape = dropletAlong(morph.from, morph.to, morph.radius, sheetRadius, m);
+        // The swell eases off into the room it has rather than running into the safe area.
+        shape.width = swell(shape.width, morph.to.width, morph.room.width);
+        shape.height = swell(shape.height, morph.to.height, morph.room.height);
+        sx = shape.width / morph.to.width; sy = shape.height / morph.to.height;
+        // Past the sheet (k < 0) it only swells: the translation stops at the sheet's own box, or it
+        // would swing out past the bottom edge, into Safari's safe area.
         const travel = Math.max(k, 0);
         // Bowed off the straight line (core/motion-path.js): the same path in and out, since `travel` is where along it the glass is.
         const [ax, ay] = arcOffset(-morph.tx, -morph.ty, 1 - travel);
         tx += travel * morph.tx + ax; ty = travel * morph.ty + ay;
-        // Counter-scale the radius so it reads as the source's corners, easing to the sheet's.
-        const rv = lerp(morph.radius, parseFloat(sheet.style.getPropertyValue('--lg-sheet-radius')) || 28, clamp01(m));
-        radius = `${rv / Math.max(sx, 0.01)}px / ${rv / Math.max(sy, 0.01)}px`;
+        // Counter-scaled so the corners read as the shape's own, never stretched into ellipses.
+        radius = `${shape.radius / Math.max(sx, 0.01)}px / ${shape.radius / Math.max(sy, 0.01)}px`;
         opacity = 1;   // solid all the way, like the pickers: it lands on the source and the source takes over
         content = clamp01((m - 0.55) / 0.4);
       } else {

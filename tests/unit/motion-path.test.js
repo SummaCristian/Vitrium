@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { glide, glideDuration, travelDistance, arcOffset, easingFunction, arcKeyframes, edgeShift } from '../../src/core/motion-path.js';
+import { glide, glideDuration, travelDistance, arcOffset, easingFunction, arcKeyframes, edgeShift, liquidKeyframes } from '../../src/core/motion-path.js';
 
 const px = (v) => v.split(' ').map(parseFloat);
 const len = (v) => Math.hypot(...v);
@@ -141,5 +141,44 @@ describe('edgeShift', () => {
     const frames = arcKeyframes(-108, 0, { travel: true, fit: { start: chip, end: panel } });
     expect(px(frames[0].translate)).toEqual([108, 0]);
     expect(len(px(frames.at(-1).translate))).toBeLessThan(1e-9);
+  });
+});
+
+describe('liquidKeyframes', () => {
+  const chip = { left: 300, top: 100, width: 90, height: 40 };
+  const panel = { left: 120, top: 100, width: 270, height: 300 };
+  const k = liquidKeyframes(panel, chip, panel, 20, 22, { easing: (t) => t });
+  const two = (v) => v.split(' ').map(parseFloat);
+
+  it('is the plain morph at both ends', () => {
+    for (const f of [0, -1]) {
+      const [sx, sy] = two(k.scale.at(f).scale);
+      expect(sx).toBeCloseTo(1); expect(sy).toBeCloseTo(1);
+      expect(len(two(k.translate.at(f).translate))).toBeLessThan(1e-6);
+    }
+  });
+
+  // The visible size at each frame: the FLIP's plain size (linear easing here) times the droplet's scale.
+  const sizes = k.scale.map((f, i) => {
+    const p = i / (k.scale.length - 1);
+    const [sx, sy] = two(f.scale);
+    return [sx * (90 + 180 * p), sy * (40 + 260 * p)];
+  });
+
+  it('gathers into a round droplet early, without first growing', () => {
+    const at = Math.round(0.2 * (sizes.length - 1));
+    const [w, h] = sizes[at];
+    expect(w).toBeCloseTo(h, 0);   // within half a px: the nearest sampled frame
+    expect(w).toBeLessThan(90);
+    for (let i = 1; i <= at; i++) expect(sizes[i][0]).toBeLessThanOrEqual(sizes[i - 1][0] + 1e-9);
+    const [rx, ry] = k.radius[at].borderRadius.split(' / ').map(parseFloat);
+    // Fully round: the visible radius is half its size, on both axes.
+    expect(rx * (w / panel.width)).toBeCloseTo(w / 2, 0);
+    expect(ry * (h / panel.height)).toBeCloseTo(h / 2, 0);
+  });
+
+  it('spreads out with a bounce past the destination before landing', () => {
+    expect(Math.max(...sizes.map(s => s[0]))).toBeGreaterThan(270 * 1.02);
+    expect(Math.max(...sizes.map(s => s[1]))).toBeGreaterThan(300 * 1.02);
   });
 });

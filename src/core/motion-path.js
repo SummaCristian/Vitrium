@@ -71,6 +71,42 @@ export function glideSpring(distance) {
   return { stiffness: w * w, damping: 2 * w, mass: 1 };
 }
 
+// Apple's springs (SwiftUI's `.spring(duration:bounce:)`): a mass on a spring, released from
+// rest, described by how much it bounces. The damping ratio is 1 - bounce: 0 never overshoots,
+// 0.15 is `.snappy` (a hair past and back), 0.3 is `.bouncy` (a visible rebound). Here it's
+// fitted to the trip rather than given a stiffness: stiff enough that it has rung down to
+// SETTLE of its travel when the trip ends, then pinned to land exactly on 1 there, so the curve
+// is the same shape whatever the trip's duration. Returns progress at u (0..1 of the trip),
+// which runs past 1 when it bounces. `speed` scales the stiffness's frequency (1.1: a bit quicker).
+const SETTLE = 0.005;
+export function appleSpring(bounce, speed = 1) {
+  const zeta = Math.min(1, Math.max(0.05, 1 - bounce));
+  const omega = speed * -Math.log(SETTLE) / zeta;   // rad per trip
+  const raw = (u) => {
+    if (zeta >= 1) return 1 - (1 + omega * u) * Math.exp(-omega * u);
+    const wd = omega * Math.sqrt(1 - zeta * zeta);
+    return 1 - Math.exp(-zeta * omega * u) * (Math.cos(wd * u) + (zeta * omega / wd) * Math.sin(wd * u));
+  };
+  const miss = 1 - raw(1);
+  return (u) => { u = clamp01(u); return raw(u) + miss * u ** 3; };
+}
+
+// A spring curve (appleSpring) as a CSS `linear()` easing, for a transition to run it.
+export function springEasing(bounce, speed = 1, samples = 40) {
+  const f = appleSpring(bounce, speed);
+  const v = [];
+  for (let i = 0; i <= samples; i++) v.push(+f(i / samples).toFixed(4));
+  return `linear(${v.join(', ')})`;
+}
+
+// appleSpring as a Spring (spring.js) config, for a trip of `distance` px: fitted to settle
+// over `stretch` times the glide's duration for that distance (a bounce needs a little longer).
+export function appleSpringConfig(bounce, distance, stretch = 1.25) {
+  const zeta = Math.min(1, Math.max(0.05, 1 - bounce));
+  const w = -Math.log(SETTLE) / zeta / (stretch * glideDuration(distance) / 1000);
+  return { stiffness: w * w, damping: 2 * zeta * w, mass: 1 };
+}
+
 // The glide's two pulled-apart clocks, at time t (0..1 of the duration): the one
 // that runs ahead of the spring and the one that drags behind it. Both land on 1
 // with it. For shaping something as well as moving it (a popover that extrudes
@@ -246,6 +282,113 @@ export function radiusKeyframes(box, start, end, r0, r1, { easing = glide } = {}
 export function playRadius(el, box, start, end, r0, r1, { duration, easing }) {
   if (!el.animate || !duration) return null;
   return el.animate(radiusKeyframes(box, start, end, r0, r1, { easing }), { duration, easing: 'linear', fill: 'forwards' });
+}
+
+/* --- The liquid droplet ----------------------------------------------------------------- */
+// A morph that only interpolates one rectangle into another reads as a resize. To read as
+// liquid, the shape first gathers itself into a round droplet, early, the way a drop of
+// water pulls in before it moves, then spreads out of it into the destination on a bouncy
+// spring, overshooting a little and settling. Both on the clock (time, not distance
+// travelled, which the glide spends mostly up front):
+//   gather  source -> droplet over the first DROP_AT of the trip, eased in and out, so it
+//           comes to rest as a circle just as the spread picks it up (no seam between them)
+//   spread  droplet -> destination on an underdamped spring that starts from rest; the
+//           width springs a little faster than the height, so the two axes overshoot out of
+//           phase (wider as it's shorter, then the other way), like a jelly coming to rest.
+//           It lands exactly on the destination at the end of the trip.
+//   DROP_AT      when the droplet is roundest, as a share of the trip's duration
+//   DROP_SIZE    its diameter, as a share of the circle with the smaller end's area
+//   SHAPE_BOUNCE  the spread's spring (appleSpring): 0.3, SwiftUI's `.bouncy`, overshoots ~5%
+const DROP_AT = 0.2;
+const DROP_SIZE = 0.85;
+const DROP_MIN = 28;   // px: never gathers to a speck, however small the ends are
+const SHAPE_BOUNCE = 0.3;
+const SPREAD = [appleSpring(SHAPE_BOUNCE, 1.12), appleSpring(SHAPE_BOUNCE, 0.92)];   // the width's spring a touch stiffer than the height's
+const LIQUID_FRAMES = 64;
+
+const smoothstep = (a, b, x) => { const u = clamp01((x - a) / (b - a)); return u * u * (3 - 2 * u); };
+
+// The droplet's diameter (px) for a trip between two rects.
+export function dropletSize(start, end) {
+  const area = Math.min(start.width * start.height, end.width * end.height);
+  return Math.max(DROP_MIN, 2 * Math.sqrt(area / Math.PI) * DROP_SIZE);
+}
+
+// How far from the source to the droplet (g) and from the droplet to the destination
+// (x and y, which overshoot 1) the shape is at time t.
+function dropletClocks(t) {
+  if (t <= DROP_AT) return { g: smoothstep(0, DROP_AT, t), x: 0, y: 0 };
+  const u = (t - DROP_AT) / (1 - DROP_AT);
+  return { g: 1, x: SPREAD[0](u), y: SPREAD[1](u) };
+}
+
+// The droplet's size and corner radius (px), for a morph between `start` and `end` (rects,
+// only their sizes matter) whose corners are r0 and r1: `g` is how far it has gathered from
+// the source into the droplet (0..1), then `x` and `y` how far each axis has spread from the
+// droplet into the destination (past 1 while a spring overshoots).
+export function dropletShape(start, end, r0, r1, { g, x, y = x }) {
+  const d = dropletSize(start, end);
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const width = g < 1 ? lerp(start.width, d, g) : lerp(d, end.width, x);
+  const height = g < 1 ? lerp(start.height, d, g) : lerp(d, end.height, y);
+  const r = g < 1 ? lerp(r0, d / 2, g) : lerp(d / 2, r1, clamp01(x));
+  return { width, height, radius: Math.max(0, Math.min(r, width / 2, height / 2)) };
+}
+
+// The same, from how far along its trip a box driven by a spring is (`m`: 0 at the source,
+// 1 at the destination, past it while the spring overshoots): it gathers over the first
+// DROP_AT_TRAVEL of the way, which a spring released from rest covers early, and spreads
+// over the rest, so the spring's own overshoot is the bounce.
+export const DROP_AT_TRAVEL = 0.3;
+export function dropletAlong(start, end, r0, r1, m) {
+  const g = smoothstep(0, DROP_AT_TRAVEL, m);
+  const x = m <= DROP_AT_TRAVEL ? 0 : (m - DROP_AT_TRAVEL) / (1 - DROP_AT_TRAVEL);
+  return dropletShape(start, end, r0, r1, { g, x });
+}
+
+// The keyframes of the droplet for a box whose real (untransformed) rect is `box`, FLIPped
+// (transform-origin top left) so it looks like `start`, then `end`; r0 and r1 are the
+// corner radii it should look like at each (px). Three channels, because the transform
+// transition already runs the straight resize:
+//   scale      turns the FLIP's plain size into the blended one
+//   translate  keeps the blended shape centred where the plain one would be (on the bow)
+//   radius     the corners, blended the same way, never stretched into ellipses
+export function liquidKeyframes(box, start, end, r0, r1, { easing = glide } = {}) {
+  const ease = typeof easing === 'function' ? easing : easingFunction(easing);
+  const scale = [], translate = [], radius = [];
+  for (let i = 0; i <= LIQUID_FRAMES; i++) {
+    const t = i / LIQUID_FRAMES;
+    const p = ease(t);
+    const { width: pw, height: ph, radius: r } = dropletShape(start, end, r0, r1, dropletClocks(t));
+    // The FLIP's plain size and top left at this instant (it runs the glide on distance).
+    const w = start.width + (end.width - start.width) * p;
+    const h = start.height + (end.height - start.height) * p;
+    const sx = w ? pw / w : 1, sy = h ? ph / h : 1;
+    // Where the FLIP puts the box's top left, then where scaling about the box's own origin moves it.
+    const left = start.left + (end.left - start.left) * p, top = start.top + (end.top - start.top) * p;
+    const tx = left + (w - pw) / 2 - (box.left + sx * (left - box.left));
+    const ty = top + (h - ph) / 2 - (box.top + sy * (top - box.top));
+    scale.push({ offset: t, scale: `${sx} ${sy}` });
+    translate.push({ offset: t, translate: `${tx}px ${ty}px` });
+    const total = [Math.max(pw / box.width, 0.001), Math.max(ph / box.height, 0.001)];
+    radius.push({ offset: t, borderRadius: `${r / total[0]}px / ${r / total[1]}px` });
+  }
+  return { scale, translate, radius };
+}
+
+// Plays liquidKeyframes on `el`, beside the transform transition and the bow. Returns the
+// animations (cancel them all to stop). The radius holds its last frame until cancelled,
+// like playRadius, so the hand-over at the end can't flash the box's own radius.
+export function playLiquid(el, box, start, end, r0, r1, { duration, easing }) {
+  if (!el.animate || !duration) return [];
+  const k = liquidKeyframes(box, start, end, r0, r1, { easing });
+  const opts = { duration, easing: 'linear' };
+  return [
+    // `add` multiplies onto the element's own scale (a hover lift), so that stays on throughout.
+    el.animate(k.scale, { ...opts, composite: 'add' }),
+    el.animate(k.translate, { ...opts, composite: 'add' }),
+    el.animate(k.radius, { ...opts, fill: 'forwards' }),
+  ];
 }
 
 // The corner radius a rect visibly has for a CSS radius of `radius` px (a pill's 999px is half its short side).

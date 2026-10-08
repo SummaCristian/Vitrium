@@ -275,3 +275,11 @@
     transition: none;
   }
 }
+
+/* Measured by the script for the safe-area insets (a morph's swell stays clear of them); takes no part in the layout. */
+.lg-sheet-safe {
+  position: fixed;
+  visibility: hidden;
+  pointer-events: none;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}

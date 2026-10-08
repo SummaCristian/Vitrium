@@ -3,7 +3,7 @@
 
 export { Spring, onSpringFrame, wakeSprings } from './core/spring.js';
 export { snapGeometry, morphGeometry, hideInnerBoxInstantly, unhideInnerBox } from './core/flip-morph.js';
-export { glide, glideDuration, glideSpring, travelDistance, arcOffset, arcKeyframes, playArc, edgeShift } from './core/motion-path.js';
+export { glide, glideDuration, glideSpring, travelDistance, arcOffset, arcKeyframes, playArc, edgeShift, liquidKeyframes, playLiquid, appleSpring, appleSpringConfig, springEasing, dropletShape, dropletAlong } from './core/motion-path.js';
 export { attachLiquidGlass, initLiquidGlass } from './core/liquid-glass.js';
 export { createPillDragCore } from './core/pill-drag-core.js';
 export { createMorphPopup } from './core/morph-popup.js';

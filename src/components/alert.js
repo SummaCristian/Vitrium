@@ -40,7 +40,7 @@
 // Returns { el, present({ from }), dismiss(), setTransition(mode), isOpen, destroy() }.
 import { attachLiquidGlass } from '../core/liquid-glass.js';
 import { createModalLayer, FOCUSABLE } from '../core/modal-layer.js';
-import { playArc, playRadius, radiusKeyframes, cssTiming, fitDuration, travelDistance } from '../core/motion-path.js';
+import { playArc, playLiquid, radiusKeyframes, cssTiming, fitDuration, travelDistance } from '../core/motion-path.js';
 import { el, toNode } from './dom.js';
 
 const MORPH_MS = 360;   // keep in sync with --lg-alert-morph-dur in tokens.css (each morph scales it to its distance)
@@ -152,9 +152,9 @@ export function createAlert({
     const dy = (to.top + to.height / 2) - (from.top + from.height / 2);
     anims = [
       playArc(box, dx, dy, { ...timing, reverse, fit: { start: from, end: to } }),
-      reverse
-        ? playRadius(box, to, to, from, boxRadius, sourceRadius, timing)
-        : playRadius(box, to, from, to, sourceRadius, boxRadius, timing),
+      ...(reverse
+        ? playLiquid(box, to, to, from, boxRadius, sourceRadius, timing)
+        : playLiquid(box, to, from, to, sourceRadius, boxRadius, timing)),
     ];
   }
   function stopMotion() { for (const a of anims) a?.cancel(); anims = []; }

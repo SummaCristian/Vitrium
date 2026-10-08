@@ -28,9 +28,9 @@
 // tear the freshly opened panel back down.
 import { snapGeometry, morphGeometry, hideInnerBoxInstantly, unhideInnerBox } from './flip-morph.js';
 import { attachLiquidGlass } from './liquid-glass.js';
-import { playArc, playRadius, radiusKeyframes, visibleRadius, cssTiming, fitDuration, travelDistance } from './motion-path.js';
+import { playArc, playLiquid, radiusKeyframes, visibleRadius, cssTiming, fitDuration, travelDistance } from './motion-path.js';
 
-const MORPH_MS = 340;   // keep in sync with --lg-morph-panel-dur in morph-popup.css (each trip scales it to its distance)
+const MORPH_MS = 440;   // keep in sync with --lg-morph-panel-dur in morph-popup.css (each trip scales it to its distance)
 const EDGE = 8;         // px kept clear of the viewport edge
 const EDGE_Y = 20;      // px kept clear above and below, plus the safe area: the sheet's and the tab bar's clearance
 const NORMAL_MAX = 420; // px: the height a panel is limited to by default, scrolling inside past it
@@ -140,7 +140,7 @@ export function createMorphPopup({
     anims = [
       // Source -> destination, whichever way the trip runs; `start`/`end` are the panel's rects at either end.
       playArc(panel, px - tx, py - ty, { ...timing, reverse, fit: { start: triggerRect, end: panelRect } }),
-      playRadius(panel, ...cornerArgs(start, end, reverse), timing),
+      ...playLiquid(panel, ...cornerArgs(start, end, reverse), timing),
     ];
   }
   function stopMotion() { for (const a of anims) a?.cancel(); anims = []; }

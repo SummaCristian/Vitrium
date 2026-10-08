@@ -122,6 +122,7 @@ import { createPillDragCore } from '../core/pill-drag-core.js';
 import { attachLiquidGlass } from '../core/liquid-glass.js';
 import { Spring, onSpringFrame } from '../core/spring.js';
 import { createPillParts, el, toNode } from './dom.js';
+import { setGlass as applyGlassMode } from './glass-mode.js';
 import { arcOffset } from '../core/motion-path.js';
 
 // Spring for the bar's size along its axis when the tab set changes size.
@@ -251,14 +252,11 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
   const bar = el('div', 'lg-tabbar__bar');
   // Clear glass is the shared `lg-glass--clear` class on each glass surface (the bar, the prominent circle).
   let glassMode = 'regular';
-  const applyGlass = (node) => node?.classList.toggle('lg-glass--clear', glassMode === 'clear');
+  const applyGlass = (node) => node && applyGlassMode(node, glassMode);
   function setGlass(next) {
-    if (next !== 'regular' && next !== 'clear') {
-      console.warn(`vitrium: glass must be 'regular' or 'clear', got '${next}'; ignoring it.`);
-      return;
-    }
-    glassMode = next;
-    applyGlass(bar);
+    const applied = applyGlassMode(bar, next);
+    if (!applied) return;
+    glassMode = applied;
     applyGlass(pBtn);
   }
   const items = el('div', 'lg-tabbar__items', { role: 'tablist' });

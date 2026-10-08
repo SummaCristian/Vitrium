@@ -108,16 +108,16 @@
   /* Each level's multiplier on the ring's opacity (--lg-ring-strength): a
      higher ring spreads its color over a much wider blur, so it needs more to
      stay visible. Above 1 needs relative colors; older browsers stop at 1. */
-  --lg-elevation-low-strength: 0.8;
-  --lg-elevation-high-strength: 2;
+  --lg-elevation-low-strength: 0.65;
+  --lg-elevation-high-strength: 1.15;
   /* Blur over the ring of circles and tinted glass, which melts the crisp
      edge where the ring's halves and the fill meet. Kept small: it's a seam
      fixer, not a stylistic blur. */
   --lg-ring-soften: 3px;
   /* Multiplier on the ring's opacity. Large surfaces set it lower, and glass
      inside glass uses --lg-ring-strength-nested. */
-  --lg-ring-strength: 1;
-  --lg-ring-strength-large: 0.45;
+  --lg-ring-strength: 0.25;
+  --lg-ring-strength-large: 0.4;
   --lg-ring-strength-nested: 0.6;
   /* Tinted glass: opacity of the ring in its own color (the hue follows
      --lg-shadow-tint). */

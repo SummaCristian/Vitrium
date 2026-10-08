@@ -711,3 +711,6 @@ body.sheet-preview h1, body.sheet-preview p { color: #fff; text-shadow: 0 1px 4p
 .board-deco { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; display: grid; align-content: space-around; justify-items: center; }
 .board-deco span { font-size: clamp(5rem, 22vw, 12rem); font-weight: 900; letter-spacing: -0.04em; color: #fff; opacity: 0.35; line-height: 1; }
 .board-deco i { display: block; width: 130%; height: 46px; background: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.55) 0 14px, rgba(255, 255, 255, 0.55) 14px 28px); rotate: -4deg; opacity: 0.5; }
+
+.home-logo { margin: 0; line-height: 0; }
+.home-logo img { width: min(440px, 80%); height: auto; display: block; margin-inline: auto; }

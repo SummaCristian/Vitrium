@@ -175,7 +175,7 @@ export const home = {
 
     root.append(
       h('header', { class: 'doc-head home-hero' },
-        h('h1', {}, 'Vitrium'),
+        h('h1', { class: 'home-logo' }, h('img', { src: './logo.png', alt: 'Vitrium', width: 1200, height: 538 })),
         h('p', { class: 'lede' }, 'Liquid Glass, for the web. A vanilla JS/CSS design system with real glass, springy physics and morphing surfaces. No framework, and this whole site is built from it.'),
         h('div', { class: 'row' },
           h('a', { class: 'lg-btn pill lg-glass liquid-glass', href: '#/start' }, 'Get started'),

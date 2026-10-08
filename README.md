@@ -1,4 +1,6 @@
-# Vitrium
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SummaCristian/Vitrium/main/assets/logo.png" alt="Vitrium" width="480" />
+</p>
 
 [![npm](https://img.shields.io/npm/v/vitrium?style=flat-square&color=cb3837&logo=npm)](https://www.npmjs.com/package/vitrium)
 [![npm downloads](https://img.shields.io/npm/dm/vitrium?style=flat-square&color=blue)](https://www.npmjs.com/package/vitrium)

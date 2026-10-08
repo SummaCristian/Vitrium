@@ -19,6 +19,7 @@ export {
 
 export { icons } from './components/icons.js';
 export { setGlassTint } from './components/glass-tint.js';
+export { setGlass } from './components/glass-mode.js';
 export { createButton, createToolbar, createBackButton } from './components/button.js';
 export { createSegmentedControl } from './components/segmented-control.js';
 export { createToggle } from './components/toggle.js';

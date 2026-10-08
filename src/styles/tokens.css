@@ -72,9 +72,9 @@
      on the page*, the band needs to be a real band (a few px) and the blur
      needs to be on the order of the offset, not much larger. When blur >>>
      offset the ring fuzzes into a haze and stops reading as a shadow at all. */
-  --lg-ring-color: rgba(0, 0, 0, 0.09);
+  --lg-ring-color: rgba(0, 0, 0, 0.075);
   --lg-ring-offset: 12px;
-  --lg-ring-blur: 14px;
+  --lg-ring-blur: 16px;
   --lg-ring-spread: 4px;
   /* How far the ring's top edge sits below the glass's top at the default
      elevation, so its blur stays behind the glass instead of above it. None
@@ -103,7 +103,7 @@
      would be a smudge; if it grew at the same rate, the ring would just be a
      bigger copy of itself. Sub-linear is what makes a lifted surface read as
      lifted. */
-  --lg-elevation-low: 0.5;
+  --lg-elevation-low: 0.6;
   --lg-elevation-high: 1.75;
   /* Each level's multiplier on the ring's opacity (--lg-ring-strength): a
      higher ring spreads its color over a much wider blur, so it needs more to

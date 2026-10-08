@@ -19,14 +19,16 @@
 import { attachLiquidGlass } from '../core/liquid-glass.js';
 import { icons } from './icons.js';
 import { el, toNode } from './dom.js';
+import { setGlass } from './glass-mode.js';
 
 export function createTextField({
   value = '', placeholder = '', type = 'text', name, label, variant = 'default', icon,
   clearable = variant === 'search', multiline = false, rows = 3, disabled = false,
-  autocomplete, onInput, onChange, onSubmit, onClear,
+  autocomplete, onInput, onChange, onSubmit, onClear, glass = 'regular',
 } = {}) {
   const search = variant === 'search';
   const root = el('div', 'lg-field lg-glass' + (search ? ' lg-field--search' : '') + (multiline ? ' lg-field--multiline' : ''));
+  let glassMode = setGlass(root, glass) ?? 'regular';
   if (search) root.setAttribute('role', 'search');
 
   const lead = icon ?? (search ? icons.search : null);
@@ -93,6 +95,9 @@ export function createTextField({
     el: root,
     input,
     get value() { return input.value; },
+    // 'regular' | 'clear'
+    get glass() { return glassMode; },
+    setGlass(mode) { glassMode = setGlass(root, mode) ?? glassMode; },
     // Silent by default: the caller already knows.
     set(next, { silent = true } = {}) {
       input.value = String(next ?? '');

@@ -37,12 +37,13 @@ export default {
         { key: 'grouping', label: 'Layout', type: 'choice', choices: ['flat', 'sections'], default: 'sections' },
         { key: 'count', label: 'Options', type: 'choice', choices: [5, 12, 30], default: 12 },
         { key: 'descriptions', label: 'Descriptions', type: 'bool', default: true },
+        { key: 'glass', label: 'Glass', type: 'choice', choices: ['regular', 'clear'], default: 'regular' },
         { key: 'loading', label: 'Loading', type: 'bool', default: false },
       ],
       render(s, stage) {
         log = readout('Open it, then pick with a click, the arrows, or by typing');
         picker = track(createListPicker({
-          label: 'Country', icon: demoIcons.map.svg, value: 'pt', ...optionsFor(s),
+          label: 'Country', icon: demoIcons.map.svg, value: 'pt', glass: s.glass, ...optionsFor(s),
           onChange: (v, { silent }) => { log.textContent = `onChange('${v}', { silent: ${silent} })`; },
         }));
         picker.setLoading(s.loading);
@@ -50,6 +51,7 @@ export default {
       },
       patch(s, stage, key) {
         if (key === 'loading') picker.setLoading(s.loading);
+        else if (key === 'glass') picker.setGlass(s.glass);
         else picker.setOptions(optionsFor(s));
       },
       code(s) {
@@ -59,7 +61,7 @@ export default {
         const body = shown.sections
           ? `  sections: [\n${shown.sections.map((g) => `    { label: '${g.label}', options: [${first(g.options)}] },`).join('\n')}\n  ],`
           : `  options: [${first(shown.options)}],`;
-        return `import { createListPicker } from 'vitrium';\n\nconst picker = createListPicker({\n  label: 'Country',\n  icon,\n${body}\n  value: 'pt',\n  onChange(value) {},\n});\ncontainer.append(picker.el);`;
+        return `import { createListPicker } from 'vitrium';\n\nconst picker = createListPicker({\n  label: 'Country',\n  icon,\n${body}\n  value: 'pt',\n${s.glass === 'clear' ? "  glass: 'clear',\n" : ''}  onChange(value) {},\n});\ncontainer.append(picker.el);`;
       },
     });
 
@@ -165,6 +167,7 @@ new FormData(form).get('country');   // 'jp'`)),
           ['name', 'string', 'Adds a hidden input of this name that holds the value.'],
           ['title', '{ icon, text } | false', 'The heading at the top of the list. Default: the icon and label.'],
           ['width', 'number', 'List width in px. Default: 208.'],
+          ['glass', "'regular' | 'clear'", 'The material of the chip and its list. Clear is lighter: less tint, a shallower blur. Default: `"regular"`.'],
           ['onChange', '(value, { silent }) => void', 'Called when the user picks a different option.'],
         ].map((r) => [h('code', {}, r[0]), h('code', {}, r[1]), r[2]])),
         h('h3', { class: 'sub-label' }, 'Returned object'),
@@ -172,6 +175,7 @@ new FormData(form).get('country');   // 'jp'`)),
           ['el', 'The element to place in the page.'],
           ['value', 'The current choice (read-only).'],
           ['setValue(value, { silent })', 'Choose an option from code. Silent by default.'],
+          ['setGlass(mode)', 'Switch the chip and its list between `"regular"` and `"clear"`. `glass` reads it back.'],
           ['setOptions(next)', 'Replace the options. Keeps the choice if it still exists.'],
           ['setLabel(text), setLoading(on)', 'Change the label, or show a shimmering placeholder.'],
           ['open(), close()', 'Open or close the list.'],

@@ -17,7 +17,9 @@
 // { value, label, description? }. Values are strings. `onChange` fires when the
 // user picks a different option; setValue() is silent by default.
 //
-// Returns { el, value, setValue, setOptions, setLabel, setLoading, open, close, destroy }.
+// `glass: 'regular'` (default) or `'clear'` sets the material of the chip and its list; setGlass() changes it later.
+//
+// Returns { el, value, setValue, setOptions, setLabel, setLoading, setGlass, glass, open, close, destroy }.
 import { createChipPicker } from './chip-picker.js';
 import { icons } from './icons.js';
 import { el, toNode } from './dom.js';
@@ -26,7 +28,7 @@ const TYPEAHEAD_RESET_MS = 500;
 let listUid = 0;
 
 export function createListPicker({
-  label = '', icon, sections, options, value, name, onChange, title, width,
+  label = '', icon, sections, options, value, name, onChange, title, width, glass,
 } = {}) {
   const uid = ++listUid;
   let current = '';
@@ -36,7 +38,7 @@ export function createListPicker({
   let typeaheadTimer = 0;
 
   const chip = createChipPicker({
-    icon, label, role: 'listbox', title, width,
+    icon, label, role: 'listbox', title, width, glass,
     onAfterOpen: () => setActive(activeIndex >= 0 ? activeIndex : 0, { scroll: 'auto' }),
     onClose: clearTypeahead,
   });
@@ -186,6 +188,8 @@ export function createListPicker({
       if (!rows.some(r => r.value === current)) current = rows[0]?.value ?? '';
       sync();
     },
+    get glass() { return chip.glass; },
+    setGlass: chip.setGlass,
     setLabel: chip.setLabel,
     setLoading: chip.setLoading,
     open: popup.open,

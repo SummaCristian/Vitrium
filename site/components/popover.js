@@ -32,6 +32,7 @@ export default {
       options: [
         { key: 'side', label: 'Side', type: 'choice', choices: SIDES, default: 'top' },
         { key: 'align', label: 'Align', type: 'choice', choices: ALIGNS, default: 'center' },
+        { key: 'glass', label: 'Glass', type: 'choice', choices: ['regular', 'clear'], default: 'regular' },
       ],
       render(s, stage) {
         arena = h('div', { class: 'popover-arena' });
@@ -39,7 +40,7 @@ export default {
         arena.append(anchor);
         stage.append(arena);
         pop = make({
-          placement: placementOf(s.side, s.align), boundary: arena, dismissable: false, label: 'Example popover',
+          placement: placementOf(s.side, s.align), glass: s.glass, boundary: arena, dismissable: false, label: 'Example popover',
           content: h('div', {}, title('Attached'), h('span', {}, 'Drag the circle toward an edge.')),
         });
 
@@ -71,14 +72,14 @@ export default {
         });
         io.observe(arena);
       },
-      patch(s) { pop.setPlacement(placementOf(s.side, s.align)); },
+      patch(s, stage, key) { if (key === 'glass') pop.setGlass(s.glass); else pop.setPlacement(placementOf(s.side, s.align)); },
       code: (s) => `import { createPopover } from 'vitrium';
 
 const popover = createPopover({
   placement: '${placementOf(s.side, s.align)}',
   boundary: arena,          // stay inside this element (default: the viewport)
   dismissable: false,       // pressing elsewhere does not close it
-  content: 'Attached',
+${s.glass === 'clear' ? "  glass: 'clear',\n" : ''}  content: 'Attached',
 });
 
 popover.show(anchor);       // anchor it to any element`,
@@ -240,6 +241,7 @@ popover.setContent(newContent);   // it resizes and re-positions on its own`)),
           ['role', 'string', '`"dialog"` (default) or e.g. `"tooltip"`.'],
           ['label', 'string', 'Accessible name.'],
           ['deform', 'boolean', 'Press-and-stretch physics on the surface. Default: `true`.'],
+          ['glass', "'regular' | 'clear'", 'The glass material. Clear is lighter: less tint, a shallower blur, at some cost to legibility. Default: `"regular"`.'],
           ['onShow, onHide', '() => void', 'Called when it opens and closes.'],
         ].map((r) => [h('code', {}, r[0]), h('code', {}, r[1]), r[2]])),
         h('h3', { class: 'sub-label' }, 'Returned object'),
@@ -247,6 +249,7 @@ popover.setContent(newContent);   // it resizes and re-positions on its own`)),
           ['el', 'The popover element. It is already on `<body>`.'],
           ['show(target)', 'Open it, anchored to `target` (default: the trigger). If it is open, re-anchor it.'],
           ['hide()', 'Close it.'],
+          ['setGlass(mode)', 'Switch between `"regular"` and `"clear"` glass. `glass` reads it back.'],
           ['toggle()', 'Open or close it, anchored to the trigger.'],
           ['update()', 'Re-position it now. It also does this by itself.'],
           ['setPlacement(placement)', 'Change where it wants to sit. While open, it glides there.'],

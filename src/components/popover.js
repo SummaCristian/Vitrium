@@ -33,9 +33,10 @@
 //   role           'dialog' (default; non-modal) or e.g. 'tooltip'
 //   label          accessible name
 //   deform         liquid-glass press/drag deform on the surface (default true)
+//   glass          'regular' (default) | 'clear'. Clear lets more of the page through, at some cost to legibility
 //   onShow / onHide
 //
-// Returns { el, show(target?), hide(), toggle(), update(), setPlacement(), setContent(), isOpen, destroy() }.
+// Returns { el, show(target?), hide(), toggle(), update(), setPlacement(), setContent(), setGlass(), glass, isOpen, destroy() }.
 //
 // Keyboard: activating the trigger from the keyboard moves focus into the
 // popover; Escape closes it and returns focus to the trigger; Tab past the last
@@ -48,6 +49,7 @@ import {
 import { attachLiquidGlass } from '../core/liquid-glass.js';
 import { arcKeyframes, glideDuration, glideAhead, glideBehind, fitDuration, travelDistance } from '../core/motion-path.js';
 import { el, toNode } from './dom.js';
+import { setGlass } from './glass-mode.js';
 
 const openPopovers = new Set();
 let popoverUid = 0;
@@ -62,9 +64,10 @@ const FOCUSABLE = [
 
 export function createPopover({
   trigger, content, placement = 'bottom', offset: gap = 8, shiftPadding = 8, boundary, dismissable = true,
-  arrow = true, role = 'dialog', label, deform = true, onShow, onHide,
+  arrow = true, role = 'dialog', label, deform = true, glass = 'regular', onShow, onHide,
 } = {}) {
   const pop = el('div', 'lg-popover lg-glass', { role, tabindex: '-1' });
+  let glassMode = setGlass(pop, glass) ?? 'regular';
   pop.id = `lg-popover-${++popoverUid}`;
   if (label) pop.setAttribute('aria-label', label);
   const body = pop.appendChild(el('div', 'lg-popover__body'));
@@ -298,6 +301,8 @@ export function createPopover({
 
   const api = {
     el: pop,
+    get glass() { return glassMode; },
+    setGlass(mode) { glassMode = setGlass(pop, mode) ?? glassMode; },
     show, hide, toggle,
     update: () => position(),
     // Change where it wants to sit. While open it glides there.

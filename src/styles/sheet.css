@@ -123,6 +123,14 @@
     -webkit-backdrop-filter 0.25s ease;
 }
 
+/* The elevated ring is deliberately omitted on a bottom sheet. Its ::before
+   surface extends below the glass by the elevation-scaled ring offset, close
+   enough to Safari's bottom edge to make the safe-area strip paint solid.
+   Keep the rim and tight contact shadow on the glass itself. */
+.lg-sheet__glass::before {
+  content: none;
+}
+
 .lg-sheet__glass.is-active {
   filter: brightness(1.11) saturate(1.35);
 }

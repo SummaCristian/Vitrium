@@ -116,7 +116,7 @@
   --lg-ring-soften: 3px;
   /* Multiplier on the ring's opacity. Large surfaces set it lower, and glass
      inside glass uses --lg-ring-strength-nested. */
-  --lg-ring-strength: 0.25;
+  --lg-ring-strength: 1;
   --lg-ring-strength-large: 0.4;
   --lg-ring-strength-nested: 0.6;
   /* Tinted glass: opacity of the ring in its own color (the hue follows

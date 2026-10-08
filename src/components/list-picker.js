@@ -17,6 +17,8 @@
 // { value, label, description? }. Values are strings. `onChange` fires when the
 // user picks a different option; setValue() is silent by default.
 //
+// `maxHeight: 'normal'` (default, 420px), `'page'` (up to the page's height less the safe areas and 20px) or px: past it the list scrolls.
+//
 // `glass: 'regular'` (default) or `'clear'` sets the material of the chip and its list; setGlass() changes it later.
 //
 // Returns { el, value, setValue, setOptions, setLabel, setLoading, setGlass, glass, open, close, destroy }.
@@ -28,7 +30,7 @@ const TYPEAHEAD_RESET_MS = 500;
 let listUid = 0;
 
 export function createListPicker({
-  label = '', icon, sections, options, value, name, onChange, title, width, glass,
+  label = '', icon, sections, options, value, name, onChange, title, width, maxHeight, glass,
 } = {}) {
   const uid = ++listUid;
   let current = '';
@@ -38,7 +40,7 @@ export function createListPicker({
   let typeaheadTimer = 0;
 
   const chip = createChipPicker({
-    icon, label, role: 'listbox', title, width, glass,
+    icon, label, role: 'listbox', title, width, maxHeight, glass,
     onAfterOpen: () => setActive(activeIndex >= 0 ? activeIndex : 0, { scroll: 'auto' }),
     onClose: clearTypeahead,
   });

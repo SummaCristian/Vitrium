@@ -32,6 +32,8 @@ import { playArc, playRadius, radiusKeyframes, visibleRadius, cssTiming, fitDura
 
 const MORPH_MS = 340;   // keep in sync with --lg-morph-panel-dur in morph-popup.css (each trip scales it to its distance)
 const EDGE = 8;         // px kept clear of the viewport edge
+const EDGE_Y = 20;      // px kept clear above and below, plus the safe area: the sheet's and the tab bar's clearance
+const NORMAL_MAX = 420; // px: the height a panel is limited to by default, scrolling inside past it
 
 const reduceMotion = typeof matchMedia === 'function'
   ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
@@ -59,11 +61,13 @@ function div(className, attrs) {
 //           and the handle for the liquid-glass press/drag deform
 // width     px (default 208)
 // radius    the open panel's corner radius, px (default 16)
+// maxHeight how tall the panel may grow before its body scrolls: 'normal' (default, a
+//           comfortable 420px), 'page' (the page's height less the safe areas and 20px), or px
 // onOpen()          as soon as opening starts
 // onAfterOpen()     once the morph has landed (focus a control, highlight a row)
 // onClose()         as soon as closing starts
 export function createMorphPopup({
-  trigger, role = 'dialog', label, title, width, radius = 16,
+  trigger, role = 'dialog', label, title, width, radius = 16, maxHeight = 'normal',
   onOpen, onAfterOpen, onClose,
 } = {}) {
   const id = `lg-morph-${++uid}`;
@@ -95,7 +99,8 @@ export function createMorphPopup({
   }
 
   panel.appendChild(inner);
-  host.append(overlay, panel);
+  const safeProbe = div('lg-morph-safe');   // padded by the safe-area insets, to measure them
+  host.append(overlay, panel, safeProbe);
   document.body.appendChild(host);
 
   trigger.setAttribute('aria-haspopup', role);
@@ -192,6 +197,16 @@ export function createMorphPopup({
     return { left: r.left, top: r.top, width: r.width, height: r.height, borderRadius: '999px' };
   };
 
+  // The band the panel may occupy vertically: the viewport less the same clearance the sheet and
+  // the tab bar keep from the top and bottom edges, and the device's safe areas (notch, home indicator).
+  function verticalRoom() {
+    const cs = getComputedStyle(safeProbe);
+    return {
+      top: EDGE_Y + (parseFloat(cs.paddingTop) || 0),
+      bottom: window.innerHeight - EDGE_Y - (parseFloat(cs.paddingBottom) || 0),
+    };
+  }
+
   // The panel's resting box: its natural width, its content's height (capped to
   // the viewport, so a long list scrolls), its top edge just inside the
   // trigger's top so it reads as the chip growing downward. If that runs off the
@@ -202,16 +217,19 @@ export function createMorphPopup({
     s.width = '';
     s.height = 'auto';
     const w = panel.offsetWidth;
-    const h = Math.min(inner.scrollHeight, window.innerHeight - 2 * EDGE);
+    const { top: minTop, bottom: maxBottom } = verticalRoom();
+    const room = maxBottom - minTop;
+    const cap = maxHeight === 'page' ? room : Math.min(room, typeof maxHeight === 'number' ? maxHeight : NORMAL_MAX);
+    const h = Math.min(inner.scrollHeight, Math.max(cap, 0));
     s.height = `${h}px`;
 
     const t = trigger.getBoundingClientRect();
     let top = t.top + EDGE;
-    if (top + h > window.innerHeight - EDGE) {
+    if (top + h > maxBottom) {
       const flipped = t.bottom - EDGE - h;
-      if (flipped >= EDGE) top = flipped;
+      if (flipped >= minTop) top = flipped;
     }
-    top = clamp(top, EDGE, Math.max(EDGE, window.innerHeight - h - EDGE));
+    top = clamp(top, minTop, Math.max(minTop, maxBottom - h));
     const left = clamp(t.left, EDGE, Math.max(EDGE, window.innerWidth - w - EDGE));
     return { left, top, width: w, height: h, borderRadius: `${radius}px` };
   }

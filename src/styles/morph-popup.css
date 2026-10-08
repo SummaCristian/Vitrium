@@ -182,3 +182,11 @@
     transform: none;
   }
 }
+
+/* Measured by the script for the safe-area insets; takes no part in the layout. */
+.lg-morph-safe {
+  position: fixed;
+  visibility: hidden;
+  pointer-events: none;
+  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+}

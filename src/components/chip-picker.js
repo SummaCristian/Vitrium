@@ -19,6 +19,8 @@
 //   role                 the panel's role (default 'dialog')
 //   panelLabel           the panel's accessible name (default: label)
 //   width                panel width in px (default 208)
+//   maxHeight            'normal' (default, 420px) | 'page' (the page's height less the safe areas and 20px) | px;
+//                        past it the panel's body scrolls
 //   glass                'regular' (default) | 'clear': the material of the chip and its panel
 //   onOpen / onAfterOpen / onClose   see createMorphPopup
 //
@@ -32,7 +34,7 @@ import { el, toNode } from './dom.js';
 import { setGlass } from './glass-mode.js';
 
 export function createChipPicker({
-  icon, label = '', value = '', content, title, role = 'dialog', panelLabel, width, glass = 'regular',
+  icon, label = '', value = '', content, title, role = 'dialog', panelLabel, width, maxHeight, glass = 'regular',
   onOpen, onAfterOpen, onClose,
 } = {}) {
   const wrap = el('span', 'lg-picker');
@@ -54,7 +56,7 @@ export function createChipPicker({
     role,
     label: panelLabel ?? label,
     title: title === false ? undefined : (title ?? { icon, text: label }),
-    width,
+    width, maxHeight,
     onOpen, onAfterOpen, onClose,
   });
 

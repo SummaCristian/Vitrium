@@ -186,7 +186,7 @@ export function createPopover({
       const to = pop.getBoundingClientRect();
       // On the glide spring, along a bowed path (core/motion-path.js), for as long as the distance calls for.
       const dx = to.left - from.left, dy = to.top - from.top;
-      pop.animate(arcKeyframes(dx, dy, { travel: true }), { duration: glideDuration(Math.hypot(dx, dy)), easing: 'linear' });
+      pop.animate(arcKeyframes(dx, dy, { travel: true, fit: { start: from, end: to } }), { duration: glideDuration(Math.hypot(dx, dy)), easing: 'linear' });
     }
 
     if (arrowEl && middlewareData.arrow) {

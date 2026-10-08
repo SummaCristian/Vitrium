@@ -151,7 +151,7 @@ export function createAlert({
     const dx = (to.left + to.width / 2) - (from.left + from.width / 2);
     const dy = (to.top + to.height / 2) - (from.top + from.height / 2);
     anims = [
-      playArc(box, dx, dy, { ...timing, reverse }),
+      playArc(box, dx, dy, { ...timing, reverse, fit: { start: from, end: to } }),
       reverse
         ? playRadius(box, to, to, from, boxRadius, sourceRadius, timing)
         : playRadius(box, to, from, to, sourceRadius, boxRadius, timing),

@@ -133,7 +133,8 @@ export function createMorphPopup({
     const [px, py] = centreOf(panelRect);
     const timing = cssTiming(panel, '--lg-morph-panel-dur', '--lg-morph-panel-ease');
     anims = [
-      playArc(panel, px - tx, py - ty, { ...timing, reverse }),
+      // Source -> destination, whichever way the trip runs; `start`/`end` are the panel's rects at either end.
+      playArc(panel, px - tx, py - ty, { ...timing, reverse, fit: { start: triggerRect, end: panelRect } }),
       playRadius(panel, ...cornerArgs(start, end, reverse), timing),
     ];
   }

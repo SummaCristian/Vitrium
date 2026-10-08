@@ -147,19 +147,58 @@ export function cssTiming(el, durVar, easeVar) {
 
 const FRAMES = 32;
 
+/* --- Keeping clear of the screen's edge ----------------------------------------------- */
+// The bow and a growing box can carry the box's near side past the viewport mid-flight
+// (a chip by the right edge that opens leftward swings its right side out first), even
+// when both ends sit inside it. `fit` describes the trip so the path can be nudged back.
+//   start, end  the box's rects (viewport px) at the source and the destination
+//   margin      px kept clear of the viewport edge (default 8)
+// An end already closer to the edge than the margin (a trigger tucked into a corner)
+// is allowed to be: the room only ever widens to take in the rects it's travelling between.
+
+export const EDGE_MARGIN = 8;
+
+const lerpRect = (a, b, s) => ({
+  left: a.left + (b.left - a.left) * s, top: a.top + (b.top - a.top) * s,
+  width: a.width + (b.width - a.width) * s, height: a.height + (b.height - a.height) * s,
+});
+
+// One axis: the shift (px) that pulls [pos, pos + size] back inside [lo, hi]. A box
+// bigger than the room favours its near side.
+function pull(pos, size, lo, hi) {
+  if (pos < lo) return lo - pos;
+  if (pos + size > hi) return Math.max(hi - size, lo) - pos;
+  return 0;
+}
+
+// The nudge (px) at progress `s` along the trip, for the box sitting `arc` off its
+// straight line, to stay within the viewport's margins.
+export function edgeShift(fit, s, arc, vw = innerWidth, vh = innerHeight) {
+  const { start, end, margin = EDGE_MARGIN } = fit;
+  const r = lerpRect(start, end, clamp01(s));
+  r.left += arc[0]; r.top += arc[1];
+  const lo = (a, b, m) => Math.min(m, a, b);
+  const hi = (a, b, m) => Math.max(m, a, b);
+  return [
+    pull(r.left, r.width, lo(start.left, end.left, margin), hi(start.left + start.width, end.left + end.width, vw - margin)),
+    pull(r.top, r.height, lo(start.top, end.top, margin), hi(start.top + start.height, end.top + end.height, vh - margin)),
+  ];
+}
+
 // `translate` keyframes for a travel of (dx, dy) under `easing` (a CSS easing or
 // a function; glide by default). With `travel`, they carry the element along the
 // whole path to its resting place (it sits at the destination, offset back to the
 // start); without, only the bow, for adding on top of a move that runs the
 // straight line itself. `reverse` is the trip back: the same path, destination
-// to source.
-export function arcKeyframes(dx, dy, { easing = glide, reverse = false, travel = false } = {}) {
+// to source. With `fit` (see edgeShift) the path is kept clear of the screen's edge.
+export function arcKeyframes(dx, dy, { easing = glide, reverse = false, travel = false, fit = null } = {}) {
   const ease = typeof easing === 'function' ? easing : easingFunction(easing);
   const frames = [];
   for (let i = 0; i <= FRAMES; i++) {
     const p = ease(i / FRAMES);
     const s = reverse ? 1 - p : p;
     let [x, y] = arcOffset(dx, dy, s);
+    if (fit) { const [ex, ey] = edgeShift(fit, s, [x, y]); x += ex; y += ey; }
     if (travel) { x -= dx * (1 - s); y -= dy * (1 - s); }
     frames.push({ offset: i / FRAMES, translate: `${x}px ${y}px` });
   }
@@ -170,9 +209,9 @@ export function arcKeyframes(dx, dy, { easing = glide, reverse = false, travel =
 // of (dx, dy): started in the same frame as the transition, with its duration
 // and easing. Added on top of the element's own translate (a glass press), so
 // it never fights it. Returns the Animation, or null when there's no move.
-export function playArc(el, dx, dy, { duration, easing, reverse = false }) {
+export function playArc(el, dx, dy, { duration, easing, reverse = false, fit = null }) {
   if (!el.animate || !duration || Math.hypot(dx, dy) < 1) return null;
-  return el.animate(arcKeyframes(dx, dy, { easing, reverse }), { duration, easing: 'linear', composite: 'add' });
+  return el.animate(arcKeyframes(dx, dy, { easing, reverse, fit }), { duration, easing: 'linear', composite: 'add' });
 }
 
 /* --- Corner radius through a FLIP morph -------------------------------------------- */

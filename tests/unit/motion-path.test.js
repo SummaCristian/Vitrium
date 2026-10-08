@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { glide, glideDuration, travelDistance, arcOffset, easingFunction, arcKeyframes } from '../../src/core/motion-path.js';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { glide, glideDuration, travelDistance, arcOffset, easingFunction, arcKeyframes, edgeShift } from '../../src/core/motion-path.js';
 
 const px = (v) => v.split(' ').map(parseFloat);
 const len = (v) => Math.hypot(...v);
@@ -108,5 +108,38 @@ describe('travelDistance', () => {
     // Same top-left, but grown: the far corner moves.
     const panel = { left: 100, top: 100, width: 380, height: 440 };
     expect(travelDistance(chip, panel)).toBeCloseTo(500);
+  });
+});
+
+describe('edgeShift', () => {
+  const vw = 400, vh = 800;
+  afterEach(() => vi.unstubAllGlobals());
+  const chip = { left: 300, top: 100, width: 90, height: 40 };      // by the right edge
+  const panel = { left: 192, top: 100, width: 200, height: 300 };   // grows leftward, 8px clear
+
+  it('does nothing while the box stays within the margins', () => {
+    const [x, y] = edgeShift({ start: chip, end: panel }, 0.5, [0, 0], vw, vh);
+    expect(Math.abs(x) + Math.abs(y)).toBe(0);
+  });
+
+  it('pulls a box that the bow swings past the edge back to the margin', () => {
+    const [x] = edgeShift({ start: chip, end: panel }, 0.5, [60, 0], vw, vh);
+    expect(x).toBeLessThan(0);
+    const r = 300 + (192 - 300) * 0.5 + 60 + x + (90 + 110 * 0.5);
+    expect(r).toBeCloseTo(vw - 8);
+  });
+
+  it('tolerates an end already inside the margin', () => {
+    const tucked = { left: 396, top: 100, width: 2, height: 40 };
+    const [x] = edgeShift({ start: tucked, end: panel }, 0, [0, 0], vw, vh);
+    expect(x).toBe(0);
+  });
+
+  it('keeps arcKeyframes on the straight line at both ends', () => {
+    vi.stubGlobal('innerWidth', vw);
+    vi.stubGlobal('innerHeight', vh);
+    const frames = arcKeyframes(-108, 0, { travel: true, fit: { start: chip, end: panel } });
+    expect(px(frames[0].translate)).toEqual([108, 0]);
+    expect(len(px(frames.at(-1).translate))).toBeLessThan(1e-9);
   });
 });

@@ -33,7 +33,7 @@ export default {
       const carried = stepper?.value ?? 2;
       stepper?.destroy();
       stepper = createStepper({
-        value: carried, min, max, step: Number(s.step), label: 'Guests', labels: ['Remove a guest', 'Add a guest'],
+        value: carried, min, max, step: Number(s.step), label: 'Guests', labels: ['Remove a guest', 'Add a guest'], glass: s.glass,
         format: (v) => `${fmt(v)} guests`,
         onChange: (v) => { value.show(v); log.textContent = `onChange(${fmt(v)})`; },
       });
@@ -45,6 +45,7 @@ export default {
       options: [
         { key: 'range', label: 'Range', type: 'choice', choices: Object.keys(RANGES), default: '0 to 10' },
         { key: 'step', label: 'Step', type: 'choice', choices: ['1', '0.5', '5'], default: '1' },
+        { key: 'glass', label: 'Glass', type: 'choice', choices: ['regular', 'clear'], default: 'regular' },
         { key: 'disabled', label: 'Disabled', type: 'bool', default: false },
       ],
       render(s, stage) {
@@ -67,6 +68,7 @@ export default {
           "label: 'Guests',",
           "labels: ['Remove a guest', 'Add a guest'],",
           'onChange(value) { count.textContent = value; },',
+          s.glass === 'clear' && "glass: 'clear',",
           s.disabled && 'disabled: true,',
         ].filter(Boolean);
         return `import { createStepper } from 'vitrium';\n\nconst stepper = createStepper({\n${rows.map((r) => `  ${r}`).join('\n')}\n});\ncontainer.append(stepper.el);${s.disabled ? '\n\nstepper.setDisabled(true);' : ''}`;
@@ -180,6 +182,7 @@ const stepper = createStepper({
           ['label', 'string', 'Accessible name of the group.'],
           ['labels', '[string, string]', 'Names of the decrease and increase buttons. Default: Decrease and Increase.'],
           ['format', '(value) => string', 'The text a screen reader hears when the value changes.'],
+          ['glass', "'regular' | 'clear'", 'The capsule\'s glass. Clear is lighter: less tint, a shallower blur. Default: `"regular"`.'],
           ['onChange', '(value, { silent }) => void', 'Called on every press, and by `set()` when it is not silent.'],
         ].map((r) => [h('code', {}, r[0]), h('code', {}, r[1]), r[2]])),
         h('h3', { class: 'sub-label' }, 'Returned object'),
@@ -188,6 +191,8 @@ const stepper = createStepper({
           ['value', 'The current value (read-only).'],
           ['set(value, { silent })', 'Change it from code. Silent by default.'],
           ['setDisabled(disabled)', 'Enable or disable it.'],
+          ['setGlass(mode)', 'Switch between `"regular"` and `"clear"` glass.'],
+          ['glass', 'The current glass, `"regular"` or `"clear"` (read-only).'],
           ['destroy()', 'Remove it and stop a hold in progress.'],
         ].map((r) => [h('code', {}, r[0]), r[1]]))),
     ];

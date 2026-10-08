@@ -17,15 +17,17 @@ import { attachLiquidGlass } from '../core/liquid-glass.js';
 import { clamp, decimals } from '../core/value-math.js';
 import { icons } from './icons.js';
 import { el, toNode } from './dom.js';
+import { setGlass } from './glass-mode.js';
 
 const HOLD_DELAY_MS = 400;
 const REPEAT_MS = 90;
 
 export function createStepper({
   value = 0, min = -Infinity, max = Infinity, step = 1,
-  label, labels = ['Decrease', 'Increase'], format, onChange,
+  label, labels = ['Decrease', 'Increase'], format, onChange, glass = 'regular',
 } = {}) {
   const root = el('div', 'lg-stepper lg-glass', { role: 'group' });
+  let glassMode = setGlass(root, glass) ?? 'regular';
   if (label) root.setAttribute('aria-label', label);
 
   const makeButton = (icon, name, dir) => {
@@ -104,6 +106,9 @@ export function createStepper({
   return {
     el: root,
     get value() { return current; },
+    // 'regular' | 'clear'
+    get glass() { return glassMode; },
+    setGlass(mode) { glassMode = setGlass(root, mode) ?? glassMode; },
     // Silent by default: the caller already knows.
     set(next, { silent = true } = {}) {
       const v = norm(next);

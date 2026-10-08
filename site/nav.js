@@ -35,7 +35,7 @@ const setFolded = (id, on) => {
 // One sidebar. `onNavigate` lets a host (the mobile sheet) close itself when a link is followed.
 export function buildSidebar({ onNavigate } = {}) {
   const root = h('div', { class: 'sidebar' });
-  const search = createTextField({ variant: 'search', label: 'Filter documentation', placeholder: 'Filter' });
+  const search = createTextField({ variant: 'search', label: 'Filter documentation', placeholder: 'Filter', glass: 'clear' });
   const links = [];      // every page: { a, title, ancestors: [branch ids] }
   const branches = [];   // every branch: { id, li, toggle, kids, el }
   let uid = 0;
@@ -160,7 +160,7 @@ export function buildToc(host, page) {
   INPUTS.forEach((t) => window.addEventListener(t, readerInput, { passive: true }));
 
   const control = createSegmentedControl(seg, {
-    orientation: 'vertical', selectedColor: 'accent',
+    orientation: 'vertical', selectedColor: 'accent', glass: 'clear',
     items: sections.map((s) => ({ value: s.id, label: s.querySelector('h2').textContent })),
     value: shown,
     onSelect(id, { silent }) {

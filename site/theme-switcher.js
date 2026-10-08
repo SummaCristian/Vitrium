@@ -13,13 +13,13 @@ export function mountThemeSwitcher(slot) {
   const segHost = h('div', { class: 'theme-seg' });
   const seg = createSegmentedControl(segHost, {
     items: THEMES.map((t) => ({ value: t, label: LABELS[t] })), value: getTheme(),
-    blur: true,   // it floats over the page, so it has no surface behind it to do the blurring
+    glass: 'clear', blur: true,   // it floats over the page, so it has no surface behind it to do the blurring
     onSelect: (v, { silent }) => { if (!silent) setTheme(v, 'switcher'); },
   });
 
-  const trigger = createButton({ icon: CONTRAST_ICON, label: 'Theme', claimTouch: true });
+  const trigger = createButton({ icon: CONTRAST_ICON, label: 'Theme', glass: 'clear', claimTouch: true });
   const menuItems = () => THEMES.map((t) => ({ id: t, label: LABELS[t], checked: t === getTheme(), onSelect: () => setTheme(t, 'menu') }));
-  const menu = createMenu({ trigger, label: 'Theme', width: 160, items: menuItems() });
+  const menu = createMenu({ trigger, label: 'Theme', width: 160, glass: 'clear', items: menuItems() });
 
   // menu.el is the popup panel, which the menu places itself; only the trigger is ours to mount.
   const wrap = h('div', { class: 'theme-switcher' }, segHost, trigger);

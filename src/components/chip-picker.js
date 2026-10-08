@@ -19,18 +19,20 @@
 //   role                 the panel's role (default 'dialog')
 //   panelLabel           the panel's accessible name (default: label)
 //   width                panel width in px (default 208)
+//   glass                'regular' (default) | 'clear': the material of the chip and its panel
 //   onOpen / onAfterOpen / onClose   see createMorphPopup
 //
-// Returns { el, trigger, popup, setValue, setLabel, setLoading, destroy }.
+// Returns { el, trigger, popup, setValue, setLabel, setLoading, setGlass, glass, destroy }.
 // `el` is the element to place in the page; `popup` is the morph popup
 // (open(), close(), panel, inner, isOpen).
 import { attachLiquidGlass } from '../core/liquid-glass.js';
 import { createMorphPopup } from '../core/morph-popup.js';
 import { icons } from './icons.js';
 import { el, toNode } from './dom.js';
+import { setGlass } from './glass-mode.js';
 
 export function createChipPicker({
-  icon, label = '', value = '', content, title, role = 'dialog', panelLabel, width,
+  icon, label = '', value = '', content, title, role = 'dialog', panelLabel, width, glass = 'regular',
   onOpen, onAfterOpen, onClose,
 } = {}) {
   const wrap = el('span', 'lg-picker');
@@ -56,6 +58,15 @@ export function createChipPicker({
     onOpen, onAfterOpen, onClose,
   });
 
+  let glassMode = 'regular';
+  const applyGlass = (mode) => {
+    const applied = setGlass(btn, mode);
+    if (!applied) return;
+    glassMode = applied;
+    setGlass(popup.panel, applied);
+  };
+  applyGlass(glass);
+
   if (content) popup.inner.appendChild(typeof content === 'function' ? content(popup) : content);
 
   btn.addEventListener('click', () => popup.toggle());
@@ -71,6 +82,8 @@ export function createChipPicker({
     el: wrap,
     trigger: btn,
     popup,
+    get glass() { return glassMode; },
+    setGlass: applyGlass,
     // Text, or a Node / trusted HTML string for a value with styled parts.
     setValue(value) { valueEl.replaceChildren(typeof value === 'string' && !/</.test(value) ? value : toNode(value)); },
     setLabel(text) { labelEl.textContent = text; },

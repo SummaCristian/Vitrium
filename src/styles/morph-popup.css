@@ -64,6 +64,14 @@
   will-change: transform;
 }
 
+/* Clear glass (the menu's and chip picker's `glass: 'clear'`): the lighter tint and blur. The rim comes from the shared
+   class (see glass.css). */
+.lg-morph.lg-glass--clear {
+  background: var(--lg-tint-clear);
+  -webkit-backdrop-filter: blur(var(--lg-blur-clear));
+  backdrop-filter: blur(var(--lg-blur-clear));
+}
+
 /* Snap down fast on touch, track 1:1 while dragging (mirrors liquid-glass.css). */
 .lg-morph.lg-pressing {
   transition:

@@ -28,17 +28,19 @@
 //
 // Options: trigger, items, label (accessible name, and the panel's title unless
 // `title` says otherwise: pass `{ icon, text }`, or false for none), width
-// (px, default 220), onOpen, onClose.
-// Returns { el, trigger, open(), close(), isOpen, setItems(items), destroy() }.
+// (px, default 220), glass ('regular' by default, or 'clear': the panel's material;
+// clear lets more of the page through, at some cost to legibility), onOpen, onClose.
+// Returns { el, trigger, open(), close(), isOpen, setItems(items), setGlass(mode), glass, destroy() }.
 import { createMorphPopup } from '../core/morph-popup.js';
 import { icons } from './icons.js';
 import { el, toNode } from './dom.js';
+import { setGlass } from './glass-mode.js';
 
 const TYPEAHEAD_RESET_MS = 500;
 let menuUid = 0;
 
 export function createMenu({
-  trigger, items = [], label, title, width = 220, onOpen, onClose,
+  trigger, items = [], label, title, width = 220, glass = 'regular', onOpen, onClose,
 } = {}) {
   const uid = ++menuUid;
   let rows = [];          // selectable rows, in visual order: { item, name, el }
@@ -67,6 +69,7 @@ export function createMenu({
   });
   const { panel, inner } = popup;
   panel.classList.add('lg-menu');
+  let glassMode = setGlass(panel, glass) ?? 'regular';
 
   /* --- Building the list ------------------------------------------------------------ */
   function build(defs) {
@@ -202,6 +205,8 @@ export function createMenu({
     open() { byKeyboard = false; popup.open(); },
     close: popup.close,
     get isOpen() { return popup.isOpen; },
+    get glass() { return glassMode; },
+    setGlass(mode) { glassMode = setGlass(panel, mode) ?? glassMode; },
     setItems(next) {
       clearActive();
       build(next);

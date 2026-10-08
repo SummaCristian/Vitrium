@@ -1,4 +1,4 @@
-import { createMenu, createButton } from '../../src/index.js';
+import { createMenu, createButton, setGlass } from '../../src/index.js';
 import { demoIcons } from '../icons.js';
 import { createPlayground } from './playground.js';
 import { h, section, table, codeBlock } from '../dom.js';
@@ -9,9 +9,11 @@ const readout = (text) => h('code', { class: 'readout' }, text);
 const icon = (name) => demoIcons[name].svg;
 
 // A trigger is a glass element: the panel starts from its box.
-const makeTrigger = (kind, text = 'Actions') => (kind === 'icon'
-  ? createButton({ icon: icon('more'), label: text })
-  : button(text, () => {}));
+const makeTrigger = (kind, text = 'Actions', glass = 'regular') => {
+  const t = kind === 'icon' ? createButton({ icon: icon('more'), label: text }) : button(text, () => {});
+  setGlass(t, glass);
+  return t;
+};
 
 export default {
   sections() {
@@ -59,9 +61,9 @@ export default {
     const build = (s) => {
       current = s;
       if (menu) { menu.destroy(); menus.splice(menus.indexOf(menu), 1); }
-      const trigger = makeTrigger(s.trigger, s.label);
+      const trigger = makeTrigger(s.trigger, s.label, s.glass);
       menu = track(createMenu({
-        trigger, label: s.label, title: s.title ? undefined : false, width: s.width, items: itemsFor(s),
+        trigger, label: s.label, title: s.title ? undefined : false, width: s.width, glass: s.glass, items: itemsFor(s),
         onOpen: () => { log.textContent = 'onOpen()'; },
         onClose: () => { log.textContent = 'onClose()'; },
       }));
@@ -75,6 +77,7 @@ export default {
         { key: 'trigger', label: 'Trigger', type: 'choice', choices: ['pill', 'icon'], default: 'pill' },
         { key: 'label', label: 'Label', type: 'choice', choices: ['Actions', 'Sort', 'View'], default: 'Actions' },
         { key: 'width', label: 'Width', type: 'choice', choices: [220, 280], default: 220 },
+        { key: 'glass', label: 'Glass', type: 'choice', choices: ['regular', 'clear'], default: 'regular' },
         { key: 'title', label: 'Title', type: 'bool', default: true },
         { key: 'disabled', label: 'Disable an item', type: 'bool', default: false },
       ],
@@ -97,7 +100,7 @@ export default {
           options: `    { type: 'label', label: 'Show' },\n    { id: 'grid', label: 'Grid lines', checked: true, keepOpen: true, onSelect },\n    { id: 'labels', label: 'Labels', checked: false, keepOpen: true${s.disabled ? ', disabled: true' : ''}, onSelect },`,
           sections: `    { type: 'label', label: 'Create' },\n    { id: 'doc', label: 'Document', icon, onSelect() {} },\n    { id: 'folder', label: 'Folder', icon, onSelect() {} },\n    { type: 'label', label: 'Import' },\n    { id: 'file', label: 'From file', icon${s.disabled ? ', disabled: true' : ''}, onSelect() {} },\n    { id: 'link', label: 'From link', icon, onSelect() {} },`,
         }[s.items];
-        const rows = [`  trigger: button,`, `  label: '${s.label}',`, s.width !== 220 && `  width: ${s.width},`, !s.title && '  title: false,', `  items: [\n${item}\n  ],`].filter(Boolean);
+        const rows = [`  trigger: button,`, `  label: '${s.label}',`, s.width !== 220 && `  width: ${s.width},`, !s.title && '  title: false,', s.glass === 'clear' && "  glass: 'clear',", `  items: [\n${item}\n  ],`].filter(Boolean);
         return `import { createMenu } from 'vitrium';\n\nconst menu = createMenu({\n${rows.join('\n')}\n});`;
       },
     });
@@ -216,17 +219,20 @@ const menu = createMenu({ trigger, label: 'Sort by', items: items() });`)),
       section('API', {},
         h('h3', { class: 'sub-label' }, 'createMenu(options)'),
         table(['Option', 'Type', 'Description'], [
-          ['trigger', 'Element', 'The glass element that opens the menu.'],
+          ['trigger', 'Element', 'The glass element that opens the menu. It keeps its own material, so give it the same `glass` as the menu (the panel morphs out of it).'],
           ['items', 'Entry[]', 'The rows, separators and headings.'],
           ['label', 'string', 'Accessible name, and the panel\'s title.'],
           ['title', '{ icon?, text } | false', 'Override the title, or `false` for none.'],
           ['width', 'number', 'Panel width in px. Default: 220.'],
+          ['glass', "'regular' | 'clear'", 'The panel\'s glass. Clear is lighter: less tint, a shallower blur, at some cost to legibility. Default: `"regular"`.'],
           ['onOpen, onClose', '() => void', 'When it opens and when it starts to close.'],
         ].map((r) => [h('code', {}, r[0]), h('code', {}, r[1]), r[2]])),
         h('h3', { class: 'sub-label' }, 'Returned object'),
         table(['Member', 'Description'], [
           ['open(), close()', 'Open or close it from code.'],
           ['isOpen', 'Whether it is open (read-only).'],
+          ['setGlass(mode)', 'Switch the panel between `"regular"` and `"clear"` glass.'],
+          ['glass', 'The current glass, `"regular"` or `"clear"` (read-only).'],
           ['setItems(items)', 'Replace the rows. Use it to update checked, disabled or the labels.'],
           ['el, trigger', 'The panel element, and the trigger.'],
           ['destroy()', 'Remove the menu. It is on `<body>`, so call this when its page goes away.'],

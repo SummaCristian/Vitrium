@@ -1,4 +1,4 @@
-import { createButton, createToolbar, createBackButton, setGlassTint } from '../../src/index.js';
+import { createButton, createToolbar, createBackButton, setGlassTint, setGlass } from '../../src/index.js';
 import { demoIcons } from '../icons.js';
 import { createPlayground } from './playground.js';
 import { backdropCard } from './backdrop.js';
@@ -13,7 +13,7 @@ export default {
   sections() {
     let btn;
     const apply = (s) => {
-      btn.classList.toggle('lg-glass--clear', s.material === 'clear');
+      setGlass(btn, s.glass);
       setGlassTint(btn, s.tintMode === 'custom' ? s.color : null);
     };
     const toNode = (svg) => { const t = document.createElement('template'); t.innerHTML = svg; return t.content.firstElementChild; };
@@ -29,7 +29,7 @@ export default {
       options: [
         { key: 'content', label: 'Content', type: 'choice', choices: ['icon', 'text', 'icon + text'], default: 'icon' },
         { key: 'icon', label: 'Icon', type: 'choice', choices: ICONS, default: 'star', when: (s) => s.content !== 'text' },
-        { key: 'material', label: 'Material', type: 'choice', choices: ['regular', 'clear'], default: 'regular' },
+        { key: 'glass', label: 'Glass', type: 'choice', choices: ['regular', 'clear'], default: 'regular' },
         { key: 'tintMode', label: 'Tint', type: 'choice', choices: ['none', 'custom'], default: 'none' },
         { key: 'color', label: 'Tint color', type: 'color', default: '#ff375f', when: (s) => s.tintMode === 'custom' },
       ],
@@ -47,7 +47,7 @@ export default {
           if (next.ariaLabel) btn.ariaLabel = next.ariaLabel; else btn.removeAttribute('aria-label');
         } else if (key === 'icon') btn.querySelector('svg').replaceWith(toNode(demoIcons[s.icon].svg));
         // A tint or material can't be interpolated, so those fade. Dragging the color picker updates live.
-        else if (key === 'material' || key === 'tintMode') crossfade(btn, btn.parentElement, () => apply(s));
+        else if (key === 'glass' || key === 'tintMode') crossfade(btn, btn.parentElement, () => apply(s));
         else apply(s);
       },
       code: (s) => `import { createButton } from 'vitrium';
@@ -55,13 +55,13 @@ import ${demoIcons[s.icon].name} from '@hugeicons/core-free-icons/${demoIcons[s.
 import { toSvg } from './toSvg.js';
 
 const button = createButton({
-${lines('  ', s.content !== 'text' && `icon: toSvg(${demoIcons[s.icon].name}),`, s.content !== 'icon' && `text: 'Save',`, s.content === 'icon' && `label: 'Demo',`, s.material === 'clear' && `className: 'lg-glass--clear',`, s.tintMode === 'custom' && `tint: '${s.color}',`, 'onClick() {},')}
+${lines('  ', s.content !== 'text' && `icon: toSvg(${demoIcons[s.icon].name}),`, s.content !== 'icon' && `text: 'Save',`, s.content === 'icon' && `label: 'Demo',`, s.glass === 'clear' && `glass: 'clear',`, s.tintMode === 'custom' && `tint: '${s.color}',`, 'onClick() {},')}
 });
 document.body.append(button);`,
     });
 
     const tintRow = (clear) => h('div', { class: 'row' }, TINTS.map(([name, color]) =>
-      createButton({ icon: demoIcons.star.svg, label: `${name} ${clear ? 'clear' : 'regular'}`, tint: color, className: clear ? 'lg-glass--clear' : '' })));
+      createButton({ icon: demoIcons.star.svg, label: `${name} ${clear ? 'clear' : 'regular'}`, tint: color, glass: clear ? 'clear' : 'regular' })));
 
     const toolbar = createToolbar([
       { icon: demoIcons.search.svg, label: 'Search' },
@@ -108,20 +108,20 @@ export const toSvg = (data) => {
         h('p', {}, 'Icons should draw with `currentColor` so they follow the button\'s text color, including on a tint, and should not set their own size: the button sizes the icon to 1.375rem. The library also has a small set of its own (`icons`), which `createBackButton` uses for its chevron.')),
 
       section('Material', {},
-        h('p', {}, 'Buttons use regular glass by default. Pass `className: "lg-glass--clear"` for the clear variant: a lighter tint and a shallower blur, for a button that should stay out of the way of what is behind it.'),
+        h('p', {}, 'Buttons use regular glass by default. Pass `glass: "clear"` for the clear variant (or call `setGlass(button, "clear")` later): a lighter tint and a shallower blur, for a button that should stay out of the way of what is behind it.'),
         backdropCard(
           h('div', { class: 'demo-stack' },
             h('div', { class: 'demo-cap' }, 'Regular'),
             h('div', { class: 'row' }, createButton({ icon: demoIcons.star.svg, label: 'Regular' }), createButton({ icon: demoIcons.plus.svg, label: 'Add' })),
             h('div', { class: 'demo-cap' }, 'Clear'),
-            h('div', { class: 'row' }, createButton({ icon: demoIcons.star.svg, label: 'Clear', className: 'lg-glass--clear' }), createButton({ icon: demoIcons.plus.svg, label: 'Add', className: 'lg-glass--clear' }))))),
+            h('div', { class: 'row' }, createButton({ icon: demoIcons.star.svg, label: 'Clear', glass: 'clear' }), createButton({ icon: demoIcons.plus.svg, label: 'Add', glass: 'clear' }))))),
 
       section('Tint', {},
         h('p', {}, '`tint` takes any CSS color and picks a legible icon color for it. The regular material shows the color strongly and the clear one lightly, so use clear where you want a hint of color.'),
         backdropCard(h('div', { class: 'demo-stack' }, h('div', { class: 'demo-cap' }, 'Regular'), tintRow(false), h('div', { class: 'demo-cap' }, 'Clear'), tintRow(true))),
         codeBlock(`
 createButton({ icon: toSvg(StarIcon), label: 'Favorite', tint: '#ff375f' });
-createButton({ icon: toSvg(StarIcon), label: 'Favorite', tint: '#ff375f', className: 'lg-glass--clear' });`)),
+createButton({ icon: toSvg(StarIcon), label: 'Favorite', tint: '#ff375f', glass: 'clear' });`)),
 
       section('Toolbar', {},
         h('p', {}, '`createToolbar` puts buttons in a row with a 0.5rem gap. Items are option objects, or ready-made elements, so you can mix your own into the row.'),
@@ -178,7 +178,8 @@ createButton({ icon: toSvg(Add01Icon), text: 'New' });`)),
           ['label', 'string', 'Accessible name. Required for an icon-only button; optional with `text`.'],
           ['onClick', '(event) => void', 'Click handler.'],
           ['tint', 'CSS color', 'Optional tinted glass.'],
-          ['className', 'string', 'Extra classes, for example `lg-glass--clear`.'],
+          ['glass', "'regular' | 'clear'", 'The glass material. Clear is lighter: less tint, a shallower blur. Default: `"regular"`. Change it later with `setGlass(button, mode)`.'],
+          ['className', 'string', 'Extra classes.'],
           ['claimTouch', 'boolean', 'For a button on a layer above the content (a fixed header): a drag on it never scrolls the page. Default: `false`, a touch on it also scrolls the content it is in.'],
         ].map((r) => [h('code', {}, r[0]), h('code', {}, r[1]), r[2]])),
         h('h3', { class: 'sub-label' }, 'createToolbar(items)'),

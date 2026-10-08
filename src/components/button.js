@@ -5,6 +5,7 @@ import { attachLiquidGlass } from '../core/liquid-glass.js';
 import { icons } from './icons.js';
 import { toNode } from './dom.js';
 import { setGlassTint } from './glass-tint.js';
+import { setGlass } from './glass-mode.js';
 
 // createButton({ icon, text, label, onClick, claimTouch })
 //   icon    Node or trusted HTML/SVG string (see icons.js)
@@ -13,15 +14,17 @@ import { setGlassTint } from './glass-tint.js';
 //           visible text is the name, and `label` overrides it if given.
 //   onClick(event)
 //   tint    optional CSS color for tinted glass
+//   glass   'regular' (default) | 'clear'. Change it later with setGlass(button, mode).
 //   claimTouch  the button sits on a layer above the content (a fixed header):
 //           a drag on it never scrolls the page. Off, a touch on it also drives
 //           the scroll of the content it's in. See liquid-glass.js.
-export function createButton({ icon, text, label, onClick, className = '', tint, claimTouch = false } = {}) {
+export function createButton({ icon, text, label, onClick, className = '', tint, glass = 'regular', claimTouch = false } = {}) {
   const btn = document.createElement('button');
   btn.type = 'button';
   const iconOnly = !text;
   btn.className = `lg-button ${iconOnly ? 'lg-glass--circle' : 'lg-button--text'} lg-glass ${className}`.trim();
   if (tint) setGlassTint(btn, tint);
+  setGlass(btn, glass);
   if (label) btn.setAttribute('aria-label', label);
   if (icon) btn.appendChild(toNode(icon));
   if (text) {

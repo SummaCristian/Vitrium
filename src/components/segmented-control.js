@@ -21,6 +21,9 @@
 // segmented control usually sits on a surface of its own that already blurs; turn it on for one that floats
 // straight over content. setBlur() changes it later. It follows the site's blur setting like every other surface.
 //
+// `glass: 'clear'` gives the track the lighter clear glass (less tint, a shallower blur, a fainter rim). setGlass()
+// changes it later; `glass` reads it back.
+//
 // An item can be changed after the fact with setItem(value, { label, icon, ariaLabel }) or
 // several at once with setItems([...]). The old label or icon shrinks, fades and
 // blurs away as the new one grows in, and the track glides to its new size while
@@ -29,9 +32,10 @@
 import { createPillDragCore } from '../core/pill-drag-core.js';
 import { layoutMorph } from '../core/layout-morph.js';
 import { createPillParts, el, toNode } from './dom.js';
+import { setGlass } from './glass-mode.js';
 
 // onSelect(value, { silent }) fires when a different item becomes selected.
-export function createSegmentedControl(root, { items: itemDefs, value, onSelect, orientation = 'horizontal', selectedColor, blur = false } = {}) {
+export function createSegmentedControl(root, { items: itemDefs, value, onSelect, orientation = 'horizontal', selectedColor, blur = false, glass = 'regular' } = {}) {
   root.classList.add('lg-seg');
   root.classList.toggle('lg-seg--blur', !!blur);
   const setSelectedColor = (c) => {
@@ -57,6 +61,7 @@ export function createSegmentedControl(root, { items: itemDefs, value, onSelect,
   // track's siblings rather than children, so the pill's backdrop-filter isn't
   // nested under the track's (Safari drops nested backdrop-filters).
   const track = el('div', 'lg-seg__track');
+  let glassMode = setGlass(track, glass) ?? 'regular';
   const itemsEl = el('div', 'lg-seg__items');
   while (root.firstChild) itemsEl.appendChild(root.firstChild);
   track.appendChild(itemsEl);
@@ -236,6 +241,9 @@ export function createSegmentedControl(root, { items: itemDefs, value, onSelect,
     setItem,
     setItems,
     setSelectedColor,
+    // 'regular' | 'clear': the track's material (the pill keeps its own)
+    get glass() { return glassMode; },
+    setGlass(mode) { glassMode = setGlass(track, mode) ?? glassMode; },
     setBlur(on) { root.classList.toggle('lg-seg--blur', !!on); },
     destroy() { cancelMorph?.(); clearLeaving(); ro.disconnect(); core.destroy(); },
     get value() { return cellsOf()[core.index]?.dataset.value; },

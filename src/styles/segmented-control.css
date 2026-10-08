@@ -33,6 +33,20 @@
   backdrop-filter: blur(var(--lg-blur-md));
 }
 
+/* Clear glass (the `glass: 'clear'` option). The shared class brings the lighter rim; the tint is set here because the
+   track's own background has the same weight. No blur unless `blur` is on, as for regular glass, so it only swaps the
+   blur's strength. */
+.lg-seg__track.lg-glass--clear {
+  background: var(--lg-tint-clear);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.lg-seg--blur .lg-seg__track.lg-glass--clear {
+  -webkit-backdrop-filter: blur(var(--lg-blur-clear));
+  backdrop-filter: blur(var(--lg-blur-clear));
+}
+
 .lg-seg__track::after {
   content: "";
   position: absolute;

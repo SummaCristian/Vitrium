@@ -1,4 +1,7 @@
-import { setGlassTint } from '../../src/index.js';
+import {
+  setGlassTint, displacementMap, createSegmentedControl, supportsRefraction, getRefraction, setRefraction, REFRACTION_STATE_EVENT,
+} from '../../src/index.js';
+import { fitSegmented } from '../components/fit.js';
 import { createPlayground } from '../components/playground.js';
 import { h, section, table, codeBlock } from '../dom.js';
 import { crossfade } from '../swap.js';
@@ -11,6 +14,125 @@ const SHAPES = {
   circle: { width: '5.5rem', height: '5.5rem', borderRadius: '2.75rem' },
 };
 const MORPH_MS = 450;
+
+// Does this browser refract? The library's own answers, live: whether the browser can draw it (supportsRefraction), whether
+// it is being applied right now (getRefraction), and a switch for the page that shows the state event firing.
+function supportCheck() {
+  const html = document.documentElement;
+  const verdict = h('div', { class: 'bench-verdict', 'aria-live': 'polite' });
+  const status = h('div', { class: 'bench-status' });
+  const toggle = h('button', { class: 'lg-btn pill lg-glass liquid-glass', type: 'button' });
+  let pageOn = true;
+  const yes = (v) => (v ? 'yes' : 'no');
+
+  const refresh = () => {
+    const supported = supportsRefraction();
+    const active = getRefraction();
+    status.replaceChildren(
+      h('span', {}, 'Browser can draw it ', h('strong', {}, `supportsRefraction() ${yes(supported)}`)),
+      h('span', {}, 'Blur ', h('strong', {}, html.dataset.blur ?? 'unset')),
+      h('span', {}, 'Applied right now ', h('strong', {}, `getRefraction() ${yes(active)}`)));
+    verdict.className = `bench-verdict ${active ? 'pass' : 'fail'}`;
+    verdict.textContent = active
+      ? 'Pass: this browser draws refraction, and it is on.'
+      : !supported ? 'Fail: only Chromium draws url() in backdrop-filter, so this browser keeps the blurred glass.'
+        : !pageOn ? 'Off: this browser can draw it, but the page switched it off.'
+          : 'Off: this browser can draw it, but blur is off here, and refraction rides on the blur gate.';
+    toggle.textContent = pageOn ? 'Turn it off for this page' : 'Turn it back on';
+    toggle.disabled = !supported;
+  };
+  toggle.addEventListener('click', () => { pageOn = !pageOn; setRefraction(pageOn); refresh(); });
+  // The event is how a page follows blur coming or going under it; the card follows it until it leaves the page.
+  const onState = () => { if (verdict.isConnected) refresh(); else window.removeEventListener(REFRACTION_STATE_EVENT, onState); };
+  window.addEventListener(REFRACTION_STATE_EVENT, onState);
+  refresh();
+  return h('div', { class: 'card lg-glass bench' }, h('div', { class: 'row' }, toggle), status, verdict);
+}
+
+// The refraction explorer: the displacement map of a shape at the chosen bezel, drawn as the library builds it (red is the
+// horizontal offset, green the vertical, the middle value none), beside the curve the offset follows across the bezel.
+const SHAPES_MAP = {
+  pill: { w: 220, h: 110, radius: 55, n: 2 },
+  card: { w: 220, h: 140, radius: 30, n: 4 },
+  circle: { w: 130, h: 130, radius: 65, n: 2 },
+};
+function refractionExplorer() {
+  const s = { shape: 'pill', bezel: 32, depth: 75 };
+  const targetOf = () => ({ ...SHAPES_MAP[s.shape], bezel: s.bezel, depth: s.depth });
+  let cur = targetOf();   // what is on screen: it eases toward the target, so a change plays instead of snapping
+  let frame = 0;
+  const canvas = document.createElement('canvas');
+  canvas.className = 'map-canvas';
+  canvas.setAttribute('role', 'img');
+  canvas.setAttribute('aria-label', 'The displacement map: red is the horizontal offset, green the vertical');
+  const curveHost = h('div');
+  const values = h('p', { class: 'curve-values' });
+
+  const draw = (p) => {
+    const w = Math.round(p.w), ht = Math.round(p.h);
+    const { data, width, height } = displacementMap(w, ht, { radius: p.radius, bezel: p.bezel, n: p.n, res: 1 });
+    canvas.width = width; canvas.height = height;
+    canvas.style.width = `${w}px`;
+    canvas.style.borderRadius = `${p.radius}px`;
+    canvas.getContext('2d').putImageData(new ImageData(data, width, height), 0, 0);
+
+    // Offset across the bezel, from where it meets the face (0) to the rim (1): depth × t³. Where its slope passes 1 the
+    // samples run backwards, and the outer band of the rim reflects.
+    const depth = (p.bezel * p.depth) / 100;
+    const at = (t) => depth * t ** 3;
+    const bend = Math.sqrt(p.bezel / (3 * depth));
+    const reflected = bend < 1 ? Math.round((1 - bend) * 100) : 0;
+    const X = (t) => 16 + t * 168;
+    const Y = (px) => 124 - (px / p.bezel) * 108;
+    const path = Array.from({ length: 41 }, (_, i) => `${i ? 'L' : 'M'}${X(i / 40).toFixed(1)} ${Y(at(i / 40)).toFixed(1)}`).join('');
+    const mark = reflected ? `<line x1="${X(bend)}" x2="${X(bend)}" y1="8" y2="132" class="curve-marker"/><text x="${X(bend) - 4}" y="20" text-anchor="end" class="curve-note">reflects</text>` : '';
+    curveHost.replaceChildren(Object.assign(h('div', { class: 'curve' }), {
+      innerHTML: `<svg viewBox="0 0 200 140" role="img" aria-label="Offset across the bezel, from the face to the rim">
+        <line x1="16" x2="184" y1="${Y(0)}" y2="${Y(0)}" class="curve-axis"/>
+        <path d="${path}" class="curve-line"/>${mark}
+        <text x="16" y="138" class="curve-note">face</text><text x="184" y="138" text-anchor="end" class="curve-note">rim</text></svg>`,
+    }));
+  };
+
+  const readout = () => {
+    const depth = (s.bezel * s.depth) / 100;
+    const reflected = Math.sqrt(s.bezel / (3 * depth)) < 1 ? Math.round((1 - Math.sqrt(s.bezel / (3 * depth))) * 100) : 0;
+    values.replaceChildren(h('code', {}, '--lg-refraction-bezel'), ` ${s.bezel}px, `, h('code', {}, '--lg-refraction-depth'),
+      ` ${s.depth}% = ${depth.toFixed(1)}px at the rim (scale ${(2 * depth).toFixed(1)}), ${reflected ? `reflecting the outer ${reflected}% of the bezel` : 'no reflection'}`);
+  };
+
+  // Shape, bezel and depth are all numbers, so the change is a tween: the map is redrawn each step, the canvas
+  // grows or rounds into the new shape, and the curve bends and the reflection marker slides.
+  const go = () => {
+    readout();
+    cancelAnimationFrame(frame);
+    const from = cur, to = targetOf();
+    if (reduceMotion()) { cur = to; draw(cur); return; }
+    const t0 = performance.now();
+    const step = (now) => {
+      const k = Math.min(1, (now - t0) / 380);
+      const e = 1 - (1 - k) ** 3;
+      cur = Object.fromEntries(Object.keys(to).map((key) => [key, from[key] + (to[key] - from[key]) * e]));
+      draw(cur);
+      if (k < 1) frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+  };
+
+  const control = (key, choices, label, fmt = String) => {
+    const host = h('div');
+    fitSegmented(host, createSegmentedControl(host, {
+      items: choices.map((c) => ({ value: c, label: fmt(c) })), value: s[key], selectedColor: 'accent', label,
+      onSelect: (v, { silent }) => { if (silent) return; s[key] = v; go(); },
+    }));
+    return host;
+  };
+  readout();
+  draw(cur);
+  return h('div', { class: 'card lg-glass easing' },
+    h('div', { class: 'row' }, control('shape', Object.keys(SHAPES_MAP), 'Shape'), control('bezel', [14, 32, 60], 'Bezel', (v) => `${v}px`), control('depth', [25, 75, 100], 'Depth', (v) => `${v}%`)),
+    h('div', { class: 'map-body' }, h('div', { class: 'map-stage' }, canvas), curveHost, h('div', { class: 'easing-side' }, values)));
+}
 const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // The text color setGlassTint would pick, so the printed markup matches what's on screen.
@@ -131,7 +253,7 @@ setGlassTint(el, null);        // back to plain glass`)),
       section('Refraction', {},
         h('p', {}, 'In Chromium, glass can bend what is behind it at the rim, like a thick lens, and leave the middle flat. The bend goes under the glass\'s own blur, whichever glass style it has: with `transparent` it reads as clear glass with a thick edge. Its tint, rim and shadows stay as they are. Try the Refraction switch in the playground above.'),
         h('p', {}, 'Refraction is an SVG displacement filter applied through `backdrop-filter`, which only Chromium draws. Safari and Firefox keep the blurred material. It is also tied to the blur gate: on a device too slow for blur, or with reduced transparency, it stays off. While it is on, `<html>` carries `data-refraction="on"`.'),
-        h('h3', {}, 'On by default, off when you say'),
+        h('h3', { class: 'sub-label' }, 'On by default, off when you say'),
         h('p', {}, 'Call `initRefraction()` once and every glass surface refracts, including ones added later, wherever the browser can draw it. `setRefraction(false)` turns it off for the whole page and `setRefraction(true)` brings it back; `initRefraction({ enabled: false })` starts it off. Whether a visitor gets to choose, and whether the choice is remembered, is up to your page: the library only gives you the switch. To keep one surface or region plain, add `lg-no-refract` to it or to any element around it. The tab bar\'s `refract: false` does that to its root.'),
         h('p', {}, 'To know whether refraction is actually being applied, ask `getRefraction()`. It is true only when the browser can draw it (`supportsRefraction()` answers that part alone, before any setup), `initRefraction()` has run, you have not turned it off, and blur is on. It can change later, when blur is switched or benchmarked off or when you call `setRefraction`, so listen for `REFRACTION_STATE_EVENT` on `window`: its `detail` is `{ active, supported }`. Browsers that cannot draw it never fire the event.'),
         codeBlock(`
@@ -146,7 +268,40 @@ window.addEventListener(REFRACTION_STATE_EVENT, (e) => e.detail.active);
 
 <div class="sidebar lg-no-refract">…</div>   <!-- everything in here stays plain -->`, 'text'),
         h('p', {}, 'Glass you build by hand, outside the glass classes, is named by selector: `initRefraction({ selector: \'.my-panel\' })`, or one element at a time with `attachRefraction(el)`. The lens of every sliding pill, below, refracts either way.'),
-        h('h3', {}, 'Glass style'),
+        h('h3', { class: 'sub-label' }, 'Does this browser support it?'),
+        h('p', {}, 'The same answers your page gets from `supportsRefraction()` and `getRefraction()`, read live for the browser you are using. The switch calls `setRefraction()` on this whole page, so you can watch everything on it change.'),
+        supportCheck()),
+
+      section('How refraction works', {},
+        h('p', {}, 'Every refracting surface gets an SVG filter of its own, kept in a hidden `<svg>` in the page, and its `backdrop-filter` ends with `url(#that-filter)`. The filter has two parts: a displacement map, and a step that reads the backdrop through it. Where the map says to shift, the backdrop is sampled from a little further in, which is what bends it. Change the shape, bezel and depth to see the map and the curve it follows.'),
+        refractionExplorer(),
+        h('h3', { class: 'sub-label' }, 'How it builds one'),
+        table(['Stage', 'What happens'], [
+          ['Measure', 'The surface\'s size, computed corner radius and corner shape (round, squircle, anything between) and the `--lg-refraction-*` tokens are read from its computed style.'],
+          ['Map', 'Drawn on a canvas and kept as a PNG: red is the horizontal offset, green the vertical, and the middle value means none. The face is neutral and only the bezel along the rim moves anything. Maps are cached by geometry, so a row of identical buttons builds one, and surfaces over about 40,000 square pixels draw theirs at half resolution.'],
+          ['Strength', 'The displacement scale is twice the depth, because the map\'s channels reach about half a step either way. A surface smaller than two bezels shrinks its bezel to fit, and the depth with it, so a small button bends as much as its size allows.'],
+          ['Compose', 'The surface\'s own backdrop filter is read as its CSS and its glass style leave it, blur and saturation included, and the filter goes after it: blur first, then bend.'],
+          ['Disperse', 'With dispersion above zero, red, green and blue are displaced separately, red a little further and blue a little less, and added back together. It costs two more passes, so only the lens uses it by default.'],
+        ]),
+        h('p', {}, 'Inside the bezel the offset points inward, so the filter never samples past the edge, where the backdrop ends, and it grows toward the rim on a cubic curve: gentle where the bezel meets the face, steepest at the edge. When the depth outruns that curve the samples run backwards and the outermost band reflects what is further in, the way the curved edge of real glass does. The explorer shows how much of the rim that is.'),
+        h('h3', { class: 'sub-label' }, 'What keeps it cheap'),
+        table(['Mechanism', 'What it does'], [
+          ['On screen only', 'An `IntersectionObserver` builds a surface\'s filter a little before it scrolls into view and takes it off once it leaves, so a long page costs what its viewport does. A hidden surface, or one clipped out of view by a scroller, counts as off screen.'],
+          ['Layout size, not transforms', 'Presses, stretches and morphs scale the map along with the surface for free. A real size change stretches the old map at once and builds a new one once the size has held still for a moment; a change of corner radius (a morph into a circle) rebuilds it when the transition ends.'],
+          ['Only what changed', 'New elements, and elements whose classes or glass style changed, are looked at on the next frame. Classes that flip during a press or drag are ignored, since nothing refraction reads depends on them.'],
+          ['Gated', 'It rides on the blur gate: a device too slow for blur is too slow for this, so it stays off. `url()` in `backdrop-filter` is only drawn by Chromium, so elsewhere it never switches on and the glass keeps its blur.'],
+        ]),
+        h('h3', { class: 'sub-label' }, 'The lens'),
+        h('p', {}, 'The sliding pill of the tab bar, the segmented control, the toggle and the slider lifts into a lens while you press or drag it. Wherever refraction runs, the lens is clear, with no blur at all, in every control, opted in or not: it only draws the filter while lifted, so at rest it costs nothing. Its middle stays true and its whole rim bends, both what is behind it and its own copy of the labels, with the colors split apart at the edge like a prism. At rest it stays flat. Tune it with the same tokens, set on `.lg-pill-inner`.'),
+        h('h3', { class: 'sub-label' }, 'Tokens'),
+        h('p', {}, 'These tokens are read per surface, so they can be set on `:root` for every lens at once, or on one element or region for just that. The blur under the bend is not among them: that is the glass style\'s.'),
+        table(['Token', 'Default', 'What it does'], [
+          [h('code', {}, '--lg-refraction-bezel'), '32px', 'How wide the bent band at the rim is. A surface smaller than two bezels bends across its whole width.'],
+          [h('code', {}, '--lg-refraction-depth'), '75%', 'How far the backdrop is pulled at the very edge, in px or as a share of the bezel. Past about a third, the outermost band reflects; the deeper, the wider the reflection, up to the whole bezel.'],
+          [h('code', {}, '--lg-refraction-dispersion'), '0.025', 'Splits the bend by color at the rim, like a prism: 0.1 is a soft fringe. Any amount costs two more filter passes. The lens sets 0.15.'],
+        ])),
+
+      section('Glass style', {},
         h('p', {}, 'How the glass blurs is its style, and it has nothing to do with whether it refracts: refracting glass takes the same blur under its bend. `frost` is the material\'s own blur and fills. `transparent` is a light frost (`--lg-blur-transparent`, 1px) that clears the lifted pill lens, so the glass reads as clear. Set it for the page with `setGlassStyle(\'transparent\')`, and override it on any element with `setGlassStyle(el, \'frost\')`: it is the `data-glass-style` attribute, and the nearest one wins. `setGlassStyle(el, null)` returns an element to whatever surrounds it. Every playground on this site has a Style option that does exactly that, with `inherit` as its default.'),
         h('p', {}, 'The larger surfaces with UI inside, the sheet, the alert, the popover and the panels that morph out of a chip or a button (menus and pickers), do not follow the page: they start on `frost` so their text stays readable over anything. Small controls (buttons, toggles, the tab bar, the segmented control, text fields) follow the page. The sheet follows the page while it is small and goes frost only at its largest detent (`glassStyle: \'auto\'`). Each large surface takes a `glassStyle` option to override that: `\'transparent\'` to force the light frost, or `\'inherit\'` to follow the page after all. `setGlassStyle(el, …)` on the surface does the same later. A change of style is eased: the blur tokens are registered custom properties, and `setGlassStyle` plays them from one style\'s value to the other\'s over about a third of a second (refracting glass follows along, and reduced motion snaps).'),
         codeBlock(`
@@ -154,16 +309,8 @@ import { setGlassStyle } from 'vitrium';
 
 setGlassStyle('transparent');        // the page
 setGlassStyle(card, 'frost');        // this card and what's in it
-setGlassStyle(card, null);           // back to the page's`, 'js'),
-        h('h3', {}, 'The lens'),
-        h('p', {}, 'The sliding pill of the tab bar, the segmented control, the toggle and the slider lifts into a lens while you press or drag it. Wherever refraction runs, the lens is clear, with no blur at all, in every control, opted in or not: it only draws the filter while lifted, so at rest it costs nothing. Its middle stays true and its whole rim bends, both what is behind it and its own copy of the labels, with the colors split apart at the edge like a prism. At rest it stays flat. Tune it with the same tokens, set on `.lg-pill-inner`.'),
-        h('h3', {}, 'Shape and tokens'),
-        h('p', {}, 'Each surface gets a displacement map made for its size and corner shape, including the squircle corners of a sheet. The bend is gentle where the bezel meets the face and steepest at the very edge, where the outermost band folds over and reflects what is further in, the way the curved edge of real glass does. Presses, stretches and morphs scale the map along with the surface. A real size change stretches the old map at once and builds a new one once the size settles.'),
-        table(['Token', 'Default', 'What it does'], [
-          [h('code', {}, '--lg-refraction-bezel'), '32px', 'How wide the bent band at the rim is. A surface smaller than two bezels bends across its whole width.'],
-          [h('code', {}, '--lg-refraction-depth'), '60%', 'How far the backdrop is pulled at the very edge, in px or as a share of the bezel. Past about a third, the outermost band reflects; the deeper, the wider the reflection, up to the whole bezel.'],
-          [h('code', {}, '--lg-refraction-dispersion'), '0', 'Splits the bend by color at the rim, like a prism: 0.1 is a soft fringe. Any amount costs two more filter passes, so only the lens has it.'],
-        ])),
+setGlassStyle(card, null);           // back to the page's`, 'js')),
+
       section('Classes', {},
         table(['Class', 'What it does'], [
           [h('code', {}, 'lg-glass'), 'The material.'],

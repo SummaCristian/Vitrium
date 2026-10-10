@@ -1,4 +1,5 @@
 import { h } from '../dom.js';
+import { BLUR_STATE_EVENT } from '../../src/index.js';
 
 // A live preview in an iframe. Some components (the tab bar, the sheet) are fixed to the viewport, so to show them for
 // real they need a viewport of their own: a small page, driven through `window.preview`, which the page defines:
@@ -37,6 +38,17 @@ export function createPreviewFrame({ src, title, height = 540, initial, onEvent,
     for (const attr of ['data-theme', 'data-blur']) {
       if (html.hasAttribute(attr)) doc.setAttribute(attr, html.getAttribute(attr)); else doc.removeAttribute(attr);
     }
+    // The page's blur verdict is an attribute here, so tell the frame's refraction (it listens for the event).
+    const win = frame.contentWindow;
+    win.dispatchEvent(new win.CustomEvent(BLUR_STATE_EVENT, { detail: { capable: html.dataset.blur === 'on' } }));
+  };
+  // The page's glass style, or the playground's own around the frame: whichever is nearest. Checked on the timer,
+  // since the playground sets it on its stage rather than on <html>.
+  const mirrorStyle = () => {
+    const doc = frame.contentDocument?.documentElement;
+    if (!doc) return;
+    const style = box.closest('[data-glass-style]')?.dataset.glassStyle;
+    if (style) doc.dataset.glassStyle = style; else delete doc.dataset.glassStyle;
   };
   const observer = new MutationObserver(mirror);
   observer.observe(html, { attributes: true, attributeFilter: ['data-theme', 'data-blur'] });
@@ -45,6 +57,8 @@ export function createPreviewFrame({ src, title, height = 540, initial, onEvent,
   frame.addEventListener('load', () => {
     preview = frame.contentWindow.preview;
     mirror();
+    // The docs playground's glass style sits on the stage around the frame; the page inside needs its own copy.
+    mirrorStyle();
     preview.onEvent = onEvent;
     preview.init(initial());
   });
@@ -52,6 +66,7 @@ export function createPreviewFrame({ src, title, height = 540, initial, onEvent,
   const timer = setInterval(() => {
     if (!frame.isConnected) { clearInterval(timer); observer.disconnect(); return; }
     if (box.parentElement && box.parentElement.clientWidth !== lastAvail) fit();
+    mirrorStyle();
     if (preview) onTick?.(preview);
   }, 250);
 

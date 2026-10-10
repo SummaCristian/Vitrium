@@ -3,10 +3,11 @@
 import '../src/styles/index.css';
 import './site.css';
 import '@fontsource-variable/nunito';
-import { initLiquidGlass, createSheet, createTextField } from '../src/index.js';
+import { initLiquidGlass, initRefraction, createSheet, createTextField } from '../src/index.js';
 import { h } from './dom.js';
 
 initLiquidGlass();
+initRefraction();   // like the page itself; it follows the data-blur the docs page mirrors in
 
 const DETENTS = {
   three: [{ id: 'peek', size: 192 }, { id: 'half', size: 0.5 }, { id: 'full', size: 0.85 }],
@@ -54,6 +55,7 @@ function build() {
     h('button', { class: 'lg-btn pill lg-glass', type: 'button', onClick: () => sheet.setDetent('full') }, 'Expand')) : undefined;
   sheet = createSheet({
     label: 'Places',
+    glassStyle: s.glassStyle,
     header: s.header ? h('div', { class: 'sheet-header' }, h('strong', {}, 'Places')) : undefined,
     footer,
     content: contentFor(s.detents === 'content'),
@@ -81,6 +83,7 @@ function apply(next) {
   const prev = state;
   state = { ...state, ...next };
   if (!sheet || REBUILD.some((k) => state[k] !== prev[k])) { build(); return; }
+  if (state.glassStyle !== prev.glassStyle) sheet.setGlassStyle(state.glassStyle);
   if (state.side !== prev.side) sheet.setSide(state.side);
   if (state.transition !== prev.transition) sheet.setTransition(state.transition);
   if (state.background !== prev.background) sheet.setBackgroundInteraction(backgroundOf(state.background) ?? (state.modal ? 'blocked' : 'enabled'));

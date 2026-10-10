@@ -17,14 +17,17 @@ export function el(tag, className, attrs) {
   return node;
 }
 
-// The three overlay parts pill-drag-core needs: the pill (with its inner clip
-// and active-row), and the invisible hit target.
+// The three overlay parts pill-drag-core needs: the pill (with its inner fill
+// and active-row), and the invisible hit target. The active row sits in a
+// clipping layer of its own beside the fill, so refraction can slide it under
+// the lens, into what the lens's backdrop filter bends (styles/refraction.css).
 export function createPillParts() {
   const pill = el('div', 'lg-pill');
   const inner = el('div', 'lg-pill-inner');
+  const lens = el('div', 'lg-pill-lens');
   const activeRow = el('div', 'lg-pill-active-row');
-  inner.appendChild(activeRow);
-  pill.appendChild(inner);
+  lens.appendChild(activeRow);
+  pill.append(inner, lens);
   const hit = el('div', 'lg-pill-hit');
   return { pill, activeRow, hit };
 }

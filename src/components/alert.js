@@ -36,12 +36,14 @@
 // finger (on its own surface; its buttons and content keep their gestures).
 //
 // Options: title, message, content (Node / trusted HTML, between the message
-// and the actions), actions, dismissible, transition, zIndex.
+// and the actions), actions, dismissible, transition, zIndex, glassStyle ('frost' by default, whatever the page's
+// style is; 'transparent', or 'inherit' to follow the page).
 // Returns { el, present({ from }), dismiss(), setTransition(mode), isOpen, destroy() }.
 import { attachLiquidGlass } from '../core/liquid-glass.js';
 import { createModalLayer, FOCUSABLE } from '../core/modal-layer.js';
 import { playArc, playLiquid, radiusKeyframes, cssTiming, fitDuration, travelDistance } from '../core/motion-path.js';
 import { el, toNode } from './dom.js';
+import { initGlassStyle } from './glass-style.js';
 
 const MORPH_MS = 360;   // keep in sync with --lg-alert-morph-dur in tokens.css (each morph scales it to its distance)
 const POP_EXIT_MS = 220;
@@ -53,7 +55,7 @@ let alertUid = 0;
 
 export function createAlert({
   title, message, content, actions = [{ id: 'ok', label: 'OK', role: 'default' }],
-  dismissible, transition: initialTransition = 'pop', zIndex,
+  dismissible, transition: initialTransition = 'pop', zIndex, glassStyle,
 } = {}) {
   const uid = ++alertUid;
   const cancelAction = actions.find(a => a.role === 'cancel');
@@ -67,6 +69,7 @@ export function createAlert({
   const box = layer.appendChild(el('div', 'lg-alert lg-glass', {
     role: 'alertdialog', 'aria-modal': 'true', tabindex: '-1',
   }));
+  initGlassStyle(box, glassStyle);
   const body = box.appendChild(el('div', 'lg-alert__body'));
   if (title) {
     const h = body.appendChild(el('h2', 'lg-alert__title'));

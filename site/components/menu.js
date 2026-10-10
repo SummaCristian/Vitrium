@@ -71,6 +71,7 @@ export default {
     };
 
     const playground = createPlayground({
+      glassTargets: () => [menu?.el],
       stageClass: 'stage--backdrop',
       options: [
         { key: 'items', label: 'Items', type: 'choice', choices: ['actions', 'sort', 'options', 'sections'], default: 'actions' },
@@ -225,6 +226,7 @@ const menu = createMenu({ trigger, label: 'Sort by', items: items() });`)),
           ['title', '{ icon?, text } | false', 'Override the title, or `false` for none.'],
           ['width', 'number', 'Panel width in px. Default: 220.'],
           ['glass', "'regular' | 'clear'", 'The panel\'s glass. Clear is lighter: less tint, a shallower blur, at some cost to legibility. Default: `"regular"`.'],
+          ['glassStyle', "'frost' | 'transparent' | 'inherit'", 'The panel starts on frost whatever the page\'s glass style is, so the UI in it stays legible. `"transparent"` forces the light frost; `"inherit"` follows the page. `setGlassStyle(el, …)` changes it later. Default: `"frost"`.'],
           ['onOpen, onClose', '() => void', 'When it opens and when it starts to close.'],
         ].map((r) => [h('code', {}, r[0]), h('code', {}, r[1]), r[2]])),
         h('h3', { class: 'sub-label' }, 'Returned object'),

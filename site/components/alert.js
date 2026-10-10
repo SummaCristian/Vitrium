@@ -1,4 +1,4 @@
-import { createAlert, createModalLayer, createTextField } from '../../src/index.js';
+import { createAlert, createModalLayer, createTextField, setGlassStyle } from '../../src/index.js';
 import { createPlayground } from './playground.js';
 import { h, section, table, codeBlock } from '../dom.js';
 import { button } from '../foundation/util.js';
@@ -41,7 +41,7 @@ export default {
 
     // --- Playground: an alert is transient, so the options are kept and the alert built when it is shown ---
     let state = { preset: 'destructive', content: 'none', transition: 'pop', dismissible: 'default' };
-    let trigger, current, log;
+    let trigger, current, log, stageEl;
     const optionsOf = (s) => ({
       ...PRESETS[s.preset],
       ...(s.content === 'field' && { content: createTextField({ placeholder: 'List name', label: 'List name' }).el }),
@@ -50,6 +50,7 @@ export default {
     });
     const present = async () => {
       current = createAlert(optionsOf(state));
+      setGlassStyle(current.el, stageEl.dataset.glassStyle ?? 'frost');
       const alert = current;
       const result = await alert.present({ from: trigger });
       log.textContent = `present() resolved with ${JSON.stringify(result)}`;
@@ -65,6 +66,7 @@ export default {
       ],
       render(s, stage) {
         state = { ...s };
+        stageEl = stage;
         trigger = button('Show alert', () => present());
         log = readout('Press the button, then choose an action');
         stage.append(h('div', { class: 'demo-stack' }, trigger, log));
@@ -248,6 +250,7 @@ modal.deactivate();   // everything back as it was`),
           ['dismissible', 'boolean', 'Whether Escape and the scrim dismiss it. Default: whether there is a cancel action.'],
           ['transition', "'pop' | 'morph'", 'How it comes and goes. Default: `"pop"`.'],
           ['zIndex', 'number', 'Stacking order.'],
+          ['glassStyle', "'frost' | 'transparent' | 'inherit'", 'The alert starts on frost whatever the page\'s glass style is, so the UI in it stays legible. `"transparent"` forces the light frost; `"inherit"` follows the page. `setGlassStyle(el, …)` changes it later. Default: `"frost"`.'],
         ].map((r) => [h('code', {}, r[0]), h('code', {}, r[1]), r[2]])),
         h('h3', { class: 'sub-label' }, 'Action'),
         table(['Field', 'Type', 'Description'], [

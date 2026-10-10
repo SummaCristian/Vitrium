@@ -3,10 +3,11 @@
 import '../src/styles/index.css';
 import './site.css';
 import '@fontsource-variable/nunito';
-import { initLiquidGlass, createTabBar, icons } from '../src/index.js';
+import { initLiquidGlass, initRefraction, createTabBar, icons } from '../src/index.js';
 import { navIcons, demoIcons } from './icons.js';
 
 initLiquidGlass();
+initRefraction();   // like the page itself; it follows the data-blur the docs page mirrors in
 
 const POOL = [
   { id: 'home', label: 'Home', icon: navIcons.home },

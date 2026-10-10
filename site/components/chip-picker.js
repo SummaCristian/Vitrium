@@ -43,6 +43,7 @@ export default {
       host.replaceChildren(picker.el);
     };
     const playground = createPlayground({
+      glassTargets: () => [picker?.popup.panel],
       stageClass: 'stage--backdrop',
       options: [
         { key: 'icon', label: 'Icon', type: 'choice', choices: ICONS, default: 'calendar' },
@@ -170,6 +171,7 @@ picker.setLoading(false);`)),
           ['title', '{ icon, text } | false', 'The heading at the top of the panel. Default: the icon and label. `false` for none.'],
           ['width', 'number', 'Panel width in px. Default: 208.'],
           ['glass', "'regular' | 'clear'", 'The material of the chip and its panel. Clear is lighter: less tint, a shallower blur. Default: `"regular"`.'],
+          ['glassStyle', "'frost' | 'transparent' | 'inherit'", 'The panel (the chip follows the page) starts on frost whatever the page\'s glass style is, so the UI in it stays legible. `"transparent"` forces the light frost; `"inherit"` follows the page. `setGlassStyle(el, …)` changes it later. Default: `"frost"`.'],
           ['role', 'string', 'The panel\'s role. Default: `"dialog"`.'],
           ['panelLabel', 'string', 'The panel\'s accessible name. Default: the label.'],
           ['onOpen, onAfterOpen, onClose', '() => void', 'When opening starts, when the morph has landed, and when closing starts.'],

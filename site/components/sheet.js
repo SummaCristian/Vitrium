@@ -14,6 +14,8 @@ const stateOf = (s) => ({
   modal: s.presentation === 'modal', side: s.side, transition: s.transition, detents: s.detents, material: s.material,
   header: s.header, footer: s.footer, handle: s.handle, deform: s.deform, dismissible: s.dismissible,
   background: s.background, scrim: s.scrim, expandOnFocus: s.expandOnFocus,
+  // `inherit` here is the playground's: leave the sheet on its own default, which follows the page when small.
+  glassStyle: s.glassStyle === 'inherit' ? 'auto' : s.glassStyle,
 });
 
 // The detents drawn on a screen: three heights, each outlined from the bottom edge.
@@ -248,6 +250,7 @@ sheet.setSide('start');   // glides across`),
           ['label', 'string', 'Accessible name.'],
           ['container', 'Element', 'Where to mount. Default: `document.body`.'],
           ['zIndex', 'number', 'Stacking order of the sheet and its scrim.'],
+          ['glassStyle', "'auto' | 'frost' | 'transparent' | 'inherit'", 'The sheet\'s glass style. `"auto"` follows the page while the sheet is small, below its largest detent, and goes frost at the largest, where it holds the whole UI. `"frost"` and `"transparent"` fix it; `"inherit"` always follows the page. `setGlassStyle(el, …)` on `el` overrides it, and `sheet.setGlassStyle(option)` changes the option. Default: `"auto"`.'],
           ['give, flingVelocity, hardFlingVelocity', 'number', 'Physics overrides: the elastic overshoot (px) and the two flick speeds (px/ms).'],
           ['onPresent, onDismiss, onDetentChange, onResize', 'functions', '`onDismiss(reason)`, `onDetentChange(id)`, `onResize(px, { gesturing })`.'],
         ].map((r) => [h('code', {}, r[0]), h('code', {}, r[1]), r[2]])),

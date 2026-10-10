@@ -116,6 +116,10 @@
 //   Clear glass is the lighter variant (less tint, shallower blur, a fainter rim)
 //   that lets more of the page show through. It covers the bar and the prominent
 //   circle. tabs.setGlass(mode) changes it later; tabs.glass reads it back.
+//   refract: true (default) | false
+//   Where refraction runs (initRefraction(), Chromium), the bar and its circles
+//   bend what's behind them at the rim (false puts `.lg-no-refract` on the root). The pill's
+//   lens refracts either way, while it's lifted.
 //
 // `icon` is a Node or trusted SVG/HTML string; `label` is set as text.
 import { createPillDragCore } from '../core/pill-drag-core.js';
@@ -195,8 +199,9 @@ function splitTabs(tabs, unified = false) {
 
 let tabbarUid = 0;
 
-export function createTabBar(root, { tabs: initialTabs, value, onSelect, action, orientation = 'auto', breakpoint = 600, placement, label, compact = false, transition = false, glass = 'regular' } = {}) {
+export function createTabBar(root, { tabs: initialTabs, value, onSelect, action, orientation = 'auto', breakpoint = 600, placement, label, compact = false, transition = false, glass = 'regular', refract = true } = {}) {
   root.classList.add('lg-tabbar');
+  root.classList.toggle('lg-no-refract', !refract);
   const uid = ++tabbarUid;
 
   // Orientation. `mode` is what the caller asked for; `vertical` is what it

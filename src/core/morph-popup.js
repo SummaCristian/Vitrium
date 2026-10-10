@@ -28,6 +28,7 @@
 // tear the freshly opened panel back down.
 import { snapGeometry, morphGeometry, hideInnerBoxInstantly, unhideInnerBox } from './flip-morph.js';
 import { attachLiquidGlass } from './liquid-glass.js';
+import { initGlassStyle } from '../components/glass-style.js';
 import { playArc, playLiquid, radiusKeyframes, visibleRadius, cssTiming, fitDuration, travelDistance } from './motion-path.js';
 
 const MORPH_MS = 440;   // keep in sync with --lg-morph-panel-dur in morph-popup.css (each trip scales it to its distance)
@@ -63,12 +64,13 @@ function div(className, attrs) {
 // radius    the open panel's corner radius, px (default 16)
 // maxHeight how tall the panel may grow before its body scrolls: 'normal' (default, a
 //           comfortable 420px), 'page' (the page's height less the safe areas and 20px), or px
+// glassStyle 'frost' (default) | 'transparent' | 'inherit' (the page's): the panel's glass style
 // onOpen()          as soon as opening starts
 // onAfterOpen()     once the morph has landed (focus a control, highlight a row)
 // onClose()         as soon as closing starts
 export function createMorphPopup({
   trigger, role = 'dialog', label, title, width, radius = 16, maxHeight = 'normal',
-  onOpen, onAfterOpen, onClose,
+  glassStyle = 'frost', onOpen, onAfterOpen, onClose,
 } = {}) {
   const id = `lg-morph-${++uid}`;
 
@@ -76,6 +78,7 @@ export function createMorphPopup({
   const overlay = div('lg-morph-overlay');
   overlay.hidden = true;
   const panel = div('lg-morph', { role, tabindex: '-1', id });
+  initGlassStyle(panel, glassStyle);
   if (label) panel.setAttribute('aria-label', label);
   if (role === 'dialog') panel.setAttribute('aria-modal', 'true');
   if (width) panel.style.setProperty('--lg-morph-width', `${width}px`);

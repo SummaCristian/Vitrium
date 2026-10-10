@@ -345,7 +345,8 @@ test.describe('segmented control blur', () => {
     expect(await filter()).toBe('none');
     await page.locator('.playground .control-row', { hasText: 'Blur' }).locator('[role="switch"]').click();
     await page.waitForTimeout(600);
-    expect(await filter()).toContain('blur');
+    // The docs switch refraction on, which takes the blur's place in Chrome (see the refraction tests below).
+    expect(await filter()).toMatch(/blur|url\(/);
     // The pill is a sibling of the track, so the two filters do not nest.
     expect(await page.locator('.playground .stage .lg-seg__track .lg-pill').count()).toBe(0);
   });
@@ -353,7 +354,35 @@ test.describe('segmented control blur', () => {
   test('the theme switcher in the corner has it', async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('lg:blur-mode', 'on'));
     await open(page, 'home', '.tile');
-    expect(await page.locator('.theme-seg .lg-seg__track').evaluate((n) => getComputedStyle(n).backdropFilter)).toContain('blur');
+    expect(await page.locator('.theme-seg .lg-seg__track').evaluate((n) => getComputedStyle(n).backdropFilter)).toMatch(/blur|url\(/);
+  });
+});
+
+test.describe('refraction', () => {
+  test('glass bends the backdrop in place of the blur while blur is on', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('lg:blur-mode', 'on'));
+    await open(page, 'foundation/glass', '.glass-demo');
+    await page.waitForTimeout(400);
+    expect(await page.evaluate(() => document.documentElement.dataset.refraction)).toBe('on');
+    const demo = page.locator('.glass-demo');
+    // The surface's own blur, as its glass style leaves it, then the refraction.
+    const filter = await demo.evaluate((n) => getComputedStyle(n).backdropFilter);
+    expect(filter).toMatch(/^(blur\([\d.]+px\) )?url\("#lg-refraction-\d+"\)$/);
+    // The filter it points at has a map the size of the surface.
+    const size = await demo.evaluate((n) => {
+      const id = getComputedStyle(n).backdropFilter.match(/#([\w-]+)/)[1];
+      const img = document.getElementById(id).querySelector('feImage');
+      return [+img.getAttribute('width'), +img.getAttribute('height'), n.offsetWidth, n.offsetHeight];
+    });
+    expect(size.slice(0, 2)).toEqual(size.slice(2));
+  });
+
+  test('stays off, with the blur, while blur is off', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('lg:blur-mode', 'off'));
+    await open(page, 'foundation/glass', '.glass-demo');
+    await page.waitForTimeout(400);
+    expect(await page.evaluate(() => document.documentElement.dataset.refraction)).toBe('off');
+    expect(await page.locator('.lg-refracting').count()).toBe(0);
   });
 });
 

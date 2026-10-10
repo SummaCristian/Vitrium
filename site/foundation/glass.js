@@ -60,6 +60,7 @@ export default {
     function apply(s) {
       el.classList.toggle('lg-glass--clear', s.variant === 'clear');
       el.classList.toggle('liquid-glass', s.press);
+      el.classList.toggle('lg-no-refract', !s.refract);
       el.classList.toggle('lg-elevation-low', s.elevation === 'low');
       el.classList.toggle('lg-elevation-high', s.elevation === 'high');
       Object.assign(el.style, SHAPES[s.shape]);
@@ -81,6 +82,7 @@ export default {
         { key: 'tint', label: 'Tint', type: 'choice', choices: ['none', 'custom'], default: 'none' },
         { key: 'color', label: 'Tint color', type: 'color', default: '#0a7aff', when: (s) => s.tint === 'custom' },
         { key: 'press', label: 'Press physics', type: 'bool', default: true },
+        { key: 'refract', label: 'Refraction', type: 'bool', default: true },
         { key: 'backdrop', label: 'Colored backdrop', type: 'bool', default: true },
         { key: 'ui', label: 'Scrolling UI behind', type: 'bool', default: false },
       ],
@@ -126,6 +128,42 @@ import { setGlassTint } from 'vitrium';
 
 setGlassTint(el, '#0a7aff');   // tint, and set a matching text color
 setGlassTint(el, null);        // back to plain glass`)),
+      section('Refraction', {},
+        h('p', {}, 'In Chromium, glass can bend what is behind it at the rim, like a thick lens, and leave the middle flat. The bend goes under the glass\'s own blur, whichever glass style it has: with `transparent` it reads as clear glass with a thick edge. Its tint, rim and shadows stay as they are. Try the Refraction switch in the playground above.'),
+        h('p', {}, 'Refraction is an SVG displacement filter applied through `backdrop-filter`, which only Chromium draws. Safari and Firefox keep the blurred material. It is also tied to the blur gate: on a device too slow for blur, or with reduced transparency, it stays off. While it is on, `<html>` carries `data-refraction="on"`.'),
+        h('h3', {}, 'On by default, off when you say'),
+        h('p', {}, 'Call `initRefraction()` once and every glass surface refracts, including ones added later, wherever the browser can draw it. `setRefraction(false)` turns it off for the whole page and `setRefraction(true)` brings it back; `initRefraction({ enabled: false })` starts it off. Whether a visitor gets to choose, and whether the choice is remembered, is up to your page: the library only gives you the switch. To keep one surface or region plain, add `lg-no-refract` to it or to any element around it. The tab bar\'s `refract: false` does that to its root.'),
+        h('p', {}, 'To know whether refraction is actually being applied, ask `getRefraction()`. It is true only when the browser can draw it (`supportsRefraction()` answers that part alone, before any setup), `initRefraction()` has run, you have not turned it off, and blur is on. It can change later, when blur is switched or benchmarked off or when you call `setRefraction`, so listen for `REFRACTION_STATE_EVENT` on `window`: its `detail` is `{ active, supported }`. Browsers that cannot draw it never fire the event.'),
+        codeBlock(`
+import { initBlurCapability, initRefraction, setRefraction, getRefraction, REFRACTION_STATE_EVENT } from 'vitrium';
+
+initBlurCapability();
+initRefraction();                 // every glass surface, and every lens
+
+setRefraction(false);             // the whole page, plain again
+getRefraction();                  // is it being applied right now?
+window.addEventListener(REFRACTION_STATE_EVENT, (e) => e.detail.active);
+
+<div class="sidebar lg-no-refract">…</div>   <!-- everything in here stays plain -->`, 'text'),
+        h('p', {}, 'Glass you build by hand, outside the glass classes, is named by selector: `initRefraction({ selector: \'.my-panel\' })`, or one element at a time with `attachRefraction(el)`. The lens of every sliding pill, below, refracts either way.'),
+        h('h3', {}, 'Glass style'),
+        h('p', {}, 'How the glass blurs is its style, and it has nothing to do with whether it refracts: refracting glass takes the same blur under its bend. `frost` is the material\'s own blur and fills. `transparent` is a light frost (`--lg-blur-transparent`, 1px) that clears the lifted pill lens, so the glass reads as clear. Set it for the page with `setGlassStyle(\'transparent\')`, and override it on any element with `setGlassStyle(el, \'frost\')`: it is the `data-glass-style` attribute, and the nearest one wins. `setGlassStyle(el, null)` returns an element to whatever surrounds it. Every playground on this site has a Style option that does exactly that, with `inherit` as its default.'),
+        h('p', {}, 'The larger surfaces with UI inside, the sheet, the alert, the popover and the panels that morph out of a chip or a button (menus and pickers), do not follow the page: they start on `frost` so their text stays readable over anything. Small controls (buttons, toggles, the tab bar, the segmented control, text fields) follow the page. The sheet follows the page while it is small and goes frost only at its largest detent (`glassStyle: \'auto\'`). Each large surface takes a `glassStyle` option to override that: `\'transparent\'` to force the light frost, or `\'inherit\'` to follow the page after all. `setGlassStyle(el, …)` on the surface does the same later. A change of style is eased: the blur tokens are registered custom properties, and `setGlassStyle` plays them from one style\'s value to the other\'s over about a third of a second (refracting glass follows along, and reduced motion snaps).'),
+        codeBlock(`
+import { setGlassStyle } from 'vitrium';
+
+setGlassStyle('transparent');        // the page
+setGlassStyle(card, 'frost');        // this card and what's in it
+setGlassStyle(card, null);           // back to the page's`, 'js'),
+        h('h3', {}, 'The lens'),
+        h('p', {}, 'The sliding pill of the tab bar, the segmented control, the toggle and the slider lifts into a lens while you press or drag it. Wherever refraction runs, the lens is clear, with no blur at all, in every control, opted in or not: it only draws the filter while lifted, so at rest it costs nothing. Its middle stays true and its whole rim bends, both what is behind it and its own copy of the labels, with the colors split apart at the edge like a prism. At rest it stays flat. Tune it with the same tokens, set on `.lg-pill-inner`.'),
+        h('h3', {}, 'Shape and tokens'),
+        h('p', {}, 'Each surface gets a displacement map made for its size and corner shape, including the squircle corners of a sheet. The bend is gentle where the bezel meets the face and steepest at the very edge, where the outermost band folds over and reflects what is further in, the way the curved edge of real glass does. Presses, stretches and morphs scale the map along with the surface. A real size change stretches the old map at once and builds a new one once the size settles.'),
+        table(['Token', 'Default', 'What it does'], [
+          [h('code', {}, '--lg-refraction-bezel'), '32px', 'How wide the bent band at the rim is. A surface smaller than two bezels bends across its whole width.'],
+          [h('code', {}, '--lg-refraction-depth'), '60%', 'How far the backdrop is pulled at the very edge, in px or as a share of the bezel. Past about a third, the outermost band reflects; the deeper, the wider the reflection, up to the whole bezel.'],
+          [h('code', {}, '--lg-refraction-dispersion'), '0', 'Splits the bend by color at the rim, like a prism: 0.1 is a soft fringe. Any amount costs two more filter passes, so only the lens has it.'],
+        ])),
       section('Classes', {},
         table(['Class', 'What it does'], [
           [h('code', {}, 'lg-glass'), 'The material.'],
@@ -180,6 +218,6 @@ box-shadow: var(--lg-shadow-rim);`, 'text'),
 };
 
 function classes(s) {
-  return ['lg-glass', s.variant === 'clear' && 'lg-glass--clear', s.shape === 'circle' && 'lg-glass--circle', s.elevation !== 'default' && `lg-elevation-${s.elevation}`, s.press && 'liquid-glass'].filter(Boolean);
+  return ['lg-glass', s.variant === 'clear' && 'lg-glass--clear', s.shape === 'circle' && 'lg-glass--circle', s.elevation !== 'default' && `lg-elevation-${s.elevation}`, s.press && 'liquid-glass', !s.refract && 'lg-no-refract'].filter(Boolean);
 }
 

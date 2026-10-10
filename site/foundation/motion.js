@@ -106,6 +106,7 @@ export default {
   abstract: 'Springs, press physics and how reduced motion is handled.',
   sections() {
     const spring = createPlayground({
+      glassStyle: false,   // nothing here is blurred glass
       options: [
         { key: 'stiffness', label: 'Stiffness', type: 'choice', choices: [100, 300, 600], default: 300 },
         { key: 'damping', label: 'Damping', type: 'choice', choices: [8, 20, 40], default: 20 },

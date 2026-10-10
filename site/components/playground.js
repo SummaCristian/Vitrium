@@ -2,13 +2,20 @@
 // re-renders the stage and rewrites the code snippet, so the snippet always matches what's shown.
 //
 //   option: { key, label, type: 'bool' | 'choice' | 'color', default, choices?, when?(state) }
-import { createSegmentedControl, createToggle } from '../../src/index.js';
+import { createSegmentedControl, createToggle, setGlassStyle } from '../../src/index.js';
 import { h, codeBlock } from '../dom.js';
 import { fitSegmented } from './fit.js';
 
 // `render(state, stage)` builds the demo. If `patch(state, stage, changedKey)` is given, later option
 // changes call it instead, so the same element can be updated in place (and transition) rather than rebuilt.
-export function createPlayground({ options, render, patch, code, lang = 'js', stageClass = '' }) {
+//
+// Every playground also gets a Style option (see setGlassStyle), set on the stage so whatever renders inside
+// inherits it. `inherit` leaves the page's own style in force, which is how a page-wide style is meant to work. `glassTargets()` lists the elements outside the stage that need it too
+// (a popup that mounts on <body>), and is read after each change. `glassStyle: false` leaves the option out.
+const STYLE_OPTION = { key: 'glassStyle', label: 'Style', type: 'choice', choices: ['inherit', 'frost', 'transparent'], default: 'inherit' };
+
+export function createPlayground({ options: ownOptions, render, patch, code, lang = 'js', stageClass = '', glassTargets, glassStyle = true }) {
+  const options = glassStyle ? [...ownOptions, STYLE_OPTION] : ownOptions;
   const state = Object.fromEntries(options.map((o) => [o.key, o.default]));
   const stage = h('div', { class: 'stage' });
   const snippet = h('div');
@@ -18,9 +25,18 @@ export function createPlayground({ options, render, patch, code, lang = 'js', st
   const update = (changedKey) => {
     if (patch && rendered) patch(state, stage, changedKey);
     else { stage.replaceChildren(); render(state, stage); rendered = true; }
-    snippet.replaceChildren(codeBlock(code(state), lang));
+    applyStyle();
+    snippet.replaceChildren(codeBlock(code(state) + styleCode(), lang));
     for (const { opt, row } of rows) row.hidden = !!opt.when && !opt.when(state);
   };
+  // The stage follows the page on `inherit`. The targets are the larger surfaces, which start on frost whatever the
+  // page says, so `inherit` leaves them there and only an explicit choice moves them.
+  const applyStyle = () => {
+    setGlassStyle(stage, state.glassStyle === 'inherit' ? null : state.glassStyle);
+    for (const el of glassTargets?.() ?? []) if (el) setGlassStyle(el, state.glassStyle === 'inherit' ? 'frost' : state.glassStyle);
+  };
+  const styleCode = () => (state.glassStyle !== 'inherit' && lang === 'js'
+    ? `\n\nimport { setGlassStyle } from 'vitrium';\n\nsetGlassStyle(glass, '${state.glassStyle}');   // glass: the surface, or any element around it` : '');
   const set = (key, value) => { state[key] = value; update(key); };
 
   const control = (opt) => {

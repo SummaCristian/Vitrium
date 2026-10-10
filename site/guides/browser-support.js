@@ -13,6 +13,7 @@ export default {
       section('Features it uses', {},
         table(['Feature', 'Used for', 'Where it is missing'], [
           ['`backdrop-filter`', 'The blur of the glass.', 'Falls back to a near-opaque tint that stays readable, and blur is reported as unsupported. This is the one fallback that is built in.'],
+          ['`url()` in `backdrop-filter`', 'Refraction, the bend at the rim of the glass (on by default, see Glass material).', 'Only Chromium draws it. Elsewhere refraction stays off and the glass keeps its blur.'],
           ['`color-mix()`', 'Tints, outlines and hover states throughout the styles.', 'Required. Without it those colors are dropped.'],
           ['Individual transform properties (`translate`, `scale`)', 'The press and stretch, and the morphs, which stack on top of any `transform` you set.', 'Required for the physics.'],
           ['`inert`', 'Making the page unreachable behind a modal sheet or alert.', 'Required for modals to block the page properly.'],

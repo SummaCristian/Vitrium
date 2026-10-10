@@ -66,6 +66,10 @@
 //                    tapping a text field) moving into the content while below
 //                    the largest detent expands it. A tap on a card doesn't.
 //                    Default true.
+//   glassStyle       'auto' (default: the page's style below the largest detent, where the sheet is clear and
+//                    small, and frost at it, whatever the page says, with the full UI to read) | 'frost' |
+//                    'transparent' | 'inherit' (always the page's). setGlassStyle(el, …) on `el` overrides it;
+//                    sheet.setGlassStyle(option) changes the option itself
 //   label            the accessible name
 //   container        where to mount (default document.body)
 //   modal            present over a scrim with an inert page behind, and start
@@ -97,12 +101,13 @@
 // Returns { el, contentEl, headerEl, footerEl, present, dismiss, presented,
 //           setDetent, detent, height, detentHeight, isGesturing, scrollTop,
 //           setContent, setSide, side, setTransition, transition,
-//           setBackgroundInteraction, setHidden,
+//           setBackgroundInteraction, setGlassStyle, setHidden,
 //           hidden, refresh, destroy }.
 import { Spring, onSpringFrame } from '../core/spring.js';
 import * as physics from '../core/sheet-physics.js';
 import { arcOffset, appleSpringConfig, dropletAlong, travelDistance } from '../core/motion-path.js';
 import { el, toNode } from './dom.js';
+import { initGlassStyle, setGlassStyle } from './glass-style.js';
 
 const SETTLE = { stiffness: 260, damping: 30, mass: 1 };
 const PRESENT = { stiffness: 330, damping: 25, mass: 1 };   // a touch underdamped: a small overshoot
@@ -138,7 +143,7 @@ export function createSheet({
   margin: baseMargin, width: baseWidth, side: initialSide = 'end', responsive = [],
   modal = false, open = !modal, dismissible = modal, backgroundInteraction, transition: initialTransition = 'pop', scrim: useScrim = true, zIndex,
   onPresent, onDismiss,
-  geometry = {}, material = 'auto',
+  geometry = {}, material = 'auto', glassStyle,
   handle: showHandle = true, deform = true, shield: useShield = true, expandOnFocus = true,
   label, container = document.body,
   give = physics.DEFAULTS.give,
@@ -155,6 +160,7 @@ export function createSheet({
   // A modal always has this layer (it's what catches an outside click); `scrim: false` just makes it clear.
   const scrim = modal ? el('div', useScrim ? 'lg-sheet-scrim' : 'lg-sheet-scrim lg-sheet-scrim--clear') : null;
   const sheet = el('div', 'lg-sheet', { role: modal ? 'dialog' : 'region', tabindex: '-1' });
+  let styleOption = glassStyle ?? 'auto';
   if (label) sheet.setAttribute('aria-label', label);
   const glass = el('div', 'lg-sheet__glass lg-glass');
   const clip = el('div', 'lg-sheet__clip');
@@ -407,6 +413,9 @@ export function createSheet({
   function updateMaterial() {
     const clear = material === 'clear' || (material === 'auto' && current !== largest().id);
     glass.classList.toggle('is-clear', clear);
+    // Small, it follows the page; at the largest detent it holds the whole UI and goes frost.
+    if (styleOption === 'auto') setGlassStyle(sheet, clear ? null : 'frost');
+    else initGlassStyle(sheet, styleOption);
   }
 
   function announce() {
@@ -864,6 +873,7 @@ export function createSheet({
     get transition() { return transitionMode; },
     setTransition(next) { transitionMode = next; },
     setBackgroundInteraction(next) { bgMode = next; applyBackground(); },
+    setGlassStyle(next) { styleOption = next ?? 'auto'; updateMaterial(); },
     get height() { return size.value; },
     detentHeight(id) { return pointFor(id)?.px; },
     get isGesturing() { return gesturing(); },

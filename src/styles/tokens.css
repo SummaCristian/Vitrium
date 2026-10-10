@@ -4,6 +4,16 @@
    can retheme by overriding any of them. Theme follows `prefers-color-scheme`
    unless the host pins one with <html data-theme="light|dark">. */
 
+/* The blur tokens are registered so a change of glass style (data-glass-style, see
+   components/glass-style.js) can ease them: an animation on the element that changes
+   style plays them from one style's value to the other's, and everything inside inherits
+   the in-between values. Where @property isn't supported the change snaps. */
+@property --lg-blur-sm { syntax: '<length>'; inherits: true; initial-value: 4px; }
+@property --lg-blur-md { syntax: '<length>'; inherits: true; initial-value: 8px; }
+@property --lg-blur-lg { syntax: '<length>'; inherits: true; initial-value: 18px; }
+@property --lg-blur-clear { syntax: '<length>'; inherits: true; initial-value: 8px; }
+@property --lg-pill-blur { syntax: '<length>'; inherits: true; initial-value: 2px; }
+
 :root {
   /* Material — the canonical glass recipe. */
   --lg-tint: rgba(250, 250, 250, 0.7);
@@ -140,9 +150,15 @@
   --lg-rim-clear: 0.6;
   --lg-stroke-clear: 0.75;
 
-  --lg-blur-sm: 4px;
-  --lg-blur-md: 8px;
-  --lg-blur-lg: 18px;
+  /* The material's own blur, as the `frost` glass style (see styles/refraction.css). The
+     tokens below are what surfaces use; the style attribute decides what they point at. */
+  --lg-blur-sm-frost: 4px;
+  --lg-blur-md-frost: 8px;
+  --lg-blur-lg-frost: 18px;
+  --lg-blur-clear-frost: 8px;
+  --lg-blur-sm: var(--lg-blur-sm-frost);
+  --lg-blur-md: var(--lg-blur-md-frost);
+  --lg-blur-lg: var(--lg-blur-lg-frost);
 
   /* "Clear" variant: lighter tint, shallower blur, for surfaces that should
      stay glassy but get out of the way of what's behind them. */
@@ -152,7 +168,25 @@
   --lg-tint-strength: 60%;
   --lg-tint-strength-clear: 40%;
   --lg-tint-saturate-clear: 1.8;
-  --lg-blur-clear: 8px;
+  --lg-blur-clear: var(--lg-blur-clear-frost);
+  /* The blur of the `transparent` glass style (data-glass-style, styles/refraction.css): a light
+     frost instead of the material's own. 0px is glass that blurs nothing. */
+  --lg-blur-transparent: 1px;
+
+  /* Refraction (core/refraction.js, Chromium only): how wide the bent band at
+     the rim is, and how far the backdrop is pulled at the very edge (in px, or
+     as a share of the bezel). Past about a third of the bezel the outermost
+     band folds over and reflects what's further in, as the curved edge of real
+     glass does; up to the whole bezel. A surface smaller than two bezels bends
+     across its whole width, with the depth scaled down to match. The blur under
+     the bend is not set here: it is the glass style's (--lg-blur-*, below). The
+     lens of the sliding pill sets its own (refraction.css). */
+  --lg-refraction-bezel: 32px;
+  --lg-refraction-depth: 75%;
+  /* Splits the bend by color at the rim, as a prism does: 0 is none, 0.2 a
+     strong fringe. Any amount costs two more displacement passes, so it's off
+     on plain glass and on for the pill's lens. */
+  --lg-refraction-dispersion: 0.025;
 
   /* 0.5px outside gradient stroke, top to bottom (Figma's "outside stroke"). */
   --lg-stroke-gradient: linear-gradient(

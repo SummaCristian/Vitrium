@@ -1,7 +1,7 @@
 import '../src/styles/index.css';
 import './site.css';
 import '@fontsource-variable/nunito';
-import { initLiquidGlass, initBlurCapability, createTabBar, createButton, createSheet } from '../src/index.js';
+import { initLiquidGlass, initBlurCapability, initRefraction, setGlassStyle, createTabBar, createButton, createSheet } from '../src/index.js';
 import { createRouter } from './router.js';
 import { h } from './dom.js';
 import { navIcons } from './icons.js';
@@ -16,6 +16,8 @@ import { componentsPage } from './pages/components.js';
 initTheme();
 initLiquidGlass();
 initBlurCapability();
+initRefraction();
+setGlassStyle('transparent');   // this page's choice: clear glass; the library's own default is frost
 
 const routes = { home, start, foundation, components: componentsPage };
 const tabs = [
@@ -42,7 +44,7 @@ const head = h('div', { class: 'sidebar-head' });
 sidebar.el.prepend(head);
 const STORE_FOLD = 'lgw:sidebar-folded';
 let folded = (() => { try { return localStorage.getItem(STORE_FOLD) === '1'; } catch { return false; } })();
-const foldToggle = createButton({ icon: navIcons.sidebar, label: 'Hide sidebar', className: 'sidebar-toggle', glass: 'clear', claimTouch: true, onClick: () => setFolded(!folded) });
+const foldToggle = createButton({ icon: navIcons.sidebar, label: 'Hide sidebar', className: 'sidebar-toggle', glass: 'regular', claimTouch: true, onClick: () => setFolded(!folded) });
 
 function setFolded(next, { animate = true } = {}) {
   folded = next;
@@ -65,7 +67,7 @@ function setFolded(next, { animate = true } = {}) {
 setFolded(folded, { animate: false });
 
 const mobileNav = buildSidebar({ onNavigate: () => sheet.dismiss() });
-const menuBtn = createButton({ icon: navIcons.menu, label: 'Documentation menu', glass: 'clear', claimTouch: true, onClick: () => sheet.present({ from: menuBtn }) });
+const menuBtn = createButton({ icon: navIcons.menu, label: 'Documentation menu', glass: 'regular', claimTouch: true, onClick: () => sheet.present({ from: menuBtn }) });
 menuBtn.classList.add('menu-btn');
 document.getElementById('menu-slot').append(menuBtn);
 const sheet = createSheet({
@@ -89,7 +91,7 @@ const router = createRouter(page, routes, {
 });
 
 tabbar = createTabBar(document.getElementById('tabbar'), {
-  glass: 'clear',
+  glass: 'regular',
   tabs,
   transition: true,
   compact: true,   // wide screens: one bar centred at the top; phones keep the bottom row

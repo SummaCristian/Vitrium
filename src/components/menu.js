@@ -30,7 +30,8 @@
 // `title` says otherwise: pass `{ icon, text }`, or false for none), width
 // (px, default 220), maxHeight ('normal' (default, 420px), 'page' (the page's height less
 // some padding) or px: past it the list scrolls inside the panel), glass ('regular' by default, or 'clear': the panel's material;
-// clear lets more of the page through, at some cost to legibility), onOpen, onClose.
+// clear lets more of the page through, at some cost to legibility), glassStyle ('frost' by default, whatever the page's style is;
+// 'transparent', or 'inherit' to follow the page), onOpen, onClose.
 // Returns { el, trigger, open(), close(), isOpen, setItems(items), setGlass(mode), glass, destroy() }.
 import { createMorphPopup } from '../core/morph-popup.js';
 import { icons } from './icons.js';
@@ -41,7 +42,7 @@ const TYPEAHEAD_RESET_MS = 500;
 let menuUid = 0;
 
 export function createMenu({
-  trigger, items = [], label, title, width = 220, maxHeight, glass = 'regular', onOpen, onClose,
+  trigger, items = [], label, title, width = 220, maxHeight, glass = 'regular', glassStyle, onOpen, onClose,
 } = {}) {
   const uid = ++menuUid;
   let rows = [];          // selectable rows, in visual order: { item, name, el }
@@ -61,7 +62,7 @@ export function createMenu({
   };
 
   const popup = createMorphPopup({
-    trigger, role: 'menu', label, width, maxHeight, radius: 22,
+    trigger, role: 'menu', label, width, maxHeight, radius: 22, glassStyle,
     title: title === false ? undefined : (title ?? (label ? { text: label } : undefined)),
     onOpen: () => { document.addEventListener('keydown', onDocKeydown); onOpen?.(); },
     // Opened from the keyboard, the first item is ready; opened by pointer, nothing is lit.

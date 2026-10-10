@@ -1,0 +1,88 @@
+/* Refraction (see core/refraction.js): the backdrop bends at the rim of the
+   glass, like a thick lens, and stays flat in the middle. Chromium only.
+
+   initRefraction() gives each glass surface .lg-refracting and an SVG filter of
+   its own, and writes --_lg-refraction: the surface's own backdrop (its blur is
+   whatever the glass style makes it), followed by url(#that-filter). It only applies while [data-refraction="on"], which needs
+   blur to be on, so a browser without support, a slow device and a page that
+   never calls initRefraction() all keep the plain, blurred material.
+
+   The selector carries :root and the attribute so it outweighs every
+   component's own backdrop rule (the heaviest are three classes), and this
+   file is imported last for the ties. */
+
+:root[data-refraction="on"] .lg-refracting {
+  -webkit-backdrop-filter: var(--_lg-refraction);
+  backdrop-filter: var(--_lg-refraction);
+}
+
+/* The popover's arrow inherits the box's backdrop, which would be the box's
+   filter at the arrow's own size, misplaced. The arrow is too small to bend,
+   and the middle of the glass, which it continues, isn't bent either: it only
+   needs the same backdrop minus the bend. */
+:root[data-refraction="on"] .lg-popover__arrow {
+  -webkit-backdrop-filter: var(--_lg-refraction-base, none);
+  backdrop-filter: var(--_lg-refraction-base, none);
+}
+
+/* The sliding pill's lens (pill.css), lifted mid tap or drag: a drop of clear
+   glass over the labels. It leaves them as they are until the last few pixels,
+   where a thin rim bends them, its outer edge reflecting what's just inside,
+   with the colors split apart like a prism's. Set these on .lg-pill-inner
+   itself to tune it. */
+.lg-pill-inner {
+  --lg-refraction-blur: 0px;
+  --lg-refraction-bezel: 14px;
+  --lg-refraction-depth: 75%;
+  --lg-refraction-dispersion: 0.15;
+}
+
+/* What shows in the lens is both what's behind it and its own copies of the
+   labels (the active row, pill.css). While it's lifted the copies slide under
+   it, so its backdrop filter takes in the two as one picture and bends them
+   together. That matters for the color split: dispersion pulls the channels of
+   the finished picture apart, so a black glyph on a light ground breaks into a
+   rainbow at its edge and a blue one stays blue with a few red and green
+   pixels, where split on their own the copies would fringe black and green.
+   z-index -1 stays inside the pill (will-change makes it a stacking context),
+   just above its ring shadow. */
+:root[data-refraction="on"] .lg-pill--lifted:has(> .lg-pill-inner.lg-refracting)>.lg-pill-lens {
+  z-index: -1;
+}
+
+/* Lifted, the refracting lens is clear glass: the flat gray fill it has at
+   rest (--lg-pill-bg, pill.css) goes, so it takes the brightness of whatever
+   is behind it and reads the same over a white page as over a tinted card. */
+:root[data-refraction="on"] .lg-pill--lifted .lg-pill-inner.lg-refracting {
+  background: transparent;
+}
+
+/* At rest the lens is a flat fill with no backdrop, and keeps none. */
+:root[data-refraction="on"] .lg-pill:not(.lg-pill--lifted) .lg-pill-inner.lg-refracting {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+/* Glass style (components/glass-style.js), for glass that isn't refracting:
+   [data-glass-style] on <html> sets it for the whole page, and on any element
+   for what's inside it; the nearest one wins. `frost` is the material's own
+   blur and fills (also what it is with no attribute). `transparent` gives it
+   a light frost (--lg-blur-transparent) and lets the lifted pill lens go
+   clear. It is about the glass, not about refraction: refracting glass takes the
+   same blur under its bend. The tokens are inherited, so the attribute is only
+   ever a switch for them. */
+[data-glass-style="frost"] {
+  --lg-blur-sm: var(--lg-blur-sm-frost);
+  --lg-blur-md: var(--lg-blur-md-frost);
+  --lg-blur-lg: var(--lg-blur-lg-frost);
+  --lg-blur-clear: var(--lg-blur-clear-frost);
+  --lg-pill-blur: 2px;
+  --lg-pill-lifted-bg: var(--lg-pill-bg);
+}
+[data-glass-style="transparent"] {
+  --lg-blur-sm: var(--lg-blur-transparent);
+  --lg-blur-md: var(--lg-blur-transparent);
+  --lg-blur-lg: var(--lg-blur-transparent);
+  --lg-blur-clear: var(--lg-blur-transparent);
+  --lg-pill-blur: var(--lg-blur-transparent);
+  --lg-pill-lifted-bg: transparent;
+}

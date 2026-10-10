@@ -28,6 +28,7 @@ export default {
     // --- Playground: a draggable anchor in an arena, with one popover held open on it ---
     let pop, anchor, arena;
     const playground = createPlayground({
+      glassTargets: () => [pop?.el],
       stageClass: 'stage--backdrop',
       options: [
         { key: 'side', label: 'Side', type: 'choice', choices: SIDES, default: 'top' },
@@ -242,6 +243,7 @@ popover.setContent(newContent);   // it resizes and re-positions on its own`)),
           ['label', 'string', 'Accessible name.'],
           ['deform', 'boolean', 'Press-and-stretch physics on the surface. Default: `true`.'],
           ['glass', "'regular' | 'clear'", 'The glass material. Clear is lighter: less tint, a shallower blur, at some cost to legibility. Default: `"regular"`.'],
+          ['glassStyle', "'frost' | 'transparent' | 'inherit'", 'The popover starts on frost whatever the page\'s glass style is, so the UI in it stays legible. `"transparent"` forces the light frost; `"inherit"` follows the page. `setGlassStyle(el, …)` changes it later. Default: `"frost"`.'],
           ['onShow, onHide', '() => void', 'Called when it opens and closes.'],
         ].map((r) => [h('code', {}, r[0]), h('code', {}, r[1]), r[2]])),
         h('h3', { class: 'sub-label' }, 'Returned object'),

@@ -19,6 +19,8 @@
 //
 // `maxHeight: 'normal'` (default, 420px), `'page'` (up to the page's height less the safe areas and 20px) or px: past it the list scrolls.
 //
+// `glassStyle` is the list's glass style: `'frost'` (default, whatever the page's style is), `'transparent'`, or `'inherit'` (the page's).
+//
 // `glass: 'regular'` (default) or `'clear'` sets the material of the chip and its list; setGlass() changes it later.
 //
 // Returns { el, value, setValue, setOptions, setLabel, setLoading, setGlass, glass, open, close, destroy }.
@@ -30,7 +32,7 @@ const TYPEAHEAD_RESET_MS = 500;
 let listUid = 0;
 
 export function createListPicker({
-  label = '', icon, sections, options, value, name, onChange, title, width, maxHeight, glass,
+  label = '', icon, sections, options, value, name, onChange, title, width, maxHeight, glass, glassStyle,
 } = {}) {
   const uid = ++listUid;
   let current = '';
@@ -40,7 +42,7 @@ export function createListPicker({
   let typeaheadTimer = 0;
 
   const chip = createChipPicker({
-    icon, label, role: 'listbox', title, width, maxHeight, glass,
+    icon, label, role: 'listbox', title, width, maxHeight, glass, glassStyle,
     onAfterOpen: () => setActive(activeIndex >= 0 ? activeIndex : 0, { scroll: 'auto' }),
     onClose: clearTypeahead,
   });
@@ -194,6 +196,7 @@ export function createListPicker({
     setGlass: chip.setGlass,
     setLabel: chip.setLabel,
     setLoading: chip.setLoading,
+    popup,
     open: popup.open,
     close: popup.close,
     destroy: chip.destroy,

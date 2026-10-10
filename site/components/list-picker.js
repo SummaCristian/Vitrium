@@ -32,6 +32,7 @@ export default {
     // --- Playground: the options change on the live picker ---
     let picker, log;
     const playground = createPlayground({
+      glassTargets: () => [picker?.popup.panel],
       stageClass: 'stage--backdrop',
       options: [
         { key: 'grouping', label: 'Layout', type: 'choice', choices: ['flat', 'sections'], default: 'sections' },
@@ -168,6 +169,7 @@ new FormData(form).get('country');   // 'jp'`)),
           ['title', '{ icon, text } | false', 'The heading at the top of the list. Default: the icon and label.'],
           ['width', 'number', 'List width in px. Default: 208.'],
           ['glass', "'regular' | 'clear'", 'The material of the chip and its list. Clear is lighter: less tint, a shallower blur. Default: `"regular"`.'],
+          ['glassStyle', "'frost' | 'transparent' | 'inherit'", 'The list starts on frost whatever the page\'s glass style is, so the UI in it stays legible. `"transparent"` forces the light frost; `"inherit"` follows the page. `setGlassStyle(el, …)` changes it later. Default: `"frost"`.'],
           ['onChange', '(value, { silent }) => void', 'Called when the user picks a different option.'],
         ].map((r) => [h('code', {}, r[0]), h('code', {}, r[1]), r[2]])),
         h('h3', { class: 'sub-label' }, 'Returned object'),

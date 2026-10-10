@@ -165,16 +165,37 @@ describe('liquidKeyframes', () => {
     return [sx * (90 + 180 * p), sy * (40 + 260 * p)];
   });
 
-  it('gathers into a round droplet early, without first growing', () => {
-    const at = Math.round(0.2 * (sizes.length - 1));
+  it('pulls in as it sets off, without first growing', () => {
+    // Narrower, and smaller overall: only drawn out a touch along the way it's heading (down).
+    expect(sizes[2][0]).toBeLessThan(90);
+    expect(sizes[2][0] * sizes[2][1]).toBeLessThan(90 * 40);
+    // The narrowest it gets: rounder than the chip, and all but fully round.
+    const at = sizes.reduce((m, s, i) => (s[0] < sizes[m][0] ? i : m), 0);
     const [w, h] = sizes[at];
-    expect(w).toBeCloseTo(h, 0);   // within half a px: the nearest sampled frame
-    expect(w).toBeLessThan(90);
-    for (let i = 1; i <= at; i++) expect(sizes[i][0]).toBeLessThanOrEqual(sizes[i - 1][0] + 1e-9);
+    expect(w / h).toBeLessThan(90 / 40);
     const [rx, ry] = k.radius[at].borderRadius.split(' / ').map(parseFloat);
-    // Fully round: the visible radius is half its size, on both axes.
-    expect(rx * (w / panel.width)).toBeCloseTo(w / 2, 0);
-    expect(ry * (h / panel.height)).toBeCloseTo(h / 2, 0);
+    const [sx, sy] = [w / panel.width, h / panel.height];
+    expect(Math.min(rx * sx, ry * sy)).toBeGreaterThan(0.85 * Math.min(w, h) / 2);
+  });
+
+  it('draws out along the way it travels, and only in flight', () => {
+    // The same trip straight down: in flight it's taller, and narrower, than the same morph in place.
+    const below = { ...panel, left: 300 - 90, top: 400 };
+    const moving = liquidKeyframes(below, chip, below, 20, 22, { easing: (t) => t });
+    const still = liquidKeyframes(below, { ...chip, left: 300 - 90 + 90, top: 400 + 130 }, below, 20, 22, { easing: (t) => t });
+    const at = (kf, i) => two(kf.scale[i].scale);
+    const i = Math.round(0.15 * (moving.scale.length - 1));
+    expect(at(moving, i)[1]).toBeGreaterThan(at(still, i)[1]);
+    expect(at(moving, i)[0]).toBeLessThan(at(still, i)[0]);
+    expect(at(moving, moving.scale.length - 1)).toEqual(at(still, still.scale.length - 1));
+  });
+
+  it('never stalls on the way: one continuous motion, no stop between the gather and the spread', () => {
+    const area = sizes.map(([w, h]) => w * h);
+    const peak = area.indexOf(Math.max(...area));
+    const turn = area.indexOf(Math.min(...area.slice(0, peak)));
+    // From the tightest point it grows every frame, up to the overshoot.
+    for (let i = turn + 2; i <= peak; i++) expect(area[i]).toBeGreaterThan(area[i - 1]);
   });
 
   it('spreads out with a bounce past the destination before landing', () => {

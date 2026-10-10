@@ -267,6 +267,24 @@ export function attachLiquidGlass(el, opts = {}) {
   });
 }
 
+// Holds back `el`'s hover lift until the pointer next leaves it. For a control a morph hands
+// back to (a chip a popup collapses into): it reappears under the pointer at its resting size,
+// which the morph landed on, and lifting right then reads as a second pop after the landing.
+// Only when the pointer is over it: a hold it never leaves would swallow the next real hover.
+let lastPointer = null;
+if (typeof document !== 'undefined') {
+  document.addEventListener('pointermove', (e) => {
+    lastPointer = e.pointerType === 'mouse' ? [e.clientX, e.clientY] : null;
+  }, { passive: true, capture: true });
+}
+export function holdHoverLift(el) {
+  if (!lastPointer || el.classList.contains('lg-hover-held')) return;
+  const r = el.getBoundingClientRect(), [x, y] = lastPointer;
+  if (x < r.left || x > r.right || y < r.top || y > r.bottom) return;
+  el.classList.add('lg-hover-held');
+  el.addEventListener('pointerleave', () => el.classList.remove('lg-hover-held'), { once: true });
+}
+
 let delegated = false;
 
 // One delegated pointerdown for every light-DOM `.liquid-glass` element,

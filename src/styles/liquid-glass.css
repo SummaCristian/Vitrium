@@ -73,7 +73,7 @@
 @media (hover: hover) {
   /* The popover is pinned to its trigger; a scale would drift it off the
      anchor, so it gets no hover lift at all. */
-  .liquid-glass:not(.lg-popover):hover {
+  .liquid-glass:not(.lg-popover):not(.lg-hover-held):hover {
     scale: 1.045;
   }
 }

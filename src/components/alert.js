@@ -39,7 +39,8 @@
 // and the actions), actions, dismissible, transition, zIndex, glassStyle ('frost' by default, whatever the page's
 // style is; 'transparent', or 'inherit' to follow the page).
 // Returns { el, present({ from }), dismiss(), setTransition(mode), isOpen, destroy() }.
-import { attachLiquidGlass } from '../core/liquid-glass.js';
+import { attachLiquidGlass, holdHoverLift } from '../core/liquid-glass.js';
+import { morphRefraction } from '../core/refraction.js';
 import { createModalLayer, FOCUSABLE } from '../core/modal-layer.js';
 import { playArc, playLiquid, radiusKeyframes, cssTiming, fitDuration, travelDistance } from '../core/motion-path.js';
 import { el, toNode } from './dom.js';
@@ -153,6 +154,8 @@ export function createAlert({
     const timing = cssTiming(box, '--lg-alert-morph-dur', '--lg-ease-glide');
     const dx = (to.left + to.width / 2) - (from.left + from.width / 2);
     const dy = (to.top + to.height / 2) - (from.top + from.height / 2);
+    // The box keeps its own size both ways: its map is right only where it opens out.
+    morphRefraction(box, { radius: boxRadius, duration: morphMs, land: !reverse });
     anims = [
       playArc(box, dx, dy, { ...timing, reverse, fit: { start: from, end: to } }),
       ...(reverse
@@ -171,7 +174,7 @@ export function createAlert({
     for (const p of ['transition', 'transform', 'transformOrigin', 'borderRadius']) box.style[p] = '';
     box.style.removeProperty('--lg-alert-morph-dur');
     layer.style.removeProperty('--lg-alert-exit');
-    if (source) source.style.visibility = '';
+    if (source) { holdHoverLift(source); source.style.visibility = ''; }
   }
 
   function finish(result) {

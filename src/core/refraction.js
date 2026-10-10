@@ -32,9 +32,10 @@
 // The verdict is [data-refraction="on"] on <html>, which the CSS keys off
 // (styles/refraction.css), so nothing changes before init or without support.
 //
-// Maps follow layout size, not transforms: the press, the stretch and the FLIP
-// morphs scale the map along with the surface for free. A real size change
-// stretches the old map at once and builds a new one once the size settles.
+// Maps follow layout size, not transforms: the press and the stretch scale the map
+// along with the surface for free. A real size change stretches the old map at once
+// and builds a new one once the size settles. A FLIP morph scales the box too far for
+// that to hold, so it holds the bend flat in flight (morphRefraction, below).
 
 import { BLUR_STATE_EVENT } from './blur-capability.js';
 import { GLASS_STYLE_MS } from '../components/glass-style.js';
@@ -204,14 +205,15 @@ function baseFilter(el, s) {
   else el.style.removeProperty('--_lg-refraction-base');
 }
 
-// Build the map for the surface's current size and shape.
-function build(el, s) {
+// Build the map for the surface's current size and shape (`radius`, px, in place of its
+// computed one: a morph knows the corner it lands on before its animation gets there).
+function build(el, s, radiusOverride) {
   clearTimeout(s.timer); s.timer = 0;
   const w = el.offsetWidth, h = el.offsetHeight;
   if (!w || !h) return;
   const cs = getComputedStyle(el);
   const rRaw = cs.borderTopLeftRadius;
-  const radius = rRaw.endsWith('%') ? Math.min(w, h) * parseFloat(rRaw) / 100 : parseFloat(rRaw) || 0;
+  const radius = radiusOverride ?? (rRaw.endsWith('%') ? Math.min(w, h) * parseFloat(rRaw) / 100 : parseFloat(rRaw) || 0);
   const n = cornerExponent(cs.getPropertyValue('corner-top-left-shape') || cs.getPropertyValue('corner-shape'));
   const bezelToken = px(cs, '--lg-refraction-bezel', DEFAULT_BEZEL);
   // A surface smaller than two bezels is all lens: the bezel shrinks to fit,
@@ -230,8 +232,63 @@ function build(el, s) {
   // feDisplacementMap shifts by scale × (channel − 0.5), and the channels reach
   // about ±0.5, so the largest shift is half the scale.
   const shift = Math.min(depth, bezel * MAX_DEPTH);
-  for (const { node, k } of s.disps) node.setAttribute('scale', (2 * shift * (1 + k * dispersion)).toFixed(2));
+  for (const d of s.disps) d.full = 2 * shift * (1 + d.k * dispersion);
+  bend(s, s.bend);
   s.w = w; s.h = h;
+}
+
+// How much of its bend the surface shows, 0 (flat glass, its blur kept) to 1.
+function bend(s, f) {
+  s.bend = f;
+  for (const { node, full = 0 } of s.disps) node.setAttribute('scale', (full * f).toFixed(2));
+}
+
+/* --- Through a morph ------------------------------------------------------------------ */
+// A FLIP morph (core/flip-morph.js) pins the surface's real box at one end and scales it to
+// look like the other, so a map in the box's own pixels is right only where the morph lands:
+// mid-flight the uneven scale squashes its bezel, and the corners it would read are the
+// animation's, in flight. Rebuilding it every frame would mean encoding and decoding an
+// image per frame on the main thread, under the very motion it should keep smooth. So the
+// map is built once, for the box and the corner it lands on, and the bend held flat (the
+// blur stays) while the shape is far from it, then eased in over the last LAND of the
+// morph as the drop settles: the rim forms as it lands, rather than popping on after.
+const LAND = 0.4;
+const holds = new Map();   // element → { radius, t0, ms }: a morph under way, applied as it activates too
+
+// morphRefraction(el, { radius, duration, land })
+//   For a surface about to morph for `duration` ms onto its real (layout) box, with corners
+//   of `radius` px there. Call it once the box is pinned at that end. `land: false` is for a
+//   morph that ends away from the real box (an alert shrinking back into its button keeps
+//   its own box, and is gone once there): the bend stays flat the whole way. Does nothing
+//   for a surface that isn't refracting (or isn't yet: one that comes into view mid-morph
+//   picks it up).
+export function morphRefraction(el, { radius, duration, land = true }) {
+  if (!el) return;
+  holds.set(el, { radius, land, t0: performance.now(), ms: Math.max(0, duration) });
+  const s = surfaces.get(el);
+  if (s) hold(el, s);
+}
+
+function hold(el, s) {
+  const h = holds.get(el);
+  if (!h) return;
+  cancelAnimationFrame(s.ramp);
+  s.held = true;
+  build(el, s, h.radius);
+  const tick = () => {
+    if (surfaces.get(el) !== s || holds.get(el) !== h) return;
+    const u = (performance.now() - h.t0) / (h.ms || 1);
+    if (u >= 1) {
+      holds.delete(el);
+      s.held = false; s.ramp = 0; s.bend = 1;
+      build(el, s);   // the corner it has now, its own, and the whole bend
+      return;
+    }
+    const v = h.land ? Math.max(0, (u - (1 - LAND)) / LAND) : 0;
+    bend(s, v * v * (3 - 2 * v));
+    s.ramp = requestAnimationFrame(tick);
+  };
+  tick();
 }
 
 // The filter's steps after the map: one displacement, or with dispersion one
@@ -285,6 +342,7 @@ function setSize(s, w, h) {
 function resized(el, s) {
   const w = el.offsetWidth, h = el.offsetHeight;
   if (w === s.w && h === s.h) return;
+  if (s.held) { setSize(s, w, h); return; }   // a morph's: rebuilt as it lands
   if (!s.w) { build(el, s); return; }
   setSize(s, w, h);
   clearTimeout(s.timer);
@@ -295,7 +353,7 @@ function resized(el, s) {
 function onTransitionEnd(e) {
   if (e.target !== this || !/radius|width|height|corner/.test(e.propertyName)) return;
   const s = surfaces.get(this);
-  if (s) build(this, s);
+  if (s && !s.held) build(this, s);
 }
 
 // attachRefraction(el)
@@ -340,12 +398,12 @@ function activate(el) {
   const img = svg('feImage', { x: 0, y: 0, preserveAspectRatio: 'none', result: 'map' });
   filter.append(img);
   filterHost().append(filter);
-  const s = { id, filter, img, disps: null, chroma: null, w: 0, h: 0, timer: 0, base: '', manual };
+  const s = { id, filter, img, disps: null, chroma: null, w: 0, h: 0, timer: 0, base: '', manual, bend: 1, held: false, ramp: 0 };
   primitives(s, false);   // a plain bend until build() reads the tokens
   surfaces.set(el, s);
   el.classList.add('lg-refracting');
   baseFilter(el, s);
-  build(el, s);
+  if (holds.has(el)) hold(el, s); else build(el, s);
   el.addEventListener('transitionend', onTransitionEnd);
   ro ??= new ResizeObserver((entries) => {
     for (const { target } of entries) {
@@ -369,6 +427,7 @@ function deactivate(el) {
   const s = surfaces.get(el);
   if (!s) return;
   clearTimeout(s.timer);
+  cancelAnimationFrame(s.ramp);
   s.filter.remove();
   surfaces.delete(el);
   ro?.unobserve(el);
@@ -430,7 +489,7 @@ function scan() {
     if (w) {
       if (!w.manual && !el.matches(selector)) { detachRefraction(el); continue; }
       const s = surfaces.get(el);
-      if (s) { baseFilter(el, s); build(el, s); }
+      if (s) { baseFilter(el, s); if (!s.held) build(el, s); }
     }
     for (const inner of within(el)) attach(inner);
     for (const [inner, st] of [...watched]) {

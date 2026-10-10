@@ -27,7 +27,8 @@
 // transitionend, cleanup timer) re-checks it, so a fast close-then-open can't
 // tear the freshly opened panel back down.
 import { snapGeometry, morphGeometry, hideInnerBoxInstantly, unhideInnerBox } from './flip-morph.js';
-import { attachLiquidGlass } from './liquid-glass.js';
+import { attachLiquidGlass, holdHoverLift } from './liquid-glass.js';
+import { morphRefraction } from './refraction.js';
 import { initGlassStyle } from '../components/glass-style.js';
 import { playArc, playLiquid, radiusKeyframes, visibleRadius, cssTiming, fitDuration, travelDistance } from './motion-path.js';
 
@@ -270,6 +271,7 @@ export function createMorphPopup({
     if (!isOpen) return;
     settled = true;
     stopMotion();   // landed: the panel's own radius takes over, at the same value
+    panel.style.transformOrigin = '';   // a press deform pivots about the centre again, not the morph's corner
     panel.focus({ preventScroll: true });
     onAfterOpen?.();
   }
@@ -330,6 +332,8 @@ export function createMorphPopup({
           });
         },
       });
+      // The real box is pinned at the panel's rect now: its map is the one it lands on.
+      morphRefraction(panel, { radius: panelRadius(target), duration: morphMs });
     });
   }
 
@@ -390,6 +394,7 @@ export function createMorphPopup({
             // Hand the frame back to the trigger: its glass box matches the
             // collapsed panel, so swap instantly, but fade the trigger's contents
             // in while the panel cross-fades out.
+            holdHoverLift(trigger);
             trigger.classList.remove('lg-morph-anim');
             trigger.classList.add('lg-morph-content-hidden');
             panel.classList.add('lg-morph--closing');
@@ -404,6 +409,8 @@ export function createMorphPopup({
           });
         },
       });
+      // Pinned at the trigger's rect: the corner it lands on is the trigger's.
+      morphRefraction(panel, { radius: triggerRadius(to), duration: morphMs });
     });
   }
 

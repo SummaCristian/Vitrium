@@ -18,7 +18,7 @@ export {
 } from './core/blur-capability.js';
 export {
   GLASS_SURFACES, initRefraction, setRefraction, getRefraction, REFRACTION_STATE_EVENT, attachRefraction, detachRefraction, supportsRefraction,
-  displacementMap, cornerExponent,
+  displacementMap, cornerExponent, morphRefraction,
 } from './core/refraction.js';
 
 export { icons } from './components/icons.js';

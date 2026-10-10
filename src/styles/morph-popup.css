@@ -92,6 +92,12 @@
   filter: brightness(1.11) saturate(1.35);
 }
 
+/* A floating panel doesn't swell under a passing cursor (like the alert and the popover):
+   it opens under the pointer, so a lift would kick in mid-morph, on top of the droplet. */
+.lg-morph.liquid-glass:not(.lg-pressing):not(.lg-dragging):hover {
+  scale: 1;
+}
+
 .lg-morph:focus-visible {
   outline: none;
 }

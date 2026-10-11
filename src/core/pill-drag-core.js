@@ -58,7 +58,7 @@ export function createPillDragCore({
   cellSelector,
   activeCellClass = 'lg-pill-active-cell',
   liftedClass = 'lg-pill--lifted',
-  tapScale = 1.3,
+  tapScale = 1.45,
   trail = TRAIL,
   axis: initialAxis = 'x',
   keyboard = true,

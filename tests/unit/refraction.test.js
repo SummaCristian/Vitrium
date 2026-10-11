@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { cornerExponent, displacementMap, supportsRefraction } from '../../src/core/refraction.js';
+import { cornerExponent, displacementMap, fitBend, supportsRefraction } from '../../src/core/refraction.js';
 
 // The offset the map encodes at (x, y), in -1..1 per axis: red is x, green is y, 128 is none.
 const at = ({ data, width }, x, y) => {
@@ -55,18 +55,49 @@ describe('the displacement map', () => {
   });
 
   it('is steepest at the very rim, where it can fold into a reflection', () => {
-    // t³ across the bezel: full strength at the edge, an eighth of it halfway in. Steepest at the edge is what lets
-    // a deep enough shift fold only the outermost band (see rimCurve).
+    // t^2.5 across the bezel: full strength at the edge, under a fifth of it halfway in. Steepest at the edge is what
+    // lets a deep enough shift fold only the outer band (see DEFAULT_CURVE).
     const wide = displacementMap(200, 100, { radius: 0, bezel: 40 });
     expect(at(wide, 100, 0)[1]).toBeGreaterThan(0.95);
-    expect(at(wide, 100, 20)[1]).toBeCloseTo(0.125, 1);
-    expect(at(wide, 100, 30)[1]).toBeLessThan(0.03);
+    expect(at(wide, 100, 20)[1]).toBeCloseTo(0.17, 1);
+    expect(at(wide, 100, 30)[1]).toBeLessThan(0.04);
+  });
+
+  it('takes a gentler curve on request, as the lens does', () => {
+    // t^1.5: about a third of the depth halfway in, where t^2.5 has under a fifth.
+    const lens = displacementMap(200, 100, { radius: 0, bezel: 40, curve: 1.5 });
+    const wide = displacementMap(200, 100, { radius: 0, bezel: 40 });
+    expect(at(lens, 100, 0)[1]).toBeGreaterThan(0.95);
+    expect(at(lens, 100, 20)[1]).toBeCloseTo(0.34, 1);
+    expect(at(lens, 100, 20)[1]).toBeGreaterThan(at(wide, 100, 20)[1]);
   });
 
   it('fits the bezel into a box smaller than two of them', () => {
     const small = displacementMap(30, 30, { radius: 15, bezel: 20 });
     expect(at(small, 15, 15)[0]).toBeCloseTo(0, 1);
     expect(at(small, 1, 15)[0]).toBeGreaterThan(0.5);
+  });
+});
+
+describe('the bend a surface gets', () => {
+  it('reaches past the bezel, into the face', () => {
+    // The iOS tab bar: a 16px bezel whose rim shows what's 25px in.
+    expect(fitBend(400, 80)).toEqual({ bezel: 16, shift: 25 });
+  });
+
+  it('stops at the middle', () => {
+    expect(fitBend(334, 50).shift).toBe(25);
+    expect(fitBend(200, 36)).toEqual({ bezel: 16, shift: 18 });
+  });
+
+  it('fits the bezel into a small surface', () => {
+    expect(fitBend(20, 20)).toEqual({ bezel: 10, shift: 10 });
+  });
+
+  it('takes the depth in px or as a share of the bezel', () => {
+    expect(fitBend(200, 100, { bezel: 14, depth: '75%' }).shift).toBeCloseTo(10.5);
+    expect(fitBend(200, 100, { bezel: 14, depth: 9 }).shift).toBe(9);
+    expect(fitBend(200, 100, { bezel: 14, depth: '9px' }).shift).toBe(9);
   });
 });
 

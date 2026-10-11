@@ -54,20 +54,26 @@ const ALWAYS = '.lg-pill-inner';
 const DEFAULT_ON = `:is(${GLASS_SURFACES}):not(.lg-no-refract, .lg-no-refract *), ${ALWAYS}`;
 let selector = DEFAULT_ON;
 
-const DEFAULT_BEZEL = 32;  // px, --lg-refraction-bezel
-const DEFAULT_DEPTH = 19;  // px of the largest shift at the rim, --lg-refraction-depth
+// Measured off iOS 26 (a 50pt tab bar and a 133pt rounded rectangle, each
+// scrolled slowly over hard edges): the bend fades out about 15-16pt in from
+// the rim, and the rim itself shows what's 25pt in on both, so the depth is a
+// fixed distance, not a share of the size (on the bar it happens to be the
+// middle line). It reaches well past the bezel, into the flat face, and only
+// the middle of a small surface caps it.
+const DEFAULT_BEZEL = 16;  // px, --lg-refraction-bezel
+const DEFAULT_DEPTH = 25;  // px of the largest shift at the rim, --lg-refraction-depth
 // How the offset grows across the bezel, t going from 0 where the bezel meets
-// the face to 1 at the rim, as a share of the depth: flat over most of the
-// bezel, steepest at the very edge. Where the depth outruns the curve (the
-// offset falls faster than the edge comes closer, 3 × depth / bezel × t² > 1)
-// the samples run backwards, so the outermost band of the rim reflects what's
-// further in, as the curved edge of a real slab of glass does; inside it the
-// bezel squeezes the backdrop toward the rim. With the default depth the band
-// is the outer quarter of the bezel.
-const rimCurve = (t) => t * t * t;
-// The deepest the shift may go, as a share of the bezel: past it the rim would
-// reflect from beyond the bezel, out of the glass's face.
-const MAX_DEPTH = 1;
+// the face to 1 at the rim, as a share of the depth: t ** curve, flat over
+// most of the bezel and steepest at the very edge (--lg-refraction-curve; the
+// exponent is the fit to the recording). Where the depth outruns the curve
+// (the offset falls faster than the edge comes closer,
+// curve × depth / bezel × t^(curve − 1) > 1) the samples run backwards, so the
+// outer band of the rim reflects what's further in, as the curved edge of a
+// real slab of glass does: the rim keeps showing the backdrop from deep inside
+// until an edge crossing under it gets there. Inside the band the bezel
+// magnifies the backdrop toward the rim. With the defaults the band is the
+// outer 60% of the bezel.
+const DEFAULT_CURVE = 2.5;
 // Dispersion splits the bend by color: red bends this much further, blue this
 // much less, per unit of --lg-refraction-dispersion.
 const CHANNELS = [['R', 1], ['G', 0], ['B', -1]];
@@ -99,8 +105,8 @@ export function cornerExponent(shape) {
 // offset, 128 meaning none. Measured in CSS pixels on a `w` x `h` box with
 // corners of `radius` and exponent `n`, sampled at `res` pixels per CSS pixel.
 // Inside the bezel the offset points inward (so it never samples past the
-// edge, where the backdrop ends) and grows toward the rim on rimCurve.
-export function displacementMap(w, h, { radius = 0, bezel = DEFAULT_BEZEL, n = 2, res = 1 } = {}) {
+// edge, where the backdrop ends) and grows toward the rim as t ** curve.
+export function displacementMap(w, h, { radius = 0, bezel = DEFAULT_BEZEL, n = 2, res = 1, curve = DEFAULT_CURVE } = {}) {
   const pw = Math.max(1, Math.round(w * res));
   const ph = Math.max(1, Math.round(h * res));
   const data = new Uint8ClampedArray(pw * ph * 4);
@@ -130,7 +136,7 @@ export function displacementMap(w, h, { radius = 0, bezel = DEFAULT_BEZEL, n = 2
       let R = 128, G = 128;
       if (inward >= 0 && inward < b) {
         const t = 1 - inward / b;
-        const mag = rimCurve(t);
+        const mag = t ** curve;
         R = 128 - 127 * Math.sign(px) * nx * mag;
         G = 128 - 127 * Math.sign(py) * ny * mag;
       }
@@ -141,10 +147,21 @@ export function displacementMap(w, h, { radius = 0, bezel = DEFAULT_BEZEL, n = 2
   return { data, width: pw, height: ph };
 }
 
+// The bezel and the shift at the rim for a `w` x `h` surface, from the tokens:
+// `depth` in px, or a string ending in % for a share of the bezel. A surface
+// smaller than two bezels is all lens: the bezel shrinks to fit. The shift
+// stops at the middle, past which the rim would show the far side.
+export function fitBend(w, h, { bezel = DEFAULT_BEZEL, depth = DEFAULT_DEPTH } = {}) {
+  const half = Math.min(w, h) / 2;
+  const b = Math.max(1, Math.min(bezel, half));
+  const d = typeof depth === 'string' && depth.endsWith('%') ? b * parseFloat(depth) / 100 : parseFloat(depth);
+  return { bezel: b, shift: Math.max(0, Math.min(Number.isFinite(d) ? d : DEFAULT_DEPTH, half)) };
+}
+
 // Encoded maps, by geometry, so a row of identical buttons builds one.
 const cache = new Map();
 function mapURL(w, h, opts) {
-  const key = `${w}x${h}:${opts.radius}:${opts.n}:${opts.bezel}:${opts.res}`;
+  const key = `${w}x${h}:${opts.radius}:${opts.n}:${opts.bezel}:${opts.res}:${opts.curve}`;
   let url = cache.get(key);
   if (url) { cache.delete(key); cache.set(key, url); return url; }
   const { data, width, height } = displacementMap(w, h, opts);
@@ -215,23 +232,18 @@ function build(el, s, radiusOverride) {
   const rRaw = cs.borderTopLeftRadius;
   const radius = radiusOverride ?? (rRaw.endsWith('%') ? Math.min(w, h) * parseFloat(rRaw) / 100 : parseFloat(rRaw) || 0);
   const n = cornerExponent(cs.getPropertyValue('corner-top-left-shape') || cs.getPropertyValue('corner-shape'));
-  const bezelToken = px(cs, '--lg-refraction-bezel', DEFAULT_BEZEL);
-  // A surface smaller than two bezels is all lens: the bezel shrinks to fit,
-  // and the shift with it, so small buttons bend as much as their size allows.
-  const bezel = Math.max(1, Math.min(bezelToken, Math.min(w, h) / 2));
-  // Depth in px scales with the bezel; a percentage is a share of the bezel.
-  const depthRaw = cs.getPropertyValue('--lg-refraction-depth').trim();
-  const depth = depthRaw.endsWith('%')
-    ? bezel * parseFloat(depthRaw) / 100
-    : px(cs, '--lg-refraction-depth', DEFAULT_DEPTH) * bezel / bezelToken;
+  const { bezel, shift } = fitBend(w, h, {
+    bezel: px(cs, '--lg-refraction-bezel', DEFAULT_BEZEL),
+    depth: cs.getPropertyValue('--lg-refraction-depth').trim() || DEFAULT_DEPTH,
+  });
   const dispersion = Math.max(0, px(cs, '--lg-refraction-dispersion', 0));
+  const curve = Math.max(1, px(cs, '--lg-refraction-curve', DEFAULT_CURVE));
   const res = w * h > LARGE_AREA ? 0.5 : 1;
-  s.img.setAttribute('href', mapURL(w, h, { radius, bezel, n, res }));
+  s.img.setAttribute('href', mapURL(w, h, { radius, bezel, n, res, curve }));
   setSize(s, w, h);
   primitives(s, dispersion > 0);
   // feDisplacementMap shifts by scale × (channel − 0.5), and the channels reach
   // about ±0.5, so the largest shift is half the scale.
-  const shift = Math.min(depth, bezel * MAX_DEPTH);
   for (const d of s.disps) d.full = 2 * shift * (1 + d.k * dispersion);
   bend(s, s.bend);
   s.w = w; s.h = h;

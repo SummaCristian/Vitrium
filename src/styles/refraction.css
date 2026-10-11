@@ -27,13 +27,18 @@
 
 /* The sliding pill's lens (pill.css), lifted mid tap or drag: a drop of clear
    glass over the labels. It leaves them as they are until the last few pixels,
-   where a thin rim bends them, its outer edge reflecting what's just inside,
-   with the colors split apart like a prism's. Set these on .lg-pill-inner
-   itself to tune it. */
+   where a thin rim bends them, its outer edge smearing what's just inside into
+   streaks, with the colors split apart like a prism's. Measured off the iOS 26
+   tab bar's lens: a 10pt bezel whose rim shows what's 10pt in, on a gentler
+   curve (t^1.5) than plain glass. The lens is lifted by a scale
+   (pill-drag-core.js, tapScale 1.45) and the map scales with it, so these are
+   the on-screen sizes divided by that. Set these on .lg-pill-inner itself to
+   tune it. */
 .lg-pill-inner {
   --lg-refraction-blur: 0px;
-  --lg-refraction-bezel: 14px;
-  --lg-refraction-depth: 75%;
+  --lg-refraction-bezel: 7px;
+  --lg-refraction-depth: 100%;
+  --lg-refraction-curve: 1.5;
   --lg-refraction-dispersion: 0.15;
 }
 

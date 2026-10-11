@@ -50,6 +50,12 @@ const rubber = (x, give) => (x * give) / (give + Math.abs(x));
 //                      consumer handles keys itself (e.g. its own extra cells).
 //   axis               'x' (default: cells in a row) or 'y' (cells in a column).
 //                      Change it later with setAxis() after re-laying the cells out.
+//   tapScale           how much the lens grows when grabbed.
+//   copyScale          how much the highlighted copies under it grow, each about its
+//                      own middle, at full lift (iOS draws them about 1.2× while
+//                      lifted). The lens's own scale doesn't reach them: it would
+//                      also spread them away from its middle and squash them with
+//                      the stretch.
 //   onPillTap()        a grab of the pill itself that barely moved (a tap on
 //                      the pill; without this it just settles back).
 //   onRender({ pos })  after every frame's transforms are written.
@@ -59,6 +65,7 @@ export function createPillDragCore({
   activeCellClass = 'lg-pill-active-cell',
   liftedClass = 'lg-pill--lifted',
   tapScale = 1.45,
+  copyScale = 1.2,
   trail = TRAIL,
   axis: initialAxis = 'x',
   keyboard = true,
@@ -134,7 +141,10 @@ export function createPillDragCore({
 
     // One duplicate per cell, centered on that cell's own anchor midpoint
     // rather than laid out by flex, which avoids sub-pixel drift between two
-    // flow layouts.
+    // flow layouts. Each grows about its own middle toward copyScale as the
+    // pill lifts (--lg-lift, from applyLift): 1 at rest, so it sits exactly on
+    // its label then.
+    activeRow.style.setProperty('--lg-pill-copy-scale', copyScale);
     activeRow.innerHTML = '';
     cells.forEach((el, i) => {
       const dup = document.createElement('span');
@@ -149,13 +159,13 @@ export function createPillDragCore({
         dup.style.left = '0';
         dup.style.width = '100%';
         dup.style.height = 'max-content';
-        dup.style.transform = 'translateY(-50%)';
+        dup.style.transform = 'translateY(-50%) scale(calc(1 + (var(--lg-pill-copy-scale, 1) - 1) * var(--lg-lift, 0)))';
       } else {
         dup.style.left = center;
         dup.style.top = '0';
         dup.style.height = '100%';
         dup.style.width = 'max-content';
-        dup.style.transform = 'translateX(-50%)';
+        dup.style.transform = 'translateX(-50%) scale(calc(1 + (var(--lg-pill-copy-scale, 1) - 1) * var(--lg-lift, 0)))';
       }
       activeRow.appendChild(dup);
     });
@@ -237,16 +247,24 @@ export function createPillDragCore({
     const posStr = vertical
       ? `translateY(${pillPos.value}px) translateX(${crossOff.value}px)`
       : `translateX(${pillPos.value}px) translateY(${crossOff.value}px)`;
-    pill.style.transform = `${posStr} ${vertical ? `scale(${scCross}, ${scMain})` : `scale(${scMain}, ${scCross})`}`;
+    const sx = vertical ? scCross : scMain, sy = vertical ? scMain : scCross;
+    pill.style.transform = `${posStr} scale(${sx}, ${sy})`;
     hit.style.transform = posStr;
     pill.style.opacity = index >= 0 ? '1' : '0';
     // With no selection the hit overlay must not sit on top of a cell and eat its clicks.
     hit.style.pointerEvents = index >= 0 ? '' : 'none';
     // Full glass look only while lifted; flat at rest.
     applyLift(pill, s, tapScale, { liftedClass });
-    activeRow.style.transform = vertical
+    // The copies stay put and at their own size while the lens slides, grows and
+    // stretches over them: the row undoes the pill's scale (about the pill's
+    // middle, its transform-origin) and its slide, and each copy grows on its
+    // own, by copyScale at full lift.
+    const ox = vertical ? itemsW / 2 : pillMain.value / 2;
+    const oy = vertical ? pillMain.value / 2 : itemsH / 2;
+    const slide = vertical
       ? `translateY(${-pillPos.value}px) translateX(${-crossOff.value}px)`
       : `translateX(${-pillPos.value}px) translateY(${-crossOff.value}px)`;
+    activeRow.style.transform = `translate(${ox}px, ${oy}px) scale(${1 / sx}, ${1 / sy}) translate(${-ox}px, ${-oy}px) ${slide}`;
     // The whole control (pill + chrome together) trails the drag a touch.
     const cMain = containerOff.value, cCross = containerCross.value;
     const cx = vertical ? cCross : cMain, cy = vertical ? cMain : cCross;

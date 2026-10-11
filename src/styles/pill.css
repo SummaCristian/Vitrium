@@ -82,11 +82,14 @@
   border-radius: inherit;
 }
 
+/* The core undoes the pill's scale on the row (pill-drag-core.js), composed
+   about the row's own corner. */
 .lg-pill-active-row {
   position: absolute;
   top: 0;
   bottom: 0;
   left: 0;
+  transform-origin: 0 0;
   will-change: transform;
 }
 

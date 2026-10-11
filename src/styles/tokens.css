@@ -174,15 +174,21 @@
   --lg-blur-transparent: 1px;
 
   /* Refraction (core/refraction.js, Chromium only): how wide the bent band at
-     the rim is, and how far the backdrop is pulled at the very edge (in px, or
-     as a share of the bezel). Past about a third of the bezel the outermost
-     band folds over and reflects what's further in, as the curved edge of real
-     glass does; up to the whole bezel. A surface smaller than two bezels bends
-     across its whole width, with the depth scaled down to match. The blur under
-     the bend is not set here: it is the glass style's (--lg-blur-*, below). The
-     lens of the sliding pill sets its own (refraction.css). */
-  --lg-refraction-bezel: 32px;
-  --lg-refraction-depth: 75%;
+     the rim is, and how far in the very edge reaches for what it shows (in px,
+     or as a share of the bezel). The depth can go past the bezel: the rim then
+     shows the backdrop from deep in the face, as iOS does, with the outer band
+     folded over like the curved edge of real glass. It stops at the middle of
+     the surface, and a surface smaller than two bezels bends across its whole
+     width. The blur under the bend is not set here: it is the glass style's
+     (--lg-blur-*, below). The lens of the sliding pill sets its own
+     (refraction.css). */
+  --lg-refraction-bezel: 16px;
+  --lg-refraction-depth: 25px;
+  /* How the bend grows across the bezel: the offset goes as t^curve, t from 0
+     where the bezel meets the face to 1 at the rim. Higher keeps it tight to
+     the rim and folds a cleaner reflection; lower spreads it inward and smears
+     the rim into streaks. 1 is a straight ramp. */
+  --lg-refraction-curve: 2.5;
   /* Splits the bend by color at the rim, as a prism does: 0 is none, 0.2 a
      strong fringe. Any amount costs two more displacement passes, so it's off
      on plain glass and on for the pill's lens. */

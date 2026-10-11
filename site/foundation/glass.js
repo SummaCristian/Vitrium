@@ -1,5 +1,5 @@
 import {
-  setGlassTint, displacementMap, createSegmentedControl, supportsRefraction, getRefraction, setRefraction, REFRACTION_STATE_EVENT,
+  setGlassTint, displacementMap, fitBend, createSegmentedControl, supportsRefraction, getRefraction, setRefraction, REFRACTION_STATE_EVENT,
 } from '../../src/index.js';
 import { fitSegmented } from '../components/fit.js';
 import { createPlayground } from '../components/playground.js';
@@ -56,8 +56,13 @@ const SHAPES_MAP = {
   card: { w: 220, h: 140, radius: 30, n: 4 },
   circle: { w: 130, h: 130, radius: 65, n: 2 },
 };
+// Where the samples start running backwards across the bezel (0 face, 1 rim): the offset, depth × t^2.5, falls faster
+// than the rim comes closer once 2.5 × depth / bezel × t^1.5 passes 1. Past 1 there's no reflection.
+const foldAt = (bezel, depth) => (bezel / (2.5 * depth)) ** (2 / 3);
+const DEPTH_MAX = 40;   // the deepest choice, so the curve's scale holds still while the depth changes
+
 function refractionExplorer() {
-  const s = { shape: 'pill', bezel: 32, depth: 75 };
+  const s = { shape: 'pill', bezel: 16, depth: 25 };
   const targetOf = () => ({ ...SHAPES_MAP[s.shape], bezel: s.bezel, depth: s.depth });
   let cur = targetOf();   // what is on screen: it eases toward the target, so a change plays instead of snapping
   let frame = 0;
@@ -70,20 +75,20 @@ function refractionExplorer() {
 
   const draw = (p) => {
     const w = Math.round(p.w), ht = Math.round(p.h);
-    const { data, width, height } = displacementMap(w, ht, { radius: p.radius, bezel: p.bezel, n: p.n, res: 1 });
+    const { bezel, shift: depth } = fitBend(w, ht, { bezel: p.bezel, depth: p.depth });
+    const { data, width, height } = displacementMap(w, ht, { radius: p.radius, bezel, n: p.n, res: 1 });
     canvas.width = width; canvas.height = height;
     canvas.style.width = `${w}px`;
     canvas.style.borderRadius = `${p.radius}px`;
     canvas.getContext('2d').putImageData(new ImageData(data, width, height), 0, 0);
 
-    // Offset across the bezel, from where it meets the face (0) to the rim (1): depth × t³. Where its slope passes 1 the
-    // samples run backwards, and the outer band of the rim reflects.
-    const depth = (p.bezel * p.depth) / 100;
-    const at = (t) => depth * t ** 3;
-    const bend = Math.sqrt(p.bezel / (3 * depth));
+    // Offset across the bezel, from where it meets the face (0) to the rim (1): depth × t^2.5. Where its slope passes 1
+    // the samples run backwards, and the outer band of the rim reflects.
+    const at = (t) => depth * t ** 2.5;
+    const bend = foldAt(bezel, depth);
     const reflected = bend < 1 ? Math.round((1 - bend) * 100) : 0;
     const X = (t) => 16 + t * 168;
-    const Y = (px) => 124 - (px / p.bezel) * 108;
+    const Y = (px) => 124 - (px / DEPTH_MAX) * 108;
     const path = Array.from({ length: 41 }, (_, i) => `${i ? 'L' : 'M'}${X(i / 40).toFixed(1)} ${Y(at(i / 40)).toFixed(1)}`).join('');
     const mark = reflected ? `<line x1="${X(bend)}" x2="${X(bend)}" y1="8" y2="132" class="curve-marker"/><text x="${X(bend) - 4}" y="20" text-anchor="end" class="curve-note">reflects</text>` : '';
     curveHost.replaceChildren(Object.assign(h('div', { class: 'curve' }), {
@@ -95,10 +100,12 @@ function refractionExplorer() {
   };
 
   const readout = () => {
-    const depth = (s.bezel * s.depth) / 100;
-    const reflected = Math.sqrt(s.bezel / (3 * depth)) < 1 ? Math.round((1 - Math.sqrt(s.bezel / (3 * depth))) * 100) : 0;
+    const { w, h: ht } = SHAPES_MAP[s.shape];
+    const { bezel, shift: depth } = fitBend(w, ht, { bezel: s.bezel, depth: s.depth });
+    const bend = foldAt(bezel, depth);
+    const reflected = bend < 1 ? Math.round((1 - bend) * 100) : 0;
     values.replaceChildren(h('code', {}, '--lg-refraction-bezel'), ` ${s.bezel}px, `, h('code', {}, '--lg-refraction-depth'),
-      ` ${s.depth}% = ${depth.toFixed(1)}px at the rim (scale ${(2 * depth).toFixed(1)}), ${reflected ? `reflecting the outer ${reflected}% of the bezel` : 'no reflection'}`);
+      ` ${s.depth}px: the rim shows what is ${depth.toFixed(1)}px in (scale ${(2 * depth).toFixed(1)}), ${reflected ? `reflecting the outer ${reflected}% of the bezel` : 'no reflection'}`);
   };
 
   // Shape, bezel and depth are all numbers, so the change is a tween: the map is redrawn each step, the canvas
@@ -130,7 +137,7 @@ function refractionExplorer() {
   readout();
   draw(cur);
   return h('div', { class: 'card lg-glass easing' },
-    h('div', { class: 'row' }, control('shape', Object.keys(SHAPES_MAP), 'Shape'), control('bezel', [14, 32, 60], 'Bezel', (v) => `${v}px`), control('depth', [25, 75, 100], 'Depth', (v) => `${v}%`)),
+    h('div', { class: 'row' }, control('shape', Object.keys(SHAPES_MAP), 'Shape'), control('bezel', [8, 16, 32], 'Bezel', (v) => `${v}px`), control('depth', [12, 25, DEPTH_MAX], 'Depth', (v) => `${v}px`)),
     h('div', { class: 'map-body' }, h('div', { class: 'map-stage' }, canvas), curveHost, h('div', { class: 'easing-side' }, values)));
 }
 const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -279,11 +286,11 @@ window.addEventListener(REFRACTION_STATE_EVENT, (e) => e.detail.active);
         table(['Stage', 'What happens'], [
           ['Measure', 'The surface\'s size, computed corner radius and corner shape (round, squircle, anything between) and the `--lg-refraction-*` tokens are read from its computed style.'],
           ['Map', 'Drawn on a canvas and kept as a PNG: red is the horizontal offset, green the vertical, and the middle value means none. The face is neutral and only the bezel along the rim moves anything. Maps are cached by geometry, so a row of identical buttons builds one, and surfaces over about 40,000 square pixels draw theirs at half resolution.'],
-          ['Strength', 'The displacement scale is twice the depth, because the map\'s channels reach about half a step either way. A surface smaller than two bezels shrinks its bezel to fit, and the depth with it, so a small button bends as much as its size allows.'],
+          ['Strength', 'The displacement scale is twice the depth, because the map\'s channels reach about half a step either way. The depth may reach past the bezel, into the flat face, but stops at the middle of the surface, so the rim of a small button shows its center. A surface smaller than two bezels shrinks its bezel to fit.'],
           ['Compose', 'The surface\'s own backdrop filter is read as its CSS and its glass style leave it, blur and saturation included, and the filter goes after it: blur first, then bend.'],
           ['Disperse', 'With dispersion above zero, red, green and blue are displaced separately, red a little further and blue a little less, and added back together. It costs two more passes, so only the lens uses it by default.'],
         ]),
-        h('p', {}, 'Inside the bezel the offset points inward, so the filter never samples past the edge, where the backdrop ends, and it grows toward the rim on a cubic curve: gentle where the bezel meets the face, steepest at the edge. When the depth outruns that curve the samples run backwards and the outermost band reflects what is further in, the way the curved edge of real glass does. The explorer shows how much of the rim that is.'),
+        h('p', {}, 'Inside the bezel the offset points inward, so the filter never samples past the edge, where the backdrop ends, and it grows toward the rim on a curve (t to the power 2.5) that is gentle where the bezel meets the face and steepest at the edge. When the depth outruns that curve the samples run backwards and the outer band reflects what is further in, the way the curved edge of real glass does. The defaults are measured off iOS: the bend fades out 16px in, and the very rim shows what is 25px in, so as an edge scrolls under a 50px bar, the rim keeps the old color until the new one has reached the middle. The explorer shows how much of the rim reflects.'),
         h('h3', { class: 'sub-label' }, 'What keeps it cheap'),
         table(['Mechanism', 'What it does'], [
           ['On screen only', 'An `IntersectionObserver` builds a surface\'s filter a little before it scrolls into view and takes it off once it leaves, so a long page costs what its viewport does. A hidden surface, or one clipped out of view by a scroller, counts as off screen.'],
@@ -292,12 +299,13 @@ window.addEventListener(REFRACTION_STATE_EVENT, (e) => e.detail.active);
           ['Gated', 'It rides on the blur gate: a device too slow for blur is too slow for this, so it stays off. `url()` in `backdrop-filter` is only drawn by Chromium, so elsewhere it never switches on and the glass keeps its blur.'],
         ]),
         h('h3', { class: 'sub-label' }, 'The lens'),
-        h('p', {}, 'The sliding pill of the tab bar, the segmented control, the toggle and the slider lifts into a lens while you press or drag it. Wherever refraction runs, the lens is clear, with no blur at all, in every control, opted in or not: it only draws the filter while lifted, so at rest it costs nothing. Its middle stays true and its whole rim bends, both what is behind it and its own copy of the labels, with the colors split apart at the edge like a prism. At rest it stays flat. Tune it with the same tokens, set on `.lg-pill-inner`.'),
+        h('p', {}, 'The sliding pill of the tab bar, the segmented control, the toggle and the slider lifts into a lens while you press or drag it. Wherever refraction runs, the lens is clear, with no blur at all, in every control, opted in or not: it only draws the filter while lifted, so at rest it costs nothing. Its middle stays true and its whole rim bends, both what is behind it and its own copy of the labels, with the colors split apart at the edge like a prism. At rest it stays flat. Its rim is not the glass\'s: measured off the iOS tab bar\'s lens, it is a 10pt bezel whose very edge shows what is 10pt in, on a gentler curve (`--lg-refraction-curve: 1.5`), so it smears what crosses it into streaks more than it mirrors it. The lens is lifted with a 1.45× scale and its map scales along, so its tokens are the on-screen sizes divided by that. Tune it with the same tokens, set on `.lg-pill-inner`.'),
         h('h3', { class: 'sub-label' }, 'Tokens'),
         h('p', {}, 'These tokens are read per surface, so they can be set on `:root` for every lens at once, or on one element or region for just that. The blur under the bend is not among them: that is the glass style\'s.'),
         table(['Token', 'Default', 'What it does'], [
-          [h('code', {}, '--lg-refraction-bezel'), '32px', 'How wide the bent band at the rim is. A surface smaller than two bezels bends across its whole width.'],
-          [h('code', {}, '--lg-refraction-depth'), '75%', 'How far the backdrop is pulled at the very edge, in px or as a share of the bezel. Past about a third, the outermost band reflects; the deeper, the wider the reflection, up to the whole bezel.'],
+          [h('code', {}, '--lg-refraction-bezel'), '16px', 'How wide the bent band at the rim is. A surface smaller than two bezels bends across its whole width.'],
+          [h('code', {}, '--lg-refraction-depth'), '25px', 'How far in the very edge reaches for what it shows, in px or as a share of the bezel. It can go past the bezel, and stops at the middle of the surface. Past about 40% of the bezel the outer band reflects; the deeper, the wider the reflection.'],
+          [h('code', {}, '--lg-refraction-curve'), '2.5', 'How the bend grows across the bezel: the offset goes as t to this power, from the face (0) to the rim (1). Higher keeps it tight to the rim and folds a clean reflection; lower spreads it inward and smears the rim into streaks. The lens sets 1.5.'],
           [h('code', {}, '--lg-refraction-dispersion'), '0.025', 'Splits the bend by color at the rim, like a prism: 0.1 is a soft fringe. Any amount costs two more filter passes. The lens sets 0.15.'],
         ])),
 

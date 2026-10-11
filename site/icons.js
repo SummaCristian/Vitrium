@@ -16,6 +16,7 @@ import Copy01Icon from '@hugeicons/core-free-icons/Copy01Icon';
 import Share01Icon from '@hugeicons/core-free-icons/Share01Icon';
 import Delete02Icon from '@hugeicons/core-free-icons/Delete02Icon';
 import MoreHorizontalIcon from '@hugeicons/core-free-icons/MoreHorizontalIcon';
+import GithubIcon from '@hugeicons/core-free-icons/GithubIcon';
 
 export const toSvg = (data) => {
   const body = data.map(([tag, { key, ...attrs }]) =>
@@ -32,6 +33,7 @@ export const navIcons = {
   start: toSvg(BookOpen01Icon),
   foundation: toSvg(Settings02Icon),
   components: toSvg(Compass01Icon),
+  github: toSvg(GithubIcon),
 };
 
 // The icons the component demos use, by short name, with the Hugeicons name each one came from (for the printed code).

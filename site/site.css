@@ -197,7 +197,8 @@ h3 { font-size: clamp(1.15rem, 1.09rem + 0.3vw, 1.25rem); font-weight: 600; }
 .lg-btn { border: 0; font: inherit; cursor: default; }
 .lg-btn.pill { padding: 0.7rem 1.4rem; }
 a.lg-btn { text-decoration: none; color: inherit; display: inline-block; }
-.card-link { text-decoration: none; color: inherit; cursor: default; text-align: start; }
+a.lg-btn.lg-glass--tinted { color: var(--lg-glass-tint-text, #fff); }   /* tinted glass sets its own text color */
+.card-link { text-decoration: none; color: inherit; cursor: default; text-align: start; align-content: start; }   /* stretched to its row's height, it keeps its text at the top */
 /* A card that is a link presses down and springs back: the press of the glass physics, without its drag, so a swipe that
    starts on one still scrolls the page on a phone. */
 .card-link { transition: scale var(--lg-press-out-dur) var(--lg-ease-spring); }
@@ -690,31 +691,88 @@ body.sheet-preview h1, body.sheet-preview p { color: #fff; text-shadow: 0 1px 4p
 .viz-tick--off { stroke: var(--lg-danger); stroke-width: 1.4; }
 .viz-fill { fill: var(--lg-accent); }
 
-/* Home: the live board */
-.home-hero .row { margin-top: 8px; }
-.board { display: grid; gap: 16px; width: 100%; position: relative; z-index: 1; }
-.board-bar { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: center; justify-content: center; padding: 0.9rem 1.25rem; grid-template-columns: none; }
-.board-opt { display: flex; align-items: center; gap: 12px; }
-.board-opt > span { font-size: 0.8rem; font-weight: 700; opacity: 0.7; }
-.swatches { display: flex; gap: 8px; }
-.swatch { width: 26px; height: 26px; border-radius: 50%; border: 0; cursor: default; box-shadow: 0 0 0 2px transparent, inset 0 0 0 1px rgba(0, 0, 0, 0.15); transition: box-shadow 0.2s ease, scale 0.25s var(--lg-ease-spring); }
-.swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--background-color-secondary), 0 0 0 4px currentColor; scale: 1.1; }
-.swatch:focus-visible { outline: 2px solid var(--lg-accent); outline-offset: 3px; }
-.tile-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); align-items: stretch; }
-.tile { align-content: start; gap: 12px; }
-.tile h3 { font-size: 1.05rem; }
-.tile-note { margin: -6px 0 0; font-size: 0.85rem; opacity: 0.7; }
-.tile .lg-field { width: 100%; }
-.tile:last-child { grid-column: 1 / -1; }
-.tile:last-child .row { justify-content: center; gap: 24px; }
-.tile-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; font-weight: 600; }
-.tile-results { gap: 6px; }
-.chip-result { padding: 4px 12px; border-radius: 999px; background: color-mix(in srgb, currentColor 9%, transparent); font-size: 0.85rem; }
-.press-panel { padding: 0.9rem 1.2rem; border-radius: 22px; font-weight: 700; }
-.press-circle { width: 3.2rem; height: 3.2rem; display: grid; place-items: center; font-size: 1.2rem; }
-.board-deco { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; display: grid; align-content: space-around; justify-items: center; }
-.board-deco span { font-size: clamp(5rem, 22vw, 12rem); font-weight: 900; letter-spacing: -0.04em; color: #fff; opacity: 0.35; line-height: 1; }
-.board-deco i { display: block; width: 130%; height: 46px; background: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.55) 0 14px, rgba(255, 255, 255, 0.55) 14px 28px); rotate: -4deg; opacity: 0.5; }
+/* Home: the hero (the logo, with real components scattered around it), then the doc sections. */
+.home-hero { display: grid; gap: 24px; justify-items: center; text-align: center; }
+/* The stage breaks out of the page column, up to a wide hero, centred on it. */
+.hero-stage { --hero-w: min(1180px, calc(100vw - 80px)); position: relative;
+  width: var(--hero-w); margin-inline: calc((100% - var(--hero-w)) / 2);
+  display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; min-height: clamp(420px, 42vw, 540px); }
+.hero-mark { margin: 0; width: min(72%, 780px); line-height: 0; position: relative; z-index: 1; }
+.hero-mark img { display: block; width: 100%; height: auto; }
 
-.home-logo { margin: 0; line-height: 0; }
-.home-logo img { width: min(440px, 80%); height: auto; display: block; margin-inline: auto; }
+/* The scatter: each float has a place, a depth (how far it leans with the pointer) and its own slow drift. */
+.float { position: absolute; z-index: 2; left: var(--x); top: var(--y); --d: 1;
+  translate: calc(-50% - var(--px, 0) * var(--d) * 14px) calc(-50% - var(--py, 0) * var(--d) * 10px);
+  rotate: var(--r, 0deg);
+  transition: translate 0.9s cubic-bezier(0.2, 0, 0, 1); }
+/* The drift sways each one a degree or so either side of its tilt. The tilts stay small: the controls still work tilted,
+   but a slider or a segmented control maps the pointer along its own axis, and past a few degrees that shows. */
+.float-in { animation: float-bob var(--t, 7s) ease-in-out var(--delay, 0s) infinite; }
+@keyframes float-bob { 50% { transform: translateY(-7px) rotate(var(--sway, 1deg)); } }
+.hero-stage.paused .float-in { animation-play-state: paused; }
+.float--seg { --x: 27%; --y: 14%; --d: 0.6; --t: 8s; --r: -4deg; --sway: 0.8deg; }
+.float--ring { --x: 67%; --y: 12%; --d: 1; --t: 6.5s; --delay: -2s; --r: 8deg; --sway: -1.5deg; }
+.float--star { --x: 89%; --y: 30%; --d: 1.4; --t: 7.5s; --delay: -4s; --r: 12deg; --sway: 2deg; }
+.float--toggle { --x: 9%; --y: 42%; --d: 1.2; --t: 6s; --delay: -1s; --r: -9deg; --sway: -1.5deg; }
+.float--stepper { --x: 90%; --y: 68%; --d: 0.8; --t: 8.5s; --delay: -3s; --r: -6deg; --sway: 1deg; }
+.float--slider { --x: 26%; --y: 87%; --d: 0.7; --t: 9s; --delay: -5s; --r: 3deg; --sway: -0.6deg; }
+.float--slider .float-in { width: 200px; }
+.float--search { --x: 64%; --y: 88%; --d: 1.1; --t: 7s; --delay: -2.5s; --r: -3deg; --sway: 0.8deg; }
+.float--search .float-in { width: 190px; }
+.float--plus { --x: 8%; --y: 74%; --d: 1.5; --t: 6.8s; --delay: -3.5s; --r: 15deg; --sway: -2deg; }
+@media (max-width: 720px) {
+  .hero-stage { min-height: 380px; }
+  .hero-mark { width: 92%; }
+  .float--stepper, .float--slider, .float--search, .float--plus { display: none; }
+  .float--seg { --x: 50%; --y: 13%; }
+  .float--toggle { --x: 20%; --y: 76%; }
+  .float--ring { --x: 52%; --y: 91%; }
+  .float--star { --x: 82%; --y: 79%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .float { transition: none; translate: -50% -50%; }
+  .float-in { animation: none; }
+}
+
+.hero-lede { max-width: 40rem; }
+.hero-actions { justify-content: center; }
+
+/* GitHub, with the star count growing in once it's known (a grid column going 0fr to 1fr). */
+a.gh-btn { display: inline-flex; align-items: center; }
+.gh-icon { display: grid; margin-inline-end: 8px; }
+.gh-icon svg, .gh-star svg { width: 1.15rem; height: 1.15rem; }
+.gh-stars { display: grid; grid-template-columns: 0fr; transition: grid-template-columns 0.5s cubic-bezier(0.2, 0, 0, 1); }
+.gh-stars-in { min-width: 0; overflow: hidden; display: flex; align-items: center; gap: 4px; white-space: nowrap;
+  opacity: 0; filter: blur(4px); transition: opacity 0.4s ease 0.1s, filter 0.4s ease 0.1s; }
+.gh-star { display: grid; margin-inline-start: 12px; padding-inline-start: 12px; border-inline-start: 1px solid color-mix(in srgb, currentColor 22%, transparent); }
+.gh-star svg { width: 1rem; height: 1rem; }
+.gh-count { font-variant-numeric: tabular-nums; font-weight: 700; }
+.gh-btn--stars .gh-stars { grid-template-columns: 1fr; }
+.gh-btn--stars .gh-stars-in { opacity: 1; filter: blur(0); }
+@media (prefers-reduced-motion: reduce) { .gh-stars, .gh-stars-in { transition: none; } }
+
+/* Built with Vitrium: the app, and three of its screens fanned out. */
+.showcase { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 24px; padding: 2rem; }
+/* Its button takes PoliAule's own accent, as the app has it in each theme. */
+.showcase { --poliaule-accent: #2a9e47; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .showcase { --poliaule-accent: #3ce065; } }
+:root[data-theme="dark"] .showcase { --poliaule-accent: #3ce065; }
+.showcase .lg-glass--tinted { --lg-glass-tint: var(--poliaule-accent); }
+.showcase-text { display: grid; gap: 16px; justify-items: start; }
+.showcase-text p { color: var(--text-color-secondary); }
+.showcase-app { display: flex; align-items: center; gap: 14px; }
+.showcase-app img { width: 56px; height: 56px; border-radius: 14px; box-shadow: var(--shadow); }
+.showcase-shots { position: relative; height: 360px; justify-self: stretch; }
+.showcase-shots img { position: absolute; left: 50%; top: 50%; width: 150px; height: auto; translate: -50% -50%;
+  filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.18)); }
+.showcase-shots img:nth-child(1) { rotate: -7deg; translate: calc(-50% - 105px) calc(-50% + 16px); }
+.showcase-shots img:nth-child(2) { z-index: 1; width: 168px; }
+.showcase-shots img:nth-child(3) { rotate: 7deg; translate: calc(-50% + 105px) calc(-50% + 16px); }
+@media (max-width: 720px) {
+  .showcase { grid-template-columns: minmax(0, 1fr); padding: 1.5rem; }
+  .showcase-shots { height: 320px; }
+  .showcase-shots img { width: 128px; }
+  .showcase-shots img:nth-child(2) { width: 146px; }
+  .showcase-shots img:nth-child(1) { translate: calc(-50% - 88px) calc(-50% + 14px); }
+  .showcase-shots img:nth-child(3) { translate: calc(-50% + 88px) calc(-50% + 14px); }
+}

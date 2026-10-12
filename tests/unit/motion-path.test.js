@@ -203,3 +203,36 @@ describe('liquidKeyframes', () => {
     expect(Math.max(...sizes.map(s => s[1]))).toBeGreaterThan(300 * 1.02);
   });
 });
+
+describe('liquidKeyframes mirror', () => {
+  const chip = { left: 568, top: 368, width: 141, height: 39 };
+  const panel = { left: 542, top: 360, width: 208, height: 420 };
+  const out = (t) => glide(t);
+  const visible = (k, a, b, ease, i) => {
+    const p = ease(i / 64), [sx, sy] = k.scale[i].scale.split(' ').map(Number);
+    return [(a.width + (b.width - a.width) * p) * sx, (a.height + (b.height - a.height) * p) * sy];
+  };
+
+  it('draws the way back through the shapes the way out had at each point of the path', () => {
+    const open = liquidKeyframes(panel, chip, panel, 20, 16, { easing: out });
+    const back = liquidKeyframes(chip, panel, chip, 16, 20, { easing: (t) => glide(Math.min(1, t * 1.2)), mirror: out });
+    for (const i of [24, 32, 40, 48, 56]) {
+      const p = glide(Math.min(1, (i / 64) * 1.2));   // how far the way back has got
+      const j = Array.from({ length: 65 }, (_, n) => n).reduce((best, n) => (Math.abs(out(n / 64) - (1 - p)) < Math.abs(out(best / 64) - (1 - p)) ? n : best), 0);
+      const [wb, hb] = visible(back, panel, chip, (t) => glide(Math.min(1, t * 1.2)), i);
+      const [wo, ho] = visible(open, chip, panel, out, j);
+      expect(Math.abs(wb - wo)).toBeLessThan(wo * 0.06 + 3);
+      expect(Math.abs(hb - ho)).toBeLessThan(ho * 0.06 + 3);
+    }
+  });
+
+  it('does not swell past the shape it is leaving', () => {
+    const back = liquidKeyframes(chip, panel, chip, 16, 20, { easing: glide, mirror: out });
+    for (let i = 0; i <= 64; i++) {
+      const [w, h] = visible(back, panel, chip, glide, i);
+      // (the stretch along its way can draw it out a few percent; the rebound would be 10px and more, and wider)
+      expect(w).toBeLessThanOrEqual(panel.width * 1.02);
+      expect(h).toBeLessThanOrEqual(panel.height * 1.05);
+    }
+  });
+});

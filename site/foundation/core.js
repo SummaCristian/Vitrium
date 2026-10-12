@@ -337,7 +337,7 @@ core.select(1, { animate: false, silent: true });`),
         h('p', {}, 'The morph is a FLIP: the element\'s real box is pinned to where it ends up, then visually offset back to where it started with a single `transform`, and released, so the compositor does the rest with no layout or paint per frame. These are the helpers it is made of:'),
         table(['Function', 'What it does'], [
           ['`snapGeometry(el, rect, radius)`', 'Instantly pins the element\'s real box at a rect and clears any transform.'],
-          ['`morphGeometry(el, from, to, { fromRadius, toRadius, onSettle })`', 'Morphs it from one rect to another. The element\'s CSS must declare a `transition` on `transform`, `border-radius` and `box-shadow`.'],
+          ['`morphGeometry(el, from, to, { fromRadius, toRadius, onSettle, sync })`', 'Morphs it from one rect to another. The element\'s CSS must declare a `transition` on `transform`, `border-radius` and `box-shadow`. With `sync: true` it is released in the same frame instead of the next, for a trip that has to start at once.'],
           ['`hideInnerBoxInstantly(el)`, `unhideInnerBox(el)`', 'Cut a shrinking panel\'s contents out with no fade, and bring them back, so their squeezed layout is not seen stretched back up during a close.'],
         ]),
         codeBlock(`

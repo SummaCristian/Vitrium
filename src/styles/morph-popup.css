@@ -116,18 +116,27 @@
   overflow: hidden;
   overscroll-behavior: contain;
   scrollbar-width: thin;
+  /* The content is there from the first frame, as in Apple's: drawn at its final size, so it is
+     small and compressed while the shell is, and blurred until the shape has grown into it. It
+     dissolves out the same way on the way back (the blur hides the squeeze of a shell that has
+     just snapped to the trigger's box). */
   opacity: 0;
-  transform: translateY(6px);
+  filter: blur(var(--lg-morph-content-blur, 10px));
+  /* Leaving, the blur is there on the very first frame (no transition on it): the shell has just snapped to
+     the trigger's box and been scaled back up, so for that frame the content is its squeezed layout blown up,
+     and it must not be sharp. It's only the fade that takes any time. */
   transition:
-    opacity 0.18s ease,
-    transform 0.32s var(--lg-morph-panel-ease);
+    opacity 0.07s ease-out,
+    filter 0s;
 }
 
 .lg-morph--open .lg-morph__inner {
   opacity: 1;
-  transform: none;
-  transition-delay: 0.16s;
+  filter: blur(0);
   overflow-y: auto;
+  transition:
+    opacity 0.14s ease-out,
+    filter 0.3s var(--lg-ease-out, ease-out);
 }
 
 .lg-morph__inner::-webkit-scrollbar { width: 6px; }
@@ -185,7 +194,7 @@
     transition: none;
   }
   .lg-morph__inner {
-    transform: none;
+    filter: none;
   }
 }
 

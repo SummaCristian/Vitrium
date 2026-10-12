@@ -109,6 +109,7 @@ export function createAlert({
   let opener = null;
   let source = null;        // the element a morph grows from
   let exitTimer = 0;
+  let flying = false;       // a morph out of the source is still on its way: the box can be caught mid-trip
   let resolve = null;
   let promise = null;
 
@@ -127,12 +128,12 @@ export function createAlert({
   // Instant by default (the start of an open); `animate` lets the transition play it (a close).
   // Fits the morph's duration to the distance, and returns the geometry of the trip for
   // playMorphMotion(): both rects and both corner radii.
-  function coverSource(node, { animate = false } = {}) {
+  function coverSource(node, { animate = false, rest = null } = {}) {
     if (!animate) {
       box.style.transition = 'none';
       box.style.transform = 'none';
     }
-    const to = box.getBoundingClientRect();
+    const to = rest ?? box.getBoundingClientRect();
     const from = node.getBoundingClientRect();
     const trip = { from, to, sourceRadius: radiusOf(node), boxRadius: parseFloat(getComputedStyle(box).borderTopLeftRadius) || 0 };
     morphMs = fitDuration(box, '--lg-alert-morph-dur', travelDistance(from, to));
@@ -169,6 +170,7 @@ export function createAlert({
   let settleTimer = 0;
 
   function clearMorphStyles() {
+    flying = false;
     stopMotion();
     box.classList.remove('lg-alert--morph', 'is-morphed-out');
     for (const p of ['transition', 'transform', 'transformOrigin', 'borderRadius']) box.style[p] = '';
@@ -189,15 +191,43 @@ export function createAlert({
       // Content out at once (it would only be squashed by the shrink), then the glass returns.
       box.classList.add('is-morphed-out');
       clearTimeout(settleTimer);
-      box.style.transformOrigin = 'top left';
-      stopMotion();
-      playMorphMotion(coverSource(back, { animate: true }), true);
+      if (flying) {
+        // Caught on its way out: it shrinks back from where it is, not from its resting box. Where it is
+        // now (the bow and the droplet included) is folded into the transform that puts the resting box
+        // there, the corners it has are kept, and from there the glass goes to the source.
+        flying = false;
+        const seen = box.getBoundingClientRect();
+        const cs = getComputedStyle(box);
+        const [rx, ry = rx] = cs.borderTopLeftRadius.split(' ');
+        const corners = `${rx} / ${ry}`;
+        stopMotion();
+        box.style.transition = 'none';
+        box.style.transform = 'none';
+        const rest = box.getBoundingClientRect();
+        box.style.transformOrigin = 'top left';
+        box.style.borderRadius = corners;
+        box.style.transform =
+          `translate(${seen.left - rest.left}px, ${seen.top - rest.top}px) scale(${seen.width / rest.width}, ${seen.height / rest.height})`;
+        box.getBoundingClientRect();
+        box.style.transition = '';   // from here it animates
+        const trip = coverSource(back, { animate: true, rest });
+        // No bow or droplet to play: those run the whole trip from the alert's own rest.
+        morphRefraction(box, { radius: trip.boxRadius, duration: morphMs, land: false });
+      } else {
+        box.style.transformOrigin = 'top left';
+        stopMotion();
+        playMorphMotion(coverSource(back, { animate: true }), true);
+      }
     }
     layer.style.setProperty('--lg-alert-exit', `${morphOut ? morphMs : POP_EXIT_MS}ms`);
     layer.removeAttribute('data-show');
 
     const restore = () => {
       exitTimer = 0;
+      // The layer's own visibility flips at the same moment on a delay of its own (a transition): hide it now, with no
+      // delay, so that clearing the morph (which brings the content and the full-size box back) is never painted.
+      layer.style.transition = 'none';
+      layer.style.visibility = 'hidden';
       clearMorphStyles();
       source = null;
       if (opener?.isConnected) opener.focus({ preventScroll: true });
@@ -264,6 +294,8 @@ export function createAlert({
 
   function present({ from } = {}) {
     if (open) return promise;
+    layer.style.transition = '';
+    layer.style.visibility = '';
     // A close that's still playing out is cut short.
     clearTimeout(settleTimer);
     if (exitTimer) { clearTimeout(exitTimer); exitTimer = 0; clearMorphStyles(); }
@@ -280,6 +312,7 @@ export function createAlert({
       box.classList.add('lg-alert--morph', 'is-morphed-out');
       trip = coverSource(source);
       source.style.visibility = 'hidden';
+      flying = true;
     } else {
       source = null;
     }
@@ -298,7 +331,7 @@ export function createAlert({
         box.style.borderRadius = '';
         box.classList.remove('is-morphed-out');
         playMorphMotion(trip, false);
-        settleTimer = setTimeout(() => { if (open) box.style.transformOrigin = ''; }, morphMs);
+        settleTimer = setTimeout(() => { flying = false; if (open) box.style.transformOrigin = ''; }, morphMs);
       });
     }
 
@@ -321,6 +354,8 @@ export function createAlert({
       finish(null);
       clearTimeout(exitTimer);
       clearMorphStyles();
+      layer.style.transition = '';
+      layer.style.visibility = '';
       layer.remove();
     },
   };

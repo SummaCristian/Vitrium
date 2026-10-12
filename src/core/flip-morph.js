@@ -31,7 +31,7 @@ export function snapGeometry(el, rect, borderRadius) {
 // Morphs `el` from `fromRect`/`fromRadius` to `toRect`/`toRadius`.
 // The element's CSS must declare `transition: transform ..., border-radius ..., box-shadow ...`
 // (not top/left/width/height) for this to run off the compositor thread.
-export function morphGeometry(el, fromRect, toRect, { fromRadius, toRadius, onSettle } = {}) {
+export function morphGeometry(el, fromRect, toRect, { fromRadius, toRadius, onSettle, sync = false } = {}) {
   const from = toRectLike(fromRect);
   const to = toRectLike(toRect);
   const prevTransition = el.style.transition;
@@ -63,11 +63,14 @@ export function morphGeometry(el, fromRect, toRect, { fromRadius, toRadius, onSe
   // rest of the animation short if a caller is listening with `{ once: true }`.
   el.style.transition = prevTransition || '';
 
-  requestAnimationFrame(() => {
+  // `sync` releases it in this same frame (the reflow above has already registered the inverted
+  // state): for a trip that must start moving at once, like a close, where a frame of waiting reads as lag.
+  const release = () => {
     el.style.transform = '';
     if (toRadius != null) el.style.borderRadius = toRadius;
     onSettle?.();
-  });
+  };
+  if (sync) release(); else requestAnimationFrame(release);
 }
 
 // Hides `el` instantly (no transition) — call before `morphGeometry` snaps a

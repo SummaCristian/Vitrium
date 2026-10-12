@@ -105,7 +105,7 @@
 //           hidden, refresh, destroy }.
 import { Spring, onSpringFrame } from '../core/spring.js';
 import * as physics from '../core/sheet-physics.js';
-import { arcOffset, appleSpringConfig, dropletAlong, travelDistance } from '../core/motion-path.js';
+import { arcOffset, appleSpringConfig, dropletAlong, travelDistance, stretchScale, stretchWindow, glideTime } from '../core/motion-path.js';
 import { el, toNode } from './dom.js';
 import { initGlassStyle, setGlassStyle } from './glass-style.js';
 
@@ -114,6 +114,8 @@ const PRESENT = { stiffness: 330, damping: 25, mass: 1 };   // a touch underdamp
 const DISMISS = { stiffness: 340, damping: 38, mass: 1 };
 const POP_FROM = 0.9;         // a popped sheet starts at this scale
 const MORPH_BOUNCE = 0.3;     // a morph's spring: SwiftUI's `.bouncy` (core/motion-path.js appleSpring)
+const MORPH_BACK = { bounce: 0.12, stretch: 0.8 };   // going back it has almost nothing to bounce off, and it is quicker: leaving is decided
+const CONTENT_BLUR = 10;      // px: a morphing sheet's content is blurred while the glass is still gathering, and resolves as it fills out
 // A size past `rest` (a spring's overshoot), softly limited to `room` px more: it tapers off
 // rather than stopping dead at the limit.
 const swell = (v, rest, room) => (v <= rest ? v : rest + (room > 0 ? room * Math.tanh((v - rest) / room) : 0));
@@ -396,7 +398,7 @@ export function createSheet({
     pulled = 0;
     // The source may have moved (the page scrolled) since the sheet came in.
     if (morph) morph = measureMorph(source) ?? morph;
-    presence.to(0, morph ? appleSpringConfig(MORPH_BOUNCE, morph.distance) : DISMISS);
+    presence.to(0, morph ? appleSpringConfig(MORPH_BACK.bounce, morph.distance, MORPH_BACK.stretch) : DISMISS);
     applyBackground();   // makes the page live again before focus goes back to it
     if (restoreFocus) {
       // A hidden source can't take focus: it gets it once the sheet has shrunk back into it.
@@ -691,7 +693,7 @@ export function createSheet({
     if (!presented && morph && presence.value < 0.03) presence.set(0);
     const m = presence.value;
     let tx = Math.abs(sideShift.value) > 0.05 ? sideShift.value : 0;
-    let ty = 0, sx = 1, sy = 1, opacity = 1, content = 1, radius = '';
+    let ty = 0, sx = 1, sy = 1, opacity = 1, content = 1, blur = 0, radius = '';
     if (m < 0.999 || m > 1.001) {
       if (morph) {
         const k = 1 - m;   // 1 at the source, 0 at the sheet
@@ -702,6 +704,13 @@ export function createSheet({
         // The swell eases off into the room it has rather than running into the safe area.
         shape.width = swell(shape.width, morph.to.width, morph.room.width);
         shape.height = swell(shape.height, morph.to.height, morph.room.height);
+        // Drawn out along the way it goes and narrower across it while it's moving fast, as the pickers' drop is
+        // (core/motion-path.js); `presence.k` gives the spring's own pace, whose peak speed is a fixed share of it.
+        const d2 = morph.tx * morph.tx + morph.ty * morph.ty;
+        const ux2 = d2 ? morph.tx * morph.tx / d2 : 0;
+        const surge = Math.min(1, Math.abs(presence.v) / (0.4 * Math.sqrt(presence.k))) * stretchWindow(glideTime(clamp01(m)));
+        const [fx, fy] = stretchScale(surge, morph.distance, ux2, 1 - ux2);
+        shape.width *= fx; shape.height *= fy;
         sx = shape.width / morph.to.width; sy = shape.height / morph.to.height;
         // Past the sheet (k < 0) it only swells: the translation stops at the sheet's own box, or it
         // would swing out past the bottom edge, into Safari's safe area.
@@ -712,7 +721,8 @@ export function createSheet({
         // Counter-scaled so the corners read as the shape's own, never stretched into ellipses.
         radius = `${shape.radius / Math.max(sx, 0.01)}px / ${shape.radius / Math.max(sy, 0.01)}px`;
         opacity = 1;   // solid all the way, like the pickers: it lands on the source and the source takes over
-        content = clamp01((m - 0.55) / 0.4);
+        content = clamp01(m / 0.35);
+        blur = CONTENT_BLUR * (1 - clamp01((m - 0.1) / 0.7));
       } else {
         sx = sy = POP_FROM + (1 - POP_FROM) * m;
         opacity = clamp01(m * 1.4);
@@ -724,6 +734,7 @@ export function createSheet({
     glass.style.opacity = opacity < 1 ? String(opacity) : '';
     glass.style.borderRadius = radius;
     clip.style.opacity = content < 1 ? String(content) : '';
+    clip.style.filter = blur > 0.05 ? `blur(${blur}px)` : '';
     if (scrim) scrim.style.opacity = String(clamp01(m));
   }
 

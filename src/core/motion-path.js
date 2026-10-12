@@ -123,7 +123,7 @@ export const glideAhead = (t) => glide(LEAD * t);
 export const glideBehind = (t) => glide(t) ** DRAG;
 
 // The time at which the glide spring reaches progress s.
-function glideTime(s) {
+export function glideTime(s) {
   let lo = 0, hi = 1;
   for (let i = 0; i < 30; i++) {
     const mid = (lo + hi) / 2;
@@ -318,6 +318,10 @@ export function playRadius(el, box, start, end, r0, r1, { duration, easing }) {
 //   SHAPE_SETTLE  how far they have rung down by the end: tighter than appleSpring's default, so
 //                 the overshoot comes back promptly and the last stretch is still, the way an
 //                 Apple spring finishes, rather than a bulge that lingers and is pulled in late
+//   OVERSHOOT_PX  the most it may swell past the destination, in px, whatever the trip: the spring's
+//                 5% is a hair on a chip and 30px on a tall list, which rebounds fast and reads as a
+//                 wobble, so what it reaches past the end is eased down to this (a soft limit, no kink)
+const OVERSHOOT_PX = 10;
 const DROP_SIZE = 0.85;
 const DROP_ROUND = 0.5;
 const DROP_MIN = 28;   // px: never gathers to a speck, however small the ends are (but never past them either)
@@ -340,7 +344,10 @@ export function dropletSize(start, end) {
 // The curve from `a` to `b` through the droplet `d`, at s (0..1, past 1 while a spring overshoots).
 function throughDroplet(a, d, b, s) {
   const e = d + (b - d) * LEAN, u = 1 - s;
-  return u * u * u * a + 3 * s * u * u * d + 3 * s * s * u * e + s * s * s * b;
+  const v = u * u * u * a + 3 * s * u * u * d + 3 * s * s * u * e + s * s * s * b;
+  // Past the destination, in the direction it was heading, by at most OVERSHOOT_PX.
+  const past = (v - b) * Math.sign(b - a);
+  return past > 0 ? b + Math.sign(b - a) * OVERSHOOT_PX * Math.tanh(past / OVERSHOOT_PX) : v;
 }
 
 // The droplet's size and corner radius (px), for a morph between `start` and `end` (rects,
@@ -383,32 +390,64 @@ export function dropletAlong(start, end, r0, r1, m) {
 // overshoot it would double it).
 //   STRETCH       how far it draws out at full speed (and slims across by the square root of it)
 //   STRETCH_DIST  px: a trip shorter than this (a box that mostly grows in place) draws out less
-const STRETCH = 0.25;
+//   SQUEEZE       on top of that, how much narrower it runs across the way it's going at full speed (a fraction
+//                 of the width it would have): a drop being pulled up out of a chip is tall and narrow
+//                 before it fills out, and swells wide after, not wide all the way up
+const STRETCH = 0.4;
+const SQUEEZE = 0.4;
 const STRETCH_DIST = 160;
 const STRETCH_IN = 0.08;
 const STRETCH_HOLD = 0.15;
 const STRETCH_END = 0.45;
 const easeSide = (u) => Math.sin(Math.PI / 2 * clamp01(u)) ** 2;
-export function liquidKeyframes(box, start, end, r0, r1, { easing = glide } = {}) {
+
+// The stretch of a drop in flight, for something that animates its own frames (the sheet): how much wider/taller than
+// its plain shape it is drawn at `surge` (0 at rest, 1 at the fastest, windowed by the caller), on a trip of `dist` px
+// whose direction has squared components `ux2` and `uy2` (they sum to 1). Drawn out along the way it goes and narrower
+// across it, STRETCH and SQUEEZE (see above), less on a short trip. Returns [x, y] factors.
+export function stretchScale(surge, dist, ux2, uy2) {
+  const reach = Math.min(1, dist / STRETCH_DIST);
+  const along = 1 + STRETCH * reach * surge;
+  const across = (1 - SQUEEZE * reach * surge) / Math.sqrt(along);
+  return [along ** ux2 * across ** uy2, along ** uy2 * across ** ux2];
+}
+
+// The window of a trip (u, 0 at the source, 1 at the end, by whatever clock the caller keeps) the stretch is held for.
+export const stretchWindow = (u) => easeSide(u / STRETCH_IN) * easeSide((STRETCH_END - u) / (STRETCH_END - STRETCH_HOLD));
+
+export function liquidKeyframes(box, start, end, r0, r1, { easing = glide, mirror = null } = {}) {
   const ease = typeof easing === 'function' ? easing : easingFunction(easing);
+  // The way back is the way out: for a trip whose source is the destination of the one `mirror` describes (the
+  // easing it ran on), the shape is the one the way out had at the same place on the path, not a droplet of
+  // its own run the other way. The two meet at every point of the path (the same size and the same stretch
+  // there), only the clock differs. It doesn't swell past the end it is leaving: nothing to bounce off.
+  const out = mirror ? (typeof mirror === 'function' ? mirror : easingFunction(mirror)) : null;
+  const [from, to, c0, c1] = out ? [end, start, r1, r0] : [start, end, r0, r1];
+  const clock = (s) => {   // when the way out had got s of the way along
+    let lo = 0, hi = 1;
+    for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if (out(mid) < s) lo = mid; else hi = mid; }
+    return (lo + hi) / 2;
+  };
+  const shapeEase = out ?? ease;
   const scale = [], translate = [], radius = [];
   const dx = end.left + end.width / 2 - (start.left + start.width / 2);
   const dy = end.top + end.height / 2 - (start.top + start.height / 2);
   const dist = Math.hypot(dx, dy);
   const ux2 = dist ? (dx / dist) ** 2 : 0, uy2 = dist ? (dy / dist) ** 2 : 0;
-  const k = STRETCH * Math.min(1, dist / STRETCH_DIST);
   const dt = 1 / LIQUID_FRAMES;
-  const speed = Array.from({ length: LIQUID_FRAMES + 1 }, (_, i) =>
-    Math.abs(ease(Math.min(1, (i + 0.5) * dt)) - ease(Math.max(0, (i - 0.5) * dt))));
-  const vmax = Math.max(...speed) || 1;
+  const speedAt = (t) => Math.abs(shapeEase(Math.min(1, t + dt / 2)) - shapeEase(Math.max(0, t - dt / 2)));
+  const vmax = Math.max(...Array.from({ length: LIQUID_FRAMES + 1 }, (_, i) => speedAt(i * dt))) || 1;
   for (let i = 0; i <= LIQUID_FRAMES; i++) {
     const t = i / LIQUID_FRAMES;
     const p = ease(t);
-    const shape = dropletShape(start, end, r0, r1, { x: SHAPE[0](t), y: SHAPE[1](t) });
-    const held = easeSide(t / STRETCH_IN) * easeSide((STRETCH_END - t) / (STRETCH_END - STRETCH_HOLD));
-    const along = 1 + k * held * speed[i] / vmax, across = 1 / Math.sqrt(along);
-    const pw = shape.width * along ** ux2 * across ** uy2;
-    const ph = shape.height * along ** uy2 * across ** ux2;
+    // The moment of the way out (or of this trip, when it is the way out) the shape is drawn at.
+    const u = out ? clock(clamp01(1 - p)) : t;
+    const x = SHAPE[0](u), y = SHAPE[1](u);
+    const shape = dropletShape(from, to, c0, c1, out ? { x: Math.min(1, x), y: Math.min(1, y) } : { x, y });
+    const surge = stretchWindow(u) * speedAt(u) / vmax;
+    const [fx, fy] = stretchScale(surge, dist, ux2, uy2);
+    const pw = shape.width * fx;
+    const ph = shape.height * fy;
     const r = Math.min(shape.radius, pw / 2, ph / 2);
     // The FLIP's plain size and top left at this instant (it runs the glide on distance).
     const w = start.width + (end.width - start.width) * p;
@@ -429,9 +468,9 @@ export function liquidKeyframes(box, start, end, r0, r1, { easing = glide } = {}
 // Plays liquidKeyframes on `el`, beside the transform transition and the bow. Returns the
 // animations (cancel them all to stop). The radius holds its last frame until cancelled,
 // like playRadius, so the hand-over at the end can't flash the box's own radius.
-export function playLiquid(el, box, start, end, r0, r1, { duration, easing }) {
+export function playLiquid(el, box, start, end, r0, r1, { duration, easing, mirror = null }) {
   if (!el.animate || !duration) return [];
-  const k = liquidKeyframes(box, start, end, r0, r1, { easing });
+  const k = liquidKeyframes(box, start, end, r0, r1, { easing, mirror });
   const opts = { duration, easing: 'linear' };
   return [
     // `add` multiplies onto the element's own scale (a hover lift), so that stays on throughout.

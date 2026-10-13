@@ -35,7 +35,8 @@
 // Maps follow layout size, not transforms: the press and the stretch scale the map
 // along with the surface for free. A real size change stretches the old map at once
 // and builds a new one once the size settles. A FLIP morph scales the box too far for
-// that to hold, so it holds the bend flat in flight (morphRefraction, below).
+// that to hold, so the surface drops the filter in flight and gets it back, bend and
+// all, once it lands (morphRefraction, below).
 
 import { BLUR_STATE_EVENT } from './blur-capability.js';
 import { GLASS_STYLE_MS } from '../components/glass-style.js';
@@ -216,7 +217,7 @@ function baseFilter(el, s) {
     base = parseFloat(blur) > 0 ? `blur(${blur}) ${rest}`.trim() : rest;
   }
   s.base = base;
-  el.style.setProperty('--_lg-refraction', `${base} url(#${s.id})`.trim());
+  el.style.setProperty('--_lg-refraction', s.held && !refractMorph ? (base || 'none') : `${base} url(#${s.id})`.trim());
   // For the popover's arrow, which takes the blur without the bend.
   if (base) el.style.setProperty('--_lg-refraction-base', base);
   else el.style.removeProperty('--_lg-refraction-base');
@@ -266,6 +267,7 @@ function bend(s, f) {
 // morph as the drop settles: the rim forms as it lands, rather than popping on after.
 const LAND = 0.4;
 const holds = new Map();   // element → { radius, t0, ms }: a morph under way, applied as it activates too
+let refractMorph = false;  // initRefraction({ refractMorph }): keep the bend (eased in as it lands) through a morph
 
 // morphRefraction(el, { radius, duration, land })
 //   For a surface about to morph for `duration` ms onto its real (layout) box, with corners
@@ -285,7 +287,22 @@ function hold(el, s) {
   const h = holds.get(el);
   if (!h) return;
   cancelAnimationFrame(s.ramp);
+  clearTimeout(s.timer);
   s.held = true;
+  if (!refractMorph) {
+    // Through the morph the surface keeps its blur and drops the filter altogether: a filter
+    // with no bend still costs a pass over the backdrop each frame. The map is built once it lands.
+    el.style.setProperty('--_lg-refraction', s.base || 'none');
+    s.ramp = 0;
+    s.timer = setTimeout(() => {
+      if (surfaces.get(el) !== s || holds.get(el) !== h) return;
+      holds.delete(el);
+      s.held = false; s.timer = 0; s.bend = 1;
+      build(el, s);
+      el.style.setProperty('--_lg-refraction', `${s.base} url(#${s.id})`.trim());
+    }, h.ms);
+    return;
+  }
   build(el, s, h.radius);
   const tick = () => {
     if (surfaces.get(el) !== s || holds.get(el) !== h) return;
@@ -593,11 +610,15 @@ export function getRefraction() {
 // future, while blur is on and the browser can draw it. Call after
 // initBlurCapability().
 //   enabled    false to start with it off; setRefraction(true) turns it on. Default: true.
+//   refractMorph  true to keep the bend through a morph (held flat, eased in as it
+//              lands); by default a morphing surface drops the filter until it lands,
+//              as it's costly to run on every frame of the motion. Default: false.
 //   selector   more surfaces to refract, as a CSS selector, for glass that
 //              isn't in GLASS_SURFACES.
-export function initRefraction({ enabled: on = true, selector: extra } = {}) {
+export function initRefraction({ enabled: on = true, selector: extra, refractMorph: morph = false } = {}) {
   if (started || typeof document === 'undefined') return;
   started = true;
+  refractMorph = !!morph;
   wanted = !!on;
   selector = extra ? `${DEFAULT_ON}, ${extra}` : DEFAULT_ON;
   if (!supportsRefraction()) {

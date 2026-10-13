@@ -55,7 +55,7 @@
 //          padding-inline-end: var(--lg-tabbar-end-space, 0px); }
 // Going the other way, --lg-tabbar-{top,bottom,start,end}-offset set the bar's
 // clearance from the edge it sits on (e.g. --lg-tabbar-top-offset to clear a
-// header). Defaults: 28px bottom, 20px for the others. Call tabs.refresh()
+// header). Defaults: 40px bottom, 20px for the others. Call tabs.refresh()
 // after changing them so the published space follows.
 //
 // Placement:

@@ -23,17 +23,20 @@
      true edge and safe area rather than flush against it, so it doesn't trip
      Safari's fixed-element edge handling (iOS Safari's floating bottom bar
      opaque-paints the safe strip when a backdrop-filter'd fixed element sits
-     exactly at its boundary). 28px clears the children's drop shadow (0 4px
-     20px) too, since a fixed element's box-shadow is otherwise cut off at the
-     true viewport edge without enough raw clearance to render into. The
+     exactly at its boundary). 40px clears the children's drop shadow (0 4px
+     20px) and the dragged lens's lifted ring (it grows with the lens and
+     reaches about 40px below the bar), since a fixed element's box-shadow is
+     otherwise cut off at the true viewport edge without enough raw clearance
+     to render into, and a shadow touching that edge turns the safe area solid
+     in iOS Safari. The
      safe-area-inset-bottom term is 0 in-browser, and the real home-indicator
      inset in standalone/PWA mode, where it would otherwise sit closer to the
-     true edge than intended. --lg-tabbar-bottom-offset replaces the 28px. */
+     true edge than intended. --lg-tabbar-bottom-offset replaces the 40px. */
   position: fixed;
   left: 0;
   right: 0;
   top: 100dvh;
-  transform: translateY(calc(-100% - var(--lg-tabbar-bottom-offset, 28px) - env(safe-area-inset-bottom)));
+  transform: translateY(calc(-100% - var(--lg-tabbar-bottom-offset, 40px) - env(safe-area-inset-bottom)));
   z-index: 20;
 
   display: flex;
@@ -387,7 +390,7 @@
    so it tracks Safari's dynamic toolbar and clears the safe area. */
 .lg-tabbar--vertical.lg-tabbar--align-bottom {
   top: 100dvh;
-  transform: translateY(calc(-100% - var(--lg-tabbar-bottom-offset, 28px) - env(safe-area-inset-bottom)));
+  transform: translateY(calc(-100% - var(--lg-tabbar-bottom-offset, 40px) - env(safe-area-inset-bottom)));
 }
 
 .lg-tabbar--vertical .lg-tabbar__items {
@@ -438,13 +441,4 @@
 .lg-tabbar__prominent--moving,
 .lg-tabbar__ghost {
   transition: none !important;
-}
-
-/* The lens casts the low-elevation ring. At the default height its lifted ring
-   (lifted lens scale, drop, blur, spread) reaches past the bar's bottom
-   clearance, and iOS Safari paints the bottom safe area solid once a
-   backdrop-filtered fixed element's shadow touches the viewport edge. */
-.lg-tabbar .lg-pill {
-  --lg-elevation: var(--lg-elevation-low);
-  --lg-elevation-strength: var(--lg-elevation-low-strength);
 }

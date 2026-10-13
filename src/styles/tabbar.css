@@ -439,3 +439,12 @@
 .lg-tabbar__ghost {
   transition: none !important;
 }
+
+/* The lens casts the low-elevation ring. At the default height its lifted ring
+   (lifted lens scale, drop, blur, spread) reaches past the bar's bottom
+   clearance, and iOS Safari paints the bottom safe area solid once a
+   backdrop-filtered fixed element's shadow touches the viewport edge. */
+.lg-tabbar .lg-pill {
+  --lg-elevation: var(--lg-elevation-low);
+  --lg-elevation-strength: var(--lg-elevation-low-strength);
+}

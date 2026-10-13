@@ -40,16 +40,17 @@ export function withGive(raw, min, max, give = DEFAULTS.give) {
 //   a number > 1         pixels
 //   'full'               all of the available height
 //   'content'            the content's natural height (`content` px)
-// Returns [{ id, px }] ascending, each within [0, available]; detents that land
-// on the same height collapse into the first.
+// Any other fields on a def (a detent's material, say) ride along untouched.
+// Returns [{ id, px, ...rest }] ascending, each within [0, available]; detents
+// that land on the same height collapse into the first.
 export function resolveDetents(defs, { available, content = 0 }) {
-  const points = defs.map(({ id, size }) => {
+  const points = defs.map(({ size, ...rest }) => {
     let px;
     if (size === 'content') px = content;
     else if (size === 'full') px = available;
     else if (size > 0 && size <= 1) px = size * available;
     else px = size;
-    return { id, px: Math.max(0, Math.min(available, px)) };
+    return { ...rest, px: Math.max(0, Math.min(available, px)) };
   });
   points.sort((a, b) => a.px - b.px);
   return points.filter((p, i) => i === 0 || p.px - points[i - 1].px > 0.5);

@@ -1,4 +1,4 @@
-import { createSheet, createListPicker } from '../../src/index.js';
+import { createSheet, createListPicker, DEFAULT_SHEET_DETENTS } from '../../src/index.js';
 
 // The Explore tab: a busy, interactive backdrop standing in for a map, with the persistent
 // sheet over it. The sheet must not block the backdrop.
@@ -54,13 +54,8 @@ export function mountExplore(root) {
     label: 'Places',
     header,
     content: list,
-    detents: [
-      { id: 'peek', size: 192 },
-      { id: 'half', size: 0.5 },
-      { id: 'full', size: 0.85 },
-    ],
+    detents: DEFAULT_SHEET_DETENTS.map((d) => ({ ...d, material: params.get('material') || d.material })),
     responsive: [{ minWidth: 600, width: 420, margin: { inline: 20 } }],
-    material: params.get('material') || 'auto',
     onDetentChange: (id) => { $('detent-out').textContent = id; },
     onResize: (px) => { $('height-out').textContent = String(Math.round(px)); },
   });

@@ -91,6 +91,22 @@ test.describe('presentation', () => {
     await expect(page.locator('.lg-sheet-frame:not([data-modal]) .lg-sheet__glass')).not.toHaveClass(/is-clear/);
   });
 
+  test('wears the glass of the detent it rests at, however it got there', async ({ page }) => {
+    const glass = page.locator('.lg-sheet-frame:not([data-modal]) .lg-sheet__glass');
+    const sheetEl = page.locator('.lg-sheet-frame:not([data-modal]) .lg-sheet');
+    const expectFor = async (id) => {
+      await settle(page);
+      const full = id === 'full';
+      if (full) await expect(glass).not.toHaveClass(/is-clear/); else await expect(glass).toHaveClass(/is-clear/);
+      if (full) await expect(sheetEl).toHaveAttribute('data-glass-style', 'frost'); else await expect(sheetEl).not.toHaveAttribute('data-glass-style', /.*/);
+    };
+    // Hammer it: jumps in quick succession, mid-spring, in awkward orders.
+    for (const ids of [['full', 'peek'], ['half', 'full', 'half'], ['full', 'peek', 'full', 'half', 'peek']]) {
+      for (const id of ids) await page.evaluate((d) => sheet.setDetent(d), id);
+      await expectFor(ids[ids.length - 1]);
+    }
+  });
+
   test('sits the bottom margin plus the safe-area inset above the viewport bottom, tab bar included', async ({ page }) => {
     const gaps = () => page.evaluate(() => ({
       sheet: Math.round(innerHeight - document.querySelector('.lg-sheet-frame:not([data-modal]) .lg-sheet').getBoundingClientRect().bottom),

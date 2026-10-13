@@ -3,7 +3,11 @@
 //
 //   const sheet = createSheet({
 //     header, content, footer,
-//     detents: [{ id: 'peek', size: 192 }, { id: 'half', size: 0.5 }, { id: 'full', size: 0.85 }],
+//     detents: [
+//       { id: 'peek', size: 192, material: 'clear', glassStyle: 'inherit' },
+//       { id: 'half', size: 0.5, material: 'clear', glassStyle: 'inherit' },
+//       { id: 'full', size: 0.85, material: 'regular', glassStyle: 'frost' },
+//     ],
 //     responsive: [{ minWidth: 600, width: 420, margin: { inline: 20 } }],
 //     side: 'end',
 //     onDetentChange(id) {}, onResize(px) {},
@@ -33,8 +37,16 @@
 //   header, content, footer   Node or trusted HTML string. The header and footer
 //                             are pinned overlays with the content fading out
 //                             under them; the header is also a drag handle.
-//   detents          [{ id, size }]; size is a fraction (0..1], px (>1), 'full' or
-//                    'content' (see resolveDetents). Default: peek / half / full.
+//   detents          [{ id, size, material?, glassStyle? }]; size is a fraction (0..1],
+//                    px (>1), 'full' or 'content' (see resolveDetents). Each detent
+//                    carries the glass the sheet wears while it rests there:
+//                      material    'regular' | 'clear'
+//                      glassStyle  'frost' | 'transparent' | 'inherit' (the page's)
+//                    A field left out takes the sheet-level `material` / `glassStyle`.
+//                    Default: DEFAULT_SHEET_DETENTS (peek / half / full), which is
+//                    clear and following the page while small, regular and frost at
+//                    the largest, where the sheet holds the whole UI. They are
+//                    plain objects: spread or edit them. setDetents() swaps them later.
 //   detent           the initial detent id (default: the smallest)
 //   margin           { top, bottom, inline } px kept clear of the viewport
 //                    (bottom also clears the safe area). Default 20 / 20 / 8.
@@ -53,8 +65,7 @@
 //                    (a fixed-width panel stays at a plain 28). `inset` is extra
 //                    side clearance on top of margin.inline (default: none). Use
 //                    them to sit concentric with something around the collapsed sheet.
-//   material         'auto' (clear below the largest detent, regular at it) |
-//                    'regular' | 'clear'
+//   material         the material of a detent that doesn't name one (default 'regular')
 //   handle           show the grabber (default true)
 //   deform           squash/stretch from the resize velocity: true (any resize),
 //                    false, or 'handle' (only a drag that starts on the grabber
@@ -66,10 +77,8 @@
 //                    tapping a text field) moving into the content while below
 //                    the largest detent expands it. A tap on a card doesn't.
 //                    Default true.
-//   glassStyle       'auto' (default: the page's style below the largest detent, where the sheet is clear and
-//                    small, and frost at it, whatever the page says, with the full UI to read) | 'frost' |
-//                    'transparent' | 'inherit' (always the page's). setGlassStyle(el, …) on `el` overrides it;
-//                    sheet.setGlassStyle(option) changes the option itself
+//   glassStyle       the glass style of a detent that doesn't name one (default 'frost').
+//                    setGlassStyle(el, …) on `el` overrides what a detent sets
 //   label            the accessible name
 //   container        where to mount (default document.body)
 //   modal            present over a scrim with an inert page behind, and start
@@ -101,13 +110,13 @@
 // Returns { el, contentEl, headerEl, footerEl, present, dismiss, presented,
 //           setDetent, detent, height, detentHeight, isGesturing, scrollTop,
 //           setContent, setSide, side, setTransition, transition,
-//           setBackgroundInteraction, setGlassStyle, setHidden,
+//           setBackgroundInteraction, setDetents, setHidden,
 //           hidden, refresh, destroy }.
 import { Spring, onSpringFrame } from '../core/spring.js';
 import * as physics from '../core/sheet-physics.js';
 import { arcOffset, appleSpringConfig, dropletAlong, travelDistance, stretchScale, stretchWindow, glideTime } from '../core/motion-path.js';
 import { el, toNode } from './dom.js';
-import { initGlassStyle, setGlassStyle } from './glass-style.js';
+import { setGlassStyle } from './glass-style.js';
 
 const SETTLE = { stiffness: 260, damping: 30, mass: 1 };
 const PRESENT = { stiffness: 330, damping: 25, mass: 1 };   // a touch underdamped: a small overshoot
@@ -128,7 +137,16 @@ const STRETCH_MAX = 0.14;    // capped, so it stays a glass panel
 // the list: a drag starting on one still resizes the sheet, and only a plain click
 // reaches the row.
 const INTERACTIVE = 'a, button, input, select, textarea, [role="button"], [contenteditable="true"]';
-const DEFAULT_DETENTS = [{ id: 'peek', size: 192 }, { id: 'half', size: 0.5 }, { id: 'full', size: 0.85 }];
+// The default detents are written the way a caller's would be: small, the sheet is clear and follows the page; at
+// the largest it holds the whole UI, so it goes regular and frost, whatever the page says.
+const SMALL_GLASS = { material: 'clear', glassStyle: 'inherit' };
+export const DEFAULT_SHEET_DETENTS = [
+  { id: 'peek', size: 192, ...SMALL_GLASS },
+  { id: 'half', size: 0.5, ...SMALL_GLASS },
+  { id: 'full', size: 0.85, material: 'regular', glassStyle: 'frost' },
+];
+const MATERIALS = ['regular', 'clear'];
+const GLASS_STYLES = ['frost', 'transparent', 'inherit'];
 const HANDLE_CLEARANCE = 32;   // px the grabber occupies at the top when there's no header
 // The default corner radius: rounder while collapsed, easing to 28 as the sheet opens.
 const DEFAULT_RADIUS = [38.7, 28];
@@ -141,11 +159,11 @@ const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(pre
 
 export function createSheet({
   header, content, footer,
-  detents: detentDefs = DEFAULT_DETENTS, detent: initialDetent,
+  detents: initialDetents = DEFAULT_SHEET_DETENTS, detent: initialDetent,
   margin: baseMargin, width: baseWidth, side: initialSide = 'end', responsive = [],
   modal = false, open = !modal, dismissible = modal, backgroundInteraction, transition: initialTransition = 'pop', scrim: useScrim = true, zIndex,
   onPresent, onDismiss,
-  geometry = {}, material = 'auto', glassStyle,
+  geometry = {}, material = 'regular', glassStyle = 'frost',
   handle: showHandle = true, deform = true, shield: useShield = true, expandOnFocus = true,
   label, container = document.body,
   give = physics.DEFAULTS.give,
@@ -162,7 +180,6 @@ export function createSheet({
   // A modal always has this layer (it's what catches an outside click); `scrim: false` just makes it clear.
   const scrim = modal ? el('div', useScrim ? 'lg-sheet-scrim' : 'lg-sheet-scrim lg-sheet-scrim--clear') : null;
   const sheet = el('div', 'lg-sheet', { role: modal ? 'dialog' : 'region', tabindex: '-1' });
-  let styleOption = glassStyle ?? 'auto';
   if (label) sheet.setAttribute('aria-label', label);
   const glass = el('div', 'lg-sheet__glass lg-glass');
   const clip = el('div', 'lg-sheet__clip');
@@ -227,6 +244,7 @@ export function createSheet({
   }
 
   /* --- Detents --------------------------------------------------------------------- */
+  let detentDefs = initialDetents;
   let points = [];
   let current = null;           // the current detent id
   const size = new Spring(0);
@@ -412,12 +430,16 @@ export function createSheet({
   }
 
   /* --- State toggles ------------------------------------------------------------------ */
+  // The glass is a pure function of the detent the sheet is committed to: nothing is toggled relative to what
+  // it was, so it can't drift, and running this again is always safe.
   function updateMaterial() {
-    const clear = material === 'clear' || (material === 'auto' && current !== largest().id);
-    glass.classList.toggle('is-clear', clear);
-    // Small, it follows the page; at the largest detent it holds the whole UI and goes frost.
-    if (styleOption === 'auto') setGlassStyle(sheet, clear ? null : 'frost');
-    else initGlassStyle(sheet, styleOption);
+    const point = pointFor(current);
+    const wanted = point?.material ?? material;
+    const style = point?.glassStyle ?? glassStyle;
+    if (!MATERIALS.includes(wanted)) console.warn(`vitrium: sheet material must be 'regular' or 'clear', got '${wanted}'.`);
+    if (!GLASS_STYLES.includes(style)) console.warn(`vitrium: sheet glassStyle must be 'frost', 'transparent' or 'inherit', got '${style}'.`);
+    glass.classList.toggle('is-clear', wanted === 'clear');
+    setGlassStyle(sheet, style === 'inherit' ? null : GLASS_STYLES.includes(style) ? style : 'frost');
   }
 
   function announce() {
@@ -884,7 +906,11 @@ export function createSheet({
     get transition() { return transitionMode; },
     setTransition(next) { transitionMode = next; },
     setBackgroundInteraction(next) { bgMode = next; applyBackground(); },
-    setGlassStyle(next) { styleOption = next ?? 'auto'; updateMaterial(); },
+    // Swaps the detents (sizes and the glass of each), keeping the current one if it still exists.
+    setDetents(next) {
+      detentDefs = next;
+      refresh();
+    },
     get height() { return size.value; },
     detentHeight(id) { return pointFor(id)?.px; },
     get isGesturing() { return gesturing(); },

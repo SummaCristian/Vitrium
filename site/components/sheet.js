@@ -5,10 +5,21 @@ import { button } from '../foundation/util.js';
 
 const VIEWPORTS = { phone: '390px', desktop: '100%' };
 const DETENT_IDS = { three: ['peek', 'half', 'full'], two: ['half', 'full'], content: ['content', 'full'] };
-const DETENT_CODE = {
-  three: "[{ id: 'peek', size: 192 }, { id: 'half', size: 0.5 }, { id: 'full', size: 0.85 }]",
-  two: "[{ id: 'half', size: 0.5 }, { id: 'full', size: 0.85 }]",
-  content: "[{ id: 'content', size: 'content' }, { id: 'full', size: 0.85 }]",
+const DETENT_SIZES = {
+  three: [['peek', '192'], ['half', '0.5'], ['full', '0.85']],
+  two: [['half', '0.5'], ['full', '0.85']],
+  content: [['content', "'content'"], ['full', '0.85']],
+};
+// The detents as the snippet shows them: each with the glass it wears, unless the playground overrides it.
+const detentCode = (s) => {
+  const list = DETENT_SIZES[s.detents];
+  const lines = list.map(([id, size], i) => {
+    const large = i === list.length - 1;
+    const material = s.material === 'auto' ? (large ? 'regular' : 'clear') : s.material;
+    const style = s.glassStyle === 'inherit' ? (large ? 'frost' : 'inherit') : s.glassStyle;
+    return `    { id: '${id}', size: ${size}, material: '${material}', glassStyle: '${style}' },`;
+  });
+  return `[\n${lines.join('\n')}\n  ]`;
 };
 const stateOf = (s) => ({
   modal: s.presentation === 'modal', side: s.side, transition: s.transition, detents: s.detents, material: s.material,
@@ -89,7 +100,7 @@ export default {
         const rows = [
           "  header, content,",
           s.footer && '  footer,',
-          `  detents: ${DETENT_CODE[s.detents]},`,
+          `  detents: ${detentCode(s)},`,
           `  responsive: [{ minWidth: 600, width: 420, margin: { inline: 20 } }],`,
           s.side !== 'end' && `  side: '${s.side}',`,
           modal && '  modal: true,',
@@ -98,7 +109,6 @@ export default {
           s.background !== 'default' && `  backgroundInteraction: ${s.background === 'upTo half' ? "{ upTo: 'half' }" : `'${s.background}'`},`,
           s.dismissible === 'never' && '  dismissible: false,',
           s.dismissible === 'not by swipe' && "  dismissible: (reason) => reason !== 'swipe',",
-          s.material !== 'auto' && `  material: '${s.material}',`,
           !s.handle && '  handle: false,',
           s.deform === 'off' && '  deform: false,',
           s.deform === 'handle' && "  deform: 'handle',",
@@ -131,13 +141,18 @@ export default {
         h('p', {}, 'The available height is the viewport minus `margin.top` and `margin.bottom`. Detents are sorted by height, and any that land on the same height collapse into the first. A `content` detent is as tall as the content, so a long list makes it as tall as `full` and the two merge. Try Detents: content, which uses a short list.'),
         codeBlock(`
 createSheet({
-  detents: [{ id: 'peek', size: 192 }, { id: 'half', size: 0.5 }, { id: 'full', size: 'full' }],
+  detents: [
+    { id: 'peek', size: 192, material: 'clear', glassStyle: 'inherit' },
+    { id: 'half', size: 0.5, material: 'clear', glassStyle: 'inherit' },
+    { id: 'full', size: 'full', material: 'regular', glassStyle: 'frost' },
+  ],
   detent: 'half',                  // where it starts (default: the smallest)
   onDetentChange(id) {},
 });
 
 sheet.setDetent('full');           // animated
-sheet.setDetent('peek', { animate: false });`)),
+sheet.setDetent('peek', { animate: false });
+sheet.setDetents(next);            // swap the sizes and glass; the current detent stays if it still exists`)),
 
       section('Gestures', {},
         table(['Input', 'What happens'], [
@@ -205,7 +220,8 @@ sheet.setSide('start');   // glides across`),
 
       section('Appearance', {},
         table(['Option', 'What it does'], [
-          ['`material`', '`"auto"` (the default) uses the clear material below the largest detent and the regular one at it, so a small sheet lets the page show through and a full one is easy to read. `"regular"` or `"clear"` pins it.'],
+          ['Per-detent glass', 'Each detent says what the sheet wears while it rests there: `material` (`"regular"` or `"clear"`) and `glassStyle` (`"frost"`, `"transparent"` or `"inherit"`, the page\'s). The default detents are clear and following the page while small, so the page shows through, and regular and frost at the largest, which holds the whole UI and has to be easy to read. They are plain objects, exported as `DEFAULT_SHEET_DETENTS`, so you can spread them or write your own, with as many detents and as many looks as you like. The glass follows the detent the sheet settles on.'],
+          ['`material`, `glassStyle`', 'What a detent that does not name its own gets. Defaults: `"regular"` and `"frost"`. `setGlassStyle(el, …)` on `el` overrides whatever a detent sets.'],
           ['`geometry`', '`{ inset: [min, max], radius: [min, max] }`, interpolated with the sheet\'s size. The corner radius defaults to `[38.7, 28]`, rounder when collapsed and easing to 28 as it opens, and a fixed-width panel stays at a plain 28. `inset` adds side clearance, so the collapsed sheet can sit concentric with something around it.'],
           ['`handle`', 'Show the grabber. Default: `true`.'],
           ['`deform`', 'Squash and stretch from the resize speed, like the press physics. `true`, `false`, or `"handle"` for drags that start on the grabber or header only. Default: `true`.'],
@@ -229,7 +245,7 @@ sheet.setSide('start');   // glides across`),
         h('h3', { class: 'sub-label' }, 'createSheet(options)'),
         table(['Option', 'Type', 'Description'], [
           ['header, content, footer', 'Node | string', 'The three slots. A string is trusted HTML.'],
-          ['detents', '{ id, size }[]', 'The resting heights. Default: peek (192px), half, full (85%).'],
+          ['detents', '{ id, size, material?, glassStyle? }[]', 'The resting heights, and the glass at each. Default: `DEFAULT_SHEET_DETENTS`, peek (192px), half, full (85%).'],
           ['detent', 'string', 'The initial detent id. Default: the smallest.'],
           ['margin', '{ top, bottom, inline }', 'Clearance from the viewport, in px. Default: 20, 20, 8.'],
           ['width', 'number', 'A fixed panel width in px. Usually set in `responsive`.'],
@@ -241,7 +257,7 @@ sheet.setSide('start');   // glides across`),
           ['backgroundInteraction', "'enabled' | 'blocked' | { upTo }", 'Whether the page behind stays usable.'],
           ['transition', "'pop' | 'morph'", 'How a modal comes and goes. Default: `"pop"`.'],
           ['scrim', 'boolean', 'Dim the page while blocking. Default: `true`.'],
-          ['material', "'auto' | 'regular' | 'clear'", 'Default: `"auto"`.'],
+          ['material', "'regular' | 'clear'", 'For a detent that sets none. Default: `"regular"`.'],
           ['geometry', '{ inset?, radius? }', 'Inset and corner radius, interpolated with size.'],
           ['handle', 'boolean', 'Show the grabber. Default: `true`.'],
           ['deform', 'boolean | "handle"', 'Stretch with resize speed. `"handle"` stretches only for a drag that starts on the grabber or header; the content still resizes, without the stretch. Default: `true`.'],
@@ -250,7 +266,7 @@ sheet.setSide('start');   // glides across`),
           ['label', 'string', 'Accessible name.'],
           ['container', 'Element', 'Where to mount. Default: `document.body`.'],
           ['zIndex', 'number', 'Stacking order of the sheet and its scrim.'],
-          ['glassStyle', "'auto' | 'frost' | 'transparent' | 'inherit'", 'The sheet\'s glass style. `"auto"` follows the page while the sheet is small, below its largest detent, and goes frost at the largest, where it holds the whole UI. `"frost"` and `"transparent"` fix it; `"inherit"` always follows the page. `setGlassStyle(el, …)` on `el` overrides it, and `sheet.setGlassStyle(option)` changes the option. Default: `"auto"`.'],
+          ['glassStyle', "'frost' | 'transparent' | 'inherit'", 'For a detent that sets none. `"inherit"` follows the page. Default: `"frost"`.'],
           ['give, flingVelocity, hardFlingVelocity', 'number', 'Physics overrides: the elastic overshoot (px) and the two flick speeds (px/ms).'],
           ['onPresent, onDismiss, onDetentChange, onResize', 'functions', '`onDismiss(reason)`, `onDetentChange(id)`, `onResize(px, { gesturing })`.'],
         ].map((r) => [h('code', {}, r[0]), h('code', {}, r[1]), r[2]])),
@@ -260,6 +276,7 @@ sheet.setSide('start');   // glides across`),
           ['present({ from }), dismiss()', 'Bring a modal sheet in or out. `from` is the element a morph grows from.'],
           ['presented', 'Whether it is on screen (read-only).'],
           ['setDetent(id, { animate })', 'Go to a detent. `detent` reads the current one.'],
+          ['setDetents(next)', 'Replace the detents: their sizes and glass. The current one stays if its id is still there.'],
           ['height, detentHeight(id)', 'The current height in px, and a detent\'s height.'],
           ['isGesturing', 'Whether a drag or a wheel gesture is live.'],
           ['setSide(side, { animate }), side', 'Move a panel to another side, gliding there.'],

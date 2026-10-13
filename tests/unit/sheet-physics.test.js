@@ -45,6 +45,11 @@ describe('resolveDetents', () => {
     ]);
   });
 
+  it('carries any other field of a detent through to its point', () => {
+    const pts = resolveDetents([{ id: 'a', size: 100, material: 'clear' }, { id: 'b', size: 'full', glassStyle: 'frost' }], ctx);
+    expect(pts).toEqual([{ id: 'a', px: 100, material: 'clear' }, { id: 'b', px: 800, glassStyle: 'frost' }]);
+  });
+
   it('treats 1 as a fraction (all of it), and anything larger as pixels', () => {
     expect(resolveDetents([{ id: 'a', size: 1 }], ctx)[0].px).toBe(800);
     expect(resolveDetents([{ id: 'a', size: 2 }], ctx)[0].px).toBe(2);

@@ -32,7 +32,7 @@ export { createTabBar } from './components/tabbar.js';
 export { createChipPicker } from './components/chip-picker.js';
 export { createListPicker } from './components/list-picker.js';
 export { createPopover } from './components/popover.js';
-export { createSheet } from './components/sheet.js';
+export { createSheet, DEFAULT_SHEET_DETENTS } from './components/sheet.js';
 export { createSlider } from './components/slider.js';
 export { createStepper } from './components/stepper.js';
 export { createTextField } from './components/text-field.js';

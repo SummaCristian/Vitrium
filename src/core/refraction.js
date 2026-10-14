@@ -201,13 +201,11 @@ const px = (cs, prop, fallback) => {
   return Number.isFinite(v) ? v : fallback;
 };
 
-// What the surface's own CSS puts on the backdrop (its blur, saturation), read
-// with the refraction lifted for a moment.
-function baseFilter(el, s) {
-  el.classList.remove('lg-refracting');
+// What the surface's own CSS puts on the backdrop (its blur, saturation). Read it
+// while the surface isn't .lg-refracting, whose backdrop is the refraction itself.
+function readBase(el) {
   const cs = getComputedStyle(el);
   let base = cs.backdropFilter || cs.webkitBackdropFilter || 'none';
-  el.classList.add('lg-refracting');
   if (base === 'none' || base.includes('url(')) base = '';
   // The blur is the glass style's (the surface's computed one). Only a surface that
   // names --lg-refraction-blur, the pill's lens, swaps it for that.
@@ -216,6 +214,19 @@ function baseFilter(el, s) {
     const rest = base.replace(/blur\([^)]*\)\s*/g, '').trim();
     base = parseFloat(blur) > 0 ? `blur(${blur}) ${rest}`.trim() : rest;
   }
+  return base;
+}
+
+// Re-reads the base of a surface that's already refracting: the refraction is
+// lifted for a moment to read past it.
+function baseFilter(el, s) {
+  el.classList.remove('lg-refracting');
+  const base = readBase(el);
+  el.classList.add('lg-refracting');
+  applyBase(el, s, base);
+}
+
+function applyBase(el, s, base) {
   s.base = base;
   el.style.setProperty('--_lg-refraction', s.held && !refractMorph ? (base || 'none') : `${base} url(#${s.id})`.trim());
   // For the popover's arrow, which takes the blur without the bend.
@@ -227,8 +238,15 @@ function baseFilter(el, s) {
 // computed one: a morph knows the corner it lands on before its animation gets there).
 function build(el, s, radiusOverride) {
   clearTimeout(s.timer); s.timer = 0;
+  const m = measure(el, radiusOverride);
+  if (m) applyMap(s, m);
+}
+
+// What a map is built from: the surface's size, corners and tokens. Only reads, so
+// many surfaces can be measured with one style and layout pass between them.
+function measure(el, radiusOverride) {
   const w = el.offsetWidth, h = el.offsetHeight;
-  if (!w || !h) return;
+  if (!w || !h) return null;
   const cs = getComputedStyle(el);
   const rRaw = cs.borderTopLeftRadius;
   const radius = radiusOverride ?? (rRaw.endsWith('%') ? Math.min(w, h) * parseFloat(rRaw) / 100 : parseFloat(rRaw) || 0);
@@ -239,6 +257,11 @@ function build(el, s, radiusOverride) {
   });
   const dispersion = Math.max(0, px(cs, '--lg-refraction-dispersion', 0));
   const curve = Math.max(1, px(cs, '--lg-refraction-curve', DEFAULT_CURVE));
+  return { w, h, radius, n, bezel, shift, dispersion, curve };
+}
+
+// Puts a measured map on the surface's filter. Only writes.
+function applyMap(s, { w, h, radius, n, bezel, shift, dispersion, curve }) {
   const res = w * h > LARGE_AREA ? 0.5 : 1;
   s.img.setAttribute('href', mapURL(w, h, { radius, bezel, n, res, curve }));
   setSize(s, w, h);
@@ -265,8 +288,15 @@ function bend(s, f) {
 // map is built once, for the box and the corner it lands on, and the bend held flat (the
 // blur stays) while the shape is far from it, then eased in over the last LAND of the
 // morph as the drop settles: the rim forms as it lands, rather than popping on after.
+//
+// The glass inside a morphing surface (the chips on a panel) is carried by the same
+// transform, so its maps are as wrong mid-flight, and it's held for the same trip too.
+// That also keeps new maps from first being drawn mid-flight: the GPU has to decode a map
+// before it can draw the filter, and can't leave it out for a frame the way it does a
+// plain image, so a frame that draws a new one is late, and a trip run on the compositor
+// visibly jumps to catch up. Held, each surface builds its map as the morph lands.
 const LAND = 0.4;
-const holds = new Map();   // element → { radius, t0, ms }: a morph under way, applied as it activates too
+const holds = new Map();   // element → { radius, t0, ms, inner }: a morph under way, applied as it activates too
 let refractMorph = false;  // initRefraction({ refractMorph }): keep the bend (eased in as it lands) through a morph
 
 // morphRefraction(el, { radius, duration, land })
@@ -278,9 +308,22 @@ let refractMorph = false;  // initRefraction({ refractMorph }): keep the bend (e
 //   picks it up).
 export function morphRefraction(el, { radius, duration, land = true }) {
   if (!el) return;
-  holds.set(el, { radius, land, t0: performance.now(), ms: Math.max(0, duration) });
+  const h = { radius, land, t0: performance.now(), ms: Math.max(0, duration) };
+  holds.set(el, h);
   const s = surfaces.get(el);
   if (s) hold(el, s);
+  for (const [inner, st] of surfaces) {
+    if (inner !== el && el.contains(inner)) { holds.set(inner, innerHold(h)); hold(inner, st); }
+  }
+}
+
+// The hold of a surface inside a morphing one: the same trip, but its own corners.
+const innerHold = (h) => ({ ...h, radius: undefined, inner: true });
+
+// The hold of the morphing surface around `el`, if it's inside one.
+function holdAround(el) {
+  for (const [outer, h] of holds) if (outer !== el && !h.inner && outer.contains(el)) return h;
+  return null;
 }
 
 function hold(el, s) {
@@ -300,7 +343,7 @@ function hold(el, s) {
       s.held = false; s.timer = 0; s.bend = 1;
       build(el, s);
       el.style.setProperty('--_lg-refraction', `${s.base} url(#${s.id})`.trim());
-    }, h.ms);
+    }, Math.max(0, h.t0 + h.ms - performance.now()));   // what's left of the trip: it may have activated mid-way
     return;
   }
   build(el, s, h.radius);
@@ -406,41 +449,56 @@ function attach(el, manual = false) {
   if (known) { known.manual ||= manual; return; }
   const w = { manual, visible: false };
   watched.set(el, w);
-  if (typeof IntersectionObserver === 'undefined') { w.visible = true; activate(el); return; }
+  if (typeof IntersectionObserver === 'undefined') { w.visible = true; activate([el]); return; }
   io ??= new IntersectionObserver((entries) => {
     // The last entry per element is where it stands now.
+    const seen = [];
     for (const { target, isIntersecting } of entries) {
       const w = watched.get(target);
       if (!w) continue;
       w.visible = isIntersecting;
-      if (isIntersecting) activate(target); else deactivate(target);
+      if (isIntersecting) seen.push(target); else deactivate(target);
     }
+    activate(seen);
   }, { rootMargin: WATCH_MARGIN });
   io.observe(el);
 }
 
-function activate(el) {
-  if (surfaces.has(el) || !enabled()) return;
-  const manual = watched.get(el)?.manual ?? false;
-  const id = `lg-refraction-${++uid}`;
-  const filter = svg('filter', { id, 'color-interpolation-filters': 'sRGB', filterUnits: 'userSpaceOnUse', x: 0, y: 0 });
-  const img = svg('feImage', { x: 0, y: 0, preserveAspectRatio: 'none', result: 'map' });
-  filter.append(img);
-  filterHost().append(filter);
-  const s = { id, filter, img, disps: null, chroma: null, w: 0, h: 0, timer: 0, base: '', manual, bend: 1, held: false, ramp: 0 };
-  primitives(s, false);   // a plain bend until build() reads the tokens
-  surfaces.set(el, s);
-  el.classList.add('lg-refracting');
-  baseFilter(el, s);
-  if (holds.has(el)) hold(el, s); else build(el, s);
-  el.addEventListener('transitionend', onTransitionEnd);
-  ro ??= new ResizeObserver((entries) => {
-    for (const { target } of entries) {
-      const st = surfaces.get(target);
-      if (st) resized(target, st);
-    }
-  });
-  ro.observe(el);
+// Switches surfaces on, all that came into view together at once. Everything they
+// need is read first and only then written: a read after a write forces a style
+// recalc, so a popup full of glass chips switching on one at a time (class, read,
+// property, read) paid several full recalcs per chip, all in one task, right as the
+// popup opened.
+function activate(els) {
+  if (!enabled()) return;
+  const fresh = els.filter((el) => !surfaces.has(el));
+  for (const el of fresh) {
+    const around = holds.has(el) ? null : holdAround(el);
+    if (around) holds.set(el, innerHold(around));
+  }
+  const reads = fresh.map((el) => ({ el, base: readBase(el), map: holds.has(el) ? null : measure(el) }));
+  for (const { el, base, map } of reads) {
+    const manual = watched.get(el)?.manual ?? false;
+    const id = `lg-refraction-${++uid}`;
+    const filter = svg('filter', { id, 'color-interpolation-filters': 'sRGB', filterUnits: 'userSpaceOnUse', x: 0, y: 0 });
+    const img = svg('feImage', { x: 0, y: 0, preserveAspectRatio: 'none', result: 'map' });
+    filter.append(img);
+    filterHost().append(filter);
+    const s = { id, filter, img, disps: null, chroma: null, w: 0, h: 0, timer: 0, base: '', manual, bend: 1, held: false, ramp: 0 };
+    primitives(s, false);   // a plain bend until the map reads the tokens
+    surfaces.set(el, s);
+    el.classList.add('lg-refracting');
+    applyBase(el, s, base);
+    if (holds.has(el)) hold(el, s); else if (map) applyMap(s, map);
+    el.addEventListener('transitionend', onTransitionEnd);
+    ro ??= new ResizeObserver((entries) => {
+      for (const { target } of entries) {
+        const st = surfaces.get(target);
+        if (st) resized(target, st);
+      }
+    });
+    ro.observe(el);
+  }
 }
 
 // Let go of an element for good.
@@ -582,7 +640,7 @@ function applyState() {
   if (on) {
     full = true; queueScan();
     // Surfaces attached by hand while it was off, and in view, get their filter now.
-    for (const [el, w] of watched) if (w.visible) activate(el);
+    activate([...watched].filter(([, w]) => w.visible).map(([el]) => el));
     return;
   }
   // Off: let go of the automatic ones; hand-attached ones stay watched, with no

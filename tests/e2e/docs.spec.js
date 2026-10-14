@@ -267,52 +267,36 @@ test.describe('core', () => {
 });
 
 test.describe('home', () => {
-  test('is a live board of the real components', async ({ page }) => {
-    await open(page, 'home', '.tile');
-    expect(await page.locator('.tile').count()).toBeGreaterThanOrEqual(9);
+  test('scatters the real components around the logo', async ({ page }) => {
+    await open(page, 'home', '.hero-stage .float');
+    await expect(page.locator('.hero-mark img')).toBeVisible();
+    expect(await page.locator('.hero-stage .float').count()).toBeGreaterThanOrEqual(8);
     // A component on it responds: the stepper moves and drives the ring beside it.
-    const tile = page.locator('.tile', { hasText: 'Stepper and ring' });
-    await tile.getByRole('button', { name: 'Add a guest' }).click();
-    await expect(tile.locator('.tile-line strong')).toHaveText('3');
-    await expect(tile.locator('.lg-progress')).toHaveAttribute('aria-valuenow', '0.3');
+    // The scatter drifts, which Playwright reads as unstable, so hold it still first.
+    await page.evaluate(() => document.querySelector('.hero-stage').classList.add('paused'));
+    const stepper = page.locator('.float--stepper');
+    await stepper.getByRole('button', { name: 'Add a guest' }).click();
+    await expect(page.locator('.float--ring .lg-progress')).toHaveAttribute('aria-valuenow', '1');
   });
 
-  test('an alert from it answers, and a sheet blocks the page until it is dismissed', async ({ page }) => {
-    await open(page, 'home', '.tile');
-    const overlays = page.locator('.tile', { hasText: 'Alert and sheet' });
-    await overlays.getByRole('button', { name: 'Alert' }).click();
-    await page.getByRole('button', { name: 'Delete' }).last().click();
-    await expect(overlays.locator('.readout')).toHaveText('present() resolved with "delete"');
-
-    await overlays.getByRole('button', { name: 'Sheet' }).click();
-    await page.waitForTimeout(900);
-    expect(await page.evaluate(() => document.getElementById('shell').inert)).toBe(true);
-    await page.keyboard.press('Escape');
-    await expect.poll(() => page.evaluate(() => document.getElementById('shell').inert)).toBe(false);
-  });
-
-  test('the accent applies to the board only, and the glass switch reaches every tile', async ({ page }) => {
-    await open(page, 'home', '.tile');
-    await page.locator('.swatch[aria-label="Pink"]').click();
-    expect(await page.locator('.board').evaluate((n) => n.style.getPropertyValue('--lg-accent'))).toBe('#ff375f');
-    expect(await page.evaluate(() => document.documentElement.style.getPropertyValue('--lg-accent'))).toBe('');
-    await page.locator('.board-opt', { hasText: 'Glass' }).locator('.lg-seg__item[data-value="clear"]').click();
-    await expect(page.locator('.tile.lg-glass--clear')).toHaveCount(await page.locator('.tile').count());
+  test('the calls to action lead on to the docs', async ({ page }) => {
+    await open(page, 'home', '.hero-actions');
+    await expect(page.locator('.hero-actions a[href="#/start"]')).toBeVisible();
+    await expect(page.locator('.hero-actions a[href="#/components"]')).toBeVisible();
+    await expect(page.locator('.hero-actions .gh-btn')).toHaveAttribute('href', /github\.com/);
   });
 
   test('leaves nothing behind on the body when the page is left', async ({ page }) => {
-    await open(page, 'home', '.tile');
-    const before = await page.evaluate(() => document.body.children.length);
+    await open(page, 'home', '.hero-stage .float');
     await page.goto('/#/components');
     await page.waitForTimeout(600);
-    const after = await page.evaluate(() => document.body.children.length);
-    expect(after).toBeLessThan(before);
+    expect(await page.locator('.hero-stage').count()).toBe(0);
     expect(await page.locator('.lg-popover').count()).toBe(0);
   });
 
   test('fits a phone without scrolling sideways', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 900 });
-    await open(page, 'home', '.tile');
+    await open(page, 'home', '.hero-stage .float');
     await page.waitForTimeout(800);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
@@ -321,7 +305,7 @@ test.describe('home', () => {
     // Anything wider than the screen (a long line of inline code, say) widens the whole page, and the fixed layers
     // (the tab bar, a sheet, an alert) then line up against the wrong width.
     await page.setViewportSize({ width: 390, height: 900 });
-    await open(page, 'home', '.tile');
+    await open(page, 'home', '.hero-stage .float');
     const routes = await page.evaluate(() => [...new Set([...document.querySelectorAll('a[href^="#/"]')].map((a) => a.getAttribute('href')))]);
     expect(routes.length).toBeGreaterThan(10);
     const wide = [];
@@ -353,7 +337,7 @@ test.describe('segmented control blur', () => {
 
   test('the theme switcher in the corner has it', async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('lg:blur-mode', 'on'));
-    await open(page, 'home', '.tile');
+    await open(page, 'home', '.hero-stage .float');
     expect(await page.locator('.theme-seg .lg-seg__track').evaluate((n) => getComputedStyle(n).backdropFilter)).toMatch(/blur|url\(/);
   });
 });

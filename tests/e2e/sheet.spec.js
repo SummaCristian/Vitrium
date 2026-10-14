@@ -113,8 +113,8 @@ test.describe('presentation', () => {
       bar: Math.round(innerHeight - document.querySelector('.lg-tabbar__bar').getBoundingClientRect().bottom),
       available: document.querySelector('.lg-sheet-frame:not([data-modal])').clientHeight,
     }));
-    // Without an inset: 20px for the sheet, 28px for the tab bar (8px apart, so the sheet wraps it).
-    expect(await gaps()).toMatchObject({ sheet: 20, bar: 28 });
+    // Without an inset: 20px for the sheet, 40px for the tab bar (its default offset, clear of Safari's solid safe area).
+    expect(await gaps()).toMatchObject({ sheet: 20, bar: 40 });
 
     // With an iPhone-style bottom inset both rise by exactly that much, and the room
     // the detents are fractions of shrinks by the same amount.
@@ -122,7 +122,7 @@ test.describe('presentation', () => {
     await cdp.send('Emulation.setSafeAreaInsetsOverride', { insets: { top: 0, bottom: 34, left: 0, right: 0 } });
     await page.waitForTimeout(400);
     const g = await gaps();
-    expect(g).toMatchObject({ sheet: 20 + 34, bar: 28 + 34 });
+    expect(g).toMatchObject({ sheet: 20 + 34, bar: 40 + 34 });
     expect(g.available).toBe(860 - 34);
     await page.evaluate(() => sheet.setDetent('half', { animate: false }));
     expect((await state(page)).height).toBe(Math.round(0.5 * (860 - 34)));

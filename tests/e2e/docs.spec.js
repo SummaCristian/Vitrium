@@ -361,6 +361,116 @@ test.describe('refraction', () => {
     expect(size.slice(0, 2)).toEqual(size.slice(2));
   });
 
+  test('glass that stays inside a morph popup is held through every open, not only the first', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('lg:blur-mode', 'on'));
+    await open(page, 'foundation/core', '.dial');
+    const trigger = page.getByRole('button', { name: 'Add a note' });
+    const panel = page.locator('.lg-morph.lg-morph--open');
+    await trigger.click();
+    await expect(panel).toHaveCount(1);
+    // A chip that stays in the panel between opens, as a host's own controls do
+    await panel.evaluate((p) => {
+      const chip = document.createElement('div');
+      chip.className = 'lg-glass held-chip';
+      chip.style.cssText = 'width: 120px; height: 40px; margin: 8px; border-radius: 20px';
+      p.querySelector('.lg-morph__inner').append(chip);
+    });
+    await page.waitForTimeout(1000);
+    await page.keyboard.press('Escape');
+    await expect(panel).toHaveCount(0);
+    await page.waitForTimeout(1000);
+
+    // Every change to the panel's and the chip's refraction through the next open, as it happens
+    const changes = page.evaluate(() => new Promise((resolve) => {
+      const chip = document.querySelector('.held-chip');
+      const shell = chip.closest('.lg-morph');
+      const t0 = performance.now();
+      const out = [];
+      const note = (who, el) => {
+        if (!el.classList.contains('lg-refracting')) return;
+        const bent = el.style.getPropertyValue('--_lg-refraction').includes('url(');
+        if (out.findLast((c) => c.who === who)?.bent !== bent) out.push({ who, bent, t: performance.now() - t0 });
+      };
+      const seen = new MutationObserver((records) => {
+        for (const { target } of records) {
+          if (target === shell) note('panel', shell);
+          if (target === chip) note('chip', chip);
+        }
+      });
+      seen.observe(shell, { subtree: true, attributes: true, attributeFilter: ['style', 'class'] });
+      setTimeout(() => { seen.disconnect(); resolve(out); }, 1500);
+    }));
+    await trigger.click();
+    const log = await changes;
+
+    const first = (who, bent) => log.find((c) => c.who === who && c.bent === bent);
+    // Both start held, flat for the trip, and the chip gets its bend only as the panel lands
+    expect(first('chip', false), JSON.stringify(log)).toBeTruthy();
+    expect(first('panel', true), JSON.stringify(log)).toBeTruthy();
+    expect(first('chip', true).t, JSON.stringify(log)).toBeGreaterThanOrEqual(first('panel', true).t - 50);
+  });
+
+  // Whether the surface at `selector` (in a page or a frame) is bent, as it starts and at every change for `ms`.
+  const bendLog = (target, selector, ms) => target.evaluate(({ selector, ms }) => new Promise((resolve) => {
+    const el = document.querySelector(selector);
+    const t0 = performance.now();
+    const bent = () => el.classList.contains('lg-refracting') && el.style.getPropertyValue('--_lg-refraction').includes('url(');
+    const out = [{ bent: bent(), t: 0 }];
+    const seen = new MutationObserver(() => {
+      if (out.at(-1).bent !== bent()) out.push({ bent: bent(), t: Math.round(performance.now() - t0) });
+    });
+    seen.observe(el, { attributes: true, attributeFilter: ['style', 'class'] });
+    setTimeout(() => { seen.disconnect(); resolve(out); }, ms);
+  }), { selector, ms });
+
+  // Unbent within `within` ms of the start (a frame or so), and bent again by the end, after `after` ms or more.
+  const heldThrough = (log, after, within = 100) => {
+    const flat = log.findIndex((c) => !c.bent);
+    expect(flat, JSON.stringify(log)).toBeGreaterThanOrEqual(0);
+    expect(log[flat].t, JSON.stringify(log)).toBeLessThan(within);
+    const back = log.slice(flat).find((c) => c.bent);
+    expect(back, JSON.stringify(log)).toBeTruthy();
+    expect(back.t, JSON.stringify(log)).toBeGreaterThanOrEqual(after);
+    expect(log.at(-1).bent, JSON.stringify(log)).toBe(true);
+  };
+
+  test('a popover is held unbent while it grows, and while it glides to a new size', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('lg:blur-mode', 'on'));
+    await open(page, 'components/popover', '.popover-arena');
+    const pop = '.lg-popover[aria-label="What is new"]';
+    const trigger = page.getByRole('button', { name: 'Medium' });
+
+    // Opened once and closed, so it has a bend of its own to lose
+    await trigger.click();
+    await page.waitForTimeout(1000);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(1000);
+
+    let log = bendLog(page, pop, 1200);
+    await trigger.click();
+    heldThrough(await log, 150);
+
+    await page.waitForTimeout(300);
+    log = bendLog(page, pop, 1200);
+    await page.locator(pop).getByRole('button', { name: 'Show more' }).click();
+    heldThrough(await log, 150);
+  });
+
+  test('the tab bar is held unbent while it changes size', async ({ page }) => {
+    // Tall enough that reaching the playground's controls doesn't scroll the preview away (off screen, it stops refracting)
+    await page.setViewportSize({ width: 1300, height: 2400 });
+    await page.addInitScript(() => localStorage.setItem('lg:blur-mode', 'on'));
+    await open(page, 'components/tab-bar', '.playground');
+    await page.waitForTimeout(1000);
+    const preview = page.frames().find((f) => f.url().includes('tabbar-preview'));
+    await expect.poll(() => preview.evaluate(() => document.querySelector('.lg-tabbar__bar')?.classList.contains('lg-refracting'))).toBe(true);
+
+    const log = bendLog(preview, '.lg-tabbar__bar', 2000);
+    await option(page, 'Tabs', '2').click();
+    // (The change reaches the preview through the playground, a few frames after the click.)
+    heldThrough(await log, 150, 500);
+  });
+
   test('stays off, with the blur, while blur is off', async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('lg:blur-mode', 'off'));
     await open(page, 'foundation/glass', '.glass-demo');

@@ -128,6 +128,7 @@ import { Spring, onSpringFrame } from '../core/spring.js';
 import { createPillParts, el, toNode } from './dom.js';
 import { setGlass as applyGlassMode } from './glass-mode.js';
 import { arcOffset } from '../core/motion-path.js';
+import { holdRefraction } from '../core/refraction.js';
 
 // Spring for the bar's size along its axis when the tab set changes size.
 const WIDTH_SPRING = { stiffness: 300, damping: 24, mass: 1 };
@@ -763,7 +764,22 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     }
 
     renderMotion();
+    if (!orienting && !isSettled()) {
+      const hold = holdGlass();
+      settled().then(() => letGoGlass(hold));
+    }
   }
+
+  // Through a morph of the bar (a new tab set, a change of layout) its glass, and the
+  // circles', is held unbent, and gets its bend once the springs have settled
+  // (core/refraction.js). A later morph's hold takes over an earlier one.
+  let heldGlass = null;
+  const holdGlass = () => { heldGlass = holdRefraction(root); return heldGlass; };
+  const letGoGlass = (hold = heldGlass) => {
+    if (!hold || hold !== heldGlass) return;
+    hold();
+    heldGlass = null;
+  };
 
   // Replace the tab set (see applyTabs). During an orientation sequence the new
   // set is just remembered: step 3 expands to the latest one.
@@ -855,6 +871,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     holdEnd = holdSplit && !vertical && next.vertical && place.rail === 'end';
     freezeSpace = true;
     root.classList.add('lg-tabbar--orienting');
+    holdGlass();
 
     // 1. Collapse to the selected tab. (A prominent tab collapses into the bar
     // as an ordinary tab: it needs at least 3 to be prominent.) The tab already
@@ -902,6 +919,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     await settled();
     if (token !== orientToken) return;
     orienting = false;
+    letGoGlass();
   }
 
   // A compact bar ignores the placement, so only the layout itself counts then.
@@ -921,6 +939,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!animate || reduced) {
       orienting = false;
+      letGoGlass();
       holdSplit = false;
       holdEnd = false;
       freezeSpace = false;
@@ -1030,6 +1049,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     refresh(opts) { core.refresh(opts); syncPageSpace(); },
     destroy() {
       orientToken++;
+      letGoGlass();
       wide.removeEventListener('change', onWideChange);
       const de = document.documentElement.style;
       for (const side of ['top', 'bottom', 'start', 'end']) de.removeProperty(`--lg-tabbar-${side}-space`);

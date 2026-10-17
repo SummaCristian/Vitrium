@@ -317,6 +317,24 @@ export function morphRefraction(el, { radius, duration, land = true }) {
   }
 }
 
+// holdRefraction(el, { radius, max }) -> release()
+//   morphRefraction for a morph whose length isn't known ahead, one run by springs: held
+//   from now until release() is called (the bend is built then), or `max` ms at the most
+//   (default 4000) should it never be. With refractMorph the bend stays flat the whole way.
+//   A morph started on the same element meanwhile takes over, and this release then does
+//   nothing. `el` needn't be a surface itself: everything refracting inside it is held.
+const HOLD_MAX_MS = 4000;
+export function holdRefraction(el, { radius, max = HOLD_MAX_MS } = {}) {
+  if (!el) return () => {};
+  morphRefraction(el, { radius, duration: max, land: false });
+  const h = holds.get(el);
+  return () => {
+    if (holds.get(el) !== h) return;
+    morphRefraction(el, { radius, duration: 0 });
+    if (!surfaces.has(el)) holds.delete(el);   // nothing of its own to let go of later
+  };
+}
+
 // The hold of a surface inside a morphing one: the same trip, but its own corners.
 const innerHold = (h) => ({ ...h, radius: undefined, inner: true });
 
@@ -515,6 +533,11 @@ function deactivate(el) {
   if (!s) return;
   clearTimeout(s.timer);
   cancelAnimationFrame(s.ramp);
+  // A hold borrowed from the surface around it would outlive the trip it was for (its
+  // timer, which lets it go, is cleared above), and coming back on in the next one it
+  // would win over that trip's hold and let go at once. Taken off, it borrows the
+  // current one again, if any. A surface's own hold stays: only its morph replaces it.
+  if (holds.get(el)?.inner) holds.delete(el);
   s.filter.remove();
   surfaces.delete(el);
   ro?.unobserve(el);

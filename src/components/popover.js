@@ -48,6 +48,7 @@ import {
   computePosition, autoUpdate, flip, shift, offset, arrow as arrowMiddleware,
 } from '@floating-ui/dom';
 import { attachLiquidGlass } from '../core/liquid-glass.js';
+import { morphRefraction } from '../core/refraction.js';
 import { arcKeyframes, glideDuration, glideAhead, glideBehind, fitDuration, travelDistance } from '../core/motion-path.js';
 import { el, toNode } from './dom.js';
 import { setGlass } from './glass-mode.js';
@@ -136,6 +137,9 @@ export function createPopover({
     }
     // Held at the end on the way back, until the hidden state takes over.
     grow = pop.animate(frames, { duration, easing: 'linear', fill: reverse ? 'forwards' : 'none' });
+    // Its real box is the open one throughout, which the uneven scale squashes: unbent on
+    // the way, and on the way out until it's gone (core/refraction.js).
+    morphRefraction(pop, { radius, duration, land: !reverse });
   }
 
   // Content resizes. The observer reports the content's new natural size after layout
@@ -166,6 +170,8 @@ export function createPopover({
     resizing = body.animate(
       [{ width: `${from[0]}px`, height: `${from[1]}px` }, { width: `${w}px`, height: `${h}px` }],
       { duration, easing: getComputedStyle(pop).getPropertyValue('--lg-ease-glide').trim() || 'ease' });
+    // The glass changes size every frame of it: its bend is built for the size it lands on.
+    morphRefraction(pop, { duration });
     const done = resizing;
     done.finished.then(() => { if (resizing === done) settleResize(); }, () => {});
   });

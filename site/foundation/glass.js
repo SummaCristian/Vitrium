@@ -192,6 +192,7 @@ export default {
       el.classList.toggle('lg-no-refract', !s.refract);
       el.classList.toggle('lg-elevation-low', s.elevation === 'low');
       el.classList.toggle('lg-elevation-high', s.elevation === 'high');
+      el.classList.toggle('lg-elevation-extra-high', s.elevation === 'extra-high');
       Object.assign(el.style, SHAPES[s.shape]);
       // The circle's stroke is masked radially and only works on an exact circle, so it is added
       // once the box has finished growing into one, and dropped as soon as it starts leaving.
@@ -207,7 +208,7 @@ export default {
       options: [
         { key: 'variant', label: 'Variant', type: 'choice', choices: ['regular', 'clear'], default: 'regular' },
         { key: 'shape', label: 'Shape', type: 'choice', choices: ['pill', 'panel', 'circle'], default: 'pill' },
-        { key: 'elevation', label: 'Elevation', type: 'choice', choices: ['low', 'default', 'high'], default: 'default' },
+        { key: 'elevation', label: 'Elevation', type: 'choice', choices: ['low', 'default', 'high', 'extra-high'], default: 'default' },
         { key: 'tint', label: 'Tint', type: 'choice', choices: ['none', 'custom'], default: 'none' },
         { key: 'color', label: 'Tint color', type: 'color', default: '#0a7aff', when: (s) => s.tint === 'custom' },
         { key: 'press', label: 'Press physics', type: 'bool', default: true },
@@ -348,17 +349,18 @@ setGlassStyle(card, null);           // back to the page's`, 'js')),
           [h('code', {}, 'lg-ring--soft'), 'Blurs the ring slightly. Use it on small circles and strongly filled rings, where its edge can show crisp.'],
         ]),
         h('h3', {}, 'Elevation'),
-        h('p', {}, 'Try it in the playground above: the Elevation option moves the ring between low, default and high.'),
-        h('p', {}, 'How high a surface floats changes its shadow, the way a soft light from above would. A low surface casts a tight shadow close to its edge, with a dark contact shadow right under it, so it reads as resting on the page. A high one casts its ring farther below and much softer and broader, and the contact shadow fades out. Add `lg-elevation-low` or `lg-elevation-high`; with neither, the surface sits at the default height. The level drives the ring\'s offset, blur, top edge (`--lg-ring-drop`) and strength, and the contact shadow (`--lg-contact-*`).'),
+        h('p', {}, 'Try it in the playground above: the Elevation option moves the surface between the four levels.'),
+        h('p', {}, 'How high a surface floats changes its shadow, the way a soft light from above would. The levels are measured off iOS and iPadOS 27 on a white page. Low casts nothing: glass that sits flat on its surface, such as glass inside a card. The default casts only a faint, tight shadow right below, like a tab bar resting on the page. High casts a ring a little below, like the tab bar\'s lens when it\'s lifted. Extra-high casts a wide, soft ring well below, for the few surfaces that float far above the page. Add `lg-elevation-low`, `lg-elevation-high` or `lg-elevation-extra-high`; with none, the surface sits at the default.'),
         codeBlock(`
 <div class="lg-glass lg-elevation-low">…</div>
 <div class="lg-glass lg-elevation-high">…</div>
+<div class="lg-glass lg-elevation-extra-high">…</div>
 
-/* any other height: 1 is the default */
-.my-card { --lg-elevation: 2.5; --lg-elevation-strength: 1.8; }`, 'text'),
-        h('p', {}, 'Put the class on the surface or on any element around it, such as a component\'s root: `<div class="lg-seg lg-elevation-low">` lowers the whole control. Glass inside other glass starts back at the default, so a button in a high sheet sits on the sheet. Sheets, popovers and alerts are high already. A higher surface reaches farther, so give it more room (see Room to show).'),
+/* any other height: the ring's size (1 is high's), its darkness (0 is none), and the faint shadow (1 or 0) */
+.my-card { --lg-elevation: 2; --lg-elevation-strength: 1; --lg-elevation-drop: 0; }`, 'text'),
+        h('p', {}, 'Put the class on the surface or on any element around it, such as a component\'s root: `<div class="lg-seg lg-elevation-low">` lowers the whole control. Glass inside other glass starts back at the default, so a button in a sheet sits on the sheet. Popovers and alerts are high already. A higher surface reaches farther, so give it more room (see Room to show).'),
         h('h3', {}, 'Moving from the drop shadow'),
-        h('p', {}, 'The ring replaces the drop shadow, so a ring surface shouldn\'t have both. On a ring surface `--lg-shadow` and `--lg-shadow-compact` already leave it out; elsewhere they keep it, for surfaces that don\'t cast a ring. If you wrote the stack out by hand, swap it for `--lg-shadow-rim`, the outline and rim alone:'),
+        h('p', {}, 'The ring replaces the drop shadow, so a ring surface shouldn\'t have both. On a ring surface `--lg-shadow` and `--lg-shadow-compact` hold only the outline, the rim and the level\'s faint shadow; elsewhere they keep the plain drop shadow, for surfaces that don\'t cast a ring. If you wrote the stack out by hand, swap it for `--lg-shadow-rim`, the outline and rim alone:'),
         codeBlock(`
 /* before */
 box-shadow: 0 0 0 0.1px var(--lg-outline), var(--lg-highlight), 0 4px 40px 0 var(--lg-shadow-color);
@@ -366,7 +368,7 @@ box-shadow: 0 0 0 0.1px var(--lg-outline), var(--lg-highlight), 0 4px 40px 0 var
 /* after */
 box-shadow: var(--lg-shadow-rim);`, 'text'),
         h('h3', {}, 'Room to show'),
-        h('p', {}, 'The ring lands `--lg-ring-offset` (12px) below the surface and blurs past its edges, so it reaches about 34px below and 22px to the sides. A parent with `overflow: hidden` or `clip` cuts it off: give the parent that much padding, or lower the offset where space is tight. A fixed bar near the bottom edge of the screen needs the same clearance.'),
+        h('p', {}, 'The default shadow reaches about 10px below the surface, the high ring about 15px below, and the extra-high ring about 60px below and 25px to the sides. A parent with `overflow: hidden` or `clip` cuts it off: give the parent that much padding, or use a lower level where space is tight. A fixed bar near the bottom edge of the screen needs the same clearance.'),
         h('p', {}, 'When blur is switched off the ring keeps its shape but skips the top-to-bottom fade and the blur, which is what costs the most. Safari skips the fade too, so its ring is even all the way round.')),
     ];
   },

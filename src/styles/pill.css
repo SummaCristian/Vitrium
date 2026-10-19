@@ -79,6 +79,24 @@
   --lg-glass: 0;
 }
 
+/* The lifted lens casts the high ring (see --lg-elevation-* in tokens.css), as strong as it's lifted
+   (--lg-ring-strength follows --lg-lift, above): none at rest. */
+.lg-pill {
+  --lg-elevation: var(--lg-elevation-high);
+  --lg-elevation-strength: var(--lg-elevation-high-strength);
+  --lg-elevation-drop: 0;
+}
+
+/* The ring is drawn before the lens's lift scale (about 1.3-1.5x on these short lenses), which carries it out
+   to the measured size, so it's set a third smaller. */
+.lg-tabbar .lg-pill,
+.lg-seg .lg-pill {
+  --lg-ring-offset: 4px;
+  --lg-ring-blur: 5px;
+  --lg-ring-spread: 1px;
+  --lg-ring-drop: 7px;
+}
+
 .lg-pill--fade .lg-pill-fill {
   position: absolute;
   inset: 0;

@@ -71,55 +71,42 @@
   --lg-shadow-tint: 0.85;
   --lg-shadow-tint-alpha: 0.2;
 
-  /* Glass doesn't cast a solid drop shadow: light passes through the middle
-     and only the edges bend it away, so what lands on the page is a soft ring
-     in the surface's shape, dropped by --lg-ring-offset. Its top half shows
-     through the glass and its bottom half peeks out below (see .lg-glass::before).
+  /* Elevation: how high a glass surface floats, and so the shadow it casts. Measured off iOS / iPadOS 27 on a
+     white page, the levels are:
 
-     The ring has three parts, in the order they show up going outward from the
-     glass's edge: a spread band (constant shadow), then a blur falloff, then
-     nothing. For the shadow to read as *cast by the rim* rather than *painted
-     on the page*, the band needs to be a real band (a few px) and the blur
-     needs to be on the order of the offset, not much larger. When blur >>>
-     offset the ring fuzzes into a haze and stops reading as a shadow at all. */
-  --lg-ring-color: rgba(0, 0, 0, 0.075);
-  --lg-ring-offset: 12px;
-  --lg-ring-blur: 16px;
-  --lg-ring-spread: 4px;
-  /* How far the ring's top edge sits below the glass's top at the default
-     elevation, so its blur stays behind the glass instead of above it. None
-     at the low level, more on higher ones. Roughly half the blur is the right
-     amount: any less and the top of the blur spills above the glass; any more
-     and the ring is visibly a different, shorter shape than the glass. */
-  --lg-ring-drop: 7px;
-  /* Contact shadow: a tight, dark shadow right under the edge, where the glass
-     blocks the most light. It is full-strength at the default elevation and
-     fades as the surface rises, while the ring takes over (see --_contact in
-     glass.css). Its color is stronger than the ring's because it's tight:
-     a small dark smudge needs more alpha than a wide soft band to read. */
-  --lg-contact-color: rgba(0, 0, 0, 0.14);
-  --lg-contact-offset: 1.5px;
-  --lg-contact-blur: 3px;
-  /* Elevation: how high a surface floats. It multiplies the offset, blur and
-     spread above, so a higher surface casts a ring that lands farther away,
-     softer and in a wider band. 1 is the ring as tuned here; assign a level
-     with .lg-elevation-low or .lg-elevation-high, or any height with
-     --lg-elevation on the surface.
+       low          nothing: glass that sits flat on its surface (glass in glass, a chip in a card).
+       default      no ring, only a faint, tight shadow below: about 1-2% darker, gone 10px down.
+                    Bars and controls resting on the page.
+       high         the ring a lifted lens casts: about 6% darker, peaking 6px below the glass, gone by 13px.
+       extra-high   a wide, soft ring well below: special surfaces floating far above the page.
 
-     Offset grows roughly linearly with elevation; blur grows *sub-linearly*,
-     the way a penumbra does as the occluder gets farther from the shadow
-     surface (the light source subtends a smaller angle, so the penumbra grows
-     slower than the distance). If blur grew faster than offset, a high surface
-     would be a smudge; if it grew at the same rate, the ring would just be a
-     bigger copy of itself. Sub-linear is what makes a lifted surface read as
-     lifted. */
-  --lg-elevation-low: 0.6;
-  --lg-elevation-high: 1.75;
-  /* Each level's multiplier on the ring's opacity (--lg-ring-strength): a
-     higher ring spreads its color over a much wider blur, so it needs more to
-     stay visible. Above 1 needs relative colors; older browsers stop at 1. */
-  --lg-elevation-low-strength: 0.65;
-  --lg-elevation-high-strength: 1.15;
+     Assign one with .lg-elevation-low / -high / -extra-high (no class is the default), on the surface or any
+     ancestor. Each level is three inherited values, which can also be set by hand for any other height:
+       --lg-elevation           the ring's size, as a multiple of the high ring (offset, blur and band below)
+       --lg-elevation-strength  its darkness, as a multiple of --lg-ring-color (0: no ring)
+       --lg-elevation-drop      1 casts the faint resting shadow, 0 doesn't
+
+     The ring: glass doesn't cast a solid shadow, light passes through the middle and only the edges bend it
+     away, so what lands on the page is a soft ring in the surface's shape, dropped by --lg-ring-offset. Its top
+     half shows through the glass and its bottom half peeks out below (see .lg-glass::before). A higher surface
+     casts it farther away and softer: offset and band grow with the height, blur a little faster
+     ((e + e²) / 2), the way a penumbra widens. The values here are the high ring's. */
+  --lg-ring-color: rgba(0, 0, 0, 0.095);
+  --lg-ring-offset: 6px;
+  --lg-ring-blur: 7px;
+  --lg-ring-spread: 1.5px;
+  /* How far the ring's top edge sits below the glass's top, so its blur stays behind the glass instead of
+     spilling above it. Grows with the height. */
+  --lg-ring-drop: 9px;
+  /* The level each surface starts at (the default): no ring, the faint shadow. */
+  --lg-elevation: 1;
+  --lg-elevation-strength: 0;
+  --lg-elevation-drop: 1;
+  /* The levels' rings: size and darkness. */
+  --lg-elevation-high: 1;
+  --lg-elevation-high-strength: 1;
+  --lg-elevation-extra-high: 3;
+  --lg-elevation-extra-high-strength: 0.95;
   /* Blur over the ring of circles and tinted glass, which melts the crisp
      edge where the ring's halves and the fill meet. Kept small: it's a seam
      fixer, not a stylistic blur. */
@@ -280,7 +267,7 @@
   --lg-rim-shade-alpha: 0.9;
   --lg-shadow-tint: 1;
   --lg-shadow-tint-alpha: 0.1;
-  --lg-ring-color: rgba(0, 0, 0, 0.2);
+  --lg-ring-color: rgba(0, 0, 0, 0.25);
   --lg-ring-fill: rgba(0, 0, 0, 0.04);
   --lg-ring-tint-alpha: 0.2;
   --lg-ring-tint-fill: 0.08;
@@ -316,7 +303,7 @@
     --lg-rim-shade-alpha: 0.9;
     --lg-shadow-tint: 1;
     --lg-shadow-tint-alpha: 0.1;
-    --lg-ring-color: rgba(0, 0, 0, 0.2);
+    --lg-ring-color: rgba(0, 0, 0, 0.25);
     --lg-ring-fill: rgba(0, 0, 0, 0.04);
     --lg-ring-tint-alpha: 0.2;
     --lg-ring-tint-fill: 0.08;

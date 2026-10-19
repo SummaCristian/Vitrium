@@ -101,8 +101,9 @@
 .lg-sheet__glass {
   --lg-ring-strength: var(--lg-ring-strength-large);
   /* Floats high above the page (see --lg-elevation-* in tokens.css). */
-  --lg-elevation: var(--lg-elevation-high);
-  --lg-elevation-strength: var(--lg-elevation-high-strength);
+  --lg-elevation: var(--lg-elevation-extra-high);
+  --lg-elevation-strength: var(--lg-elevation-extra-high-strength);
+  --lg-elevation-drop: 0;
   position: absolute;
   inset: 0;
   border-radius: var(--lg-sheet-radius, 28px);
@@ -126,9 +127,13 @@
 /* The elevated ring is deliberately omitted on a bottom sheet. Its ::before
    surface extends below the glass by the elevation-scaled ring offset, close
    enough to Safari's bottom edge to make the safe-area strip paint solid.
-   Keep the rim and tight contact shadow on the glass itself. */
+   Keep the rim and the default level's faint shadow on the glass itself. */
 .lg-sheet__glass.lg-glass::before {
   content: none;
+}
+
+.lg-sheet__glass.lg-glass {
+  --lg-elevation-drop: 1;
 }
 
 .lg-sheet__glass.is-active {

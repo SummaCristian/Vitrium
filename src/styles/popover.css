@@ -10,6 +10,10 @@
   top: 0;
   left: 0;
 
+  /* Its width is the content's, capped by max-width, whatever `left` it sits at: a
+     shrink-to-fit fixed box is also limited by the room right of it, so moving it (or
+     measuring it at its old spot before it's placed) would otherwise rewrap the text. */
+  width: max-content;
   max-width: var(--lg-popover-max-width, min(22rem, calc(100vw - 16px)));
   padding: 12px 16px;
   border-radius: 12px;

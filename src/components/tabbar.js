@@ -293,15 +293,18 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
   // Keeps the lens inside the bar's rounded ends. Its corner radius is half its
   // shorter side, so a tab narrower than it is tall (a short label like "Info")
   // gives a smaller radius than the bar's full-pill one, and the corners poke
-  // out. In a row, give every tab a minimum width equal to the tallest tab. (In a
-  // rail, the CSS aspect-ratio does the equivalent.)
+  // out. In a row, give every tab a minimum width equal to the tallest tab, and in
+  // a rail a minimum height equal to the widest; both raised to --lg-tab-min-width.
   function sizeTabs() {
     const tabsInBar = Array.from(items.children);
     for (const t of tabsInBar) t.style.minWidth = t.style.minHeight = '';
     if (!tabsInBar.length) return;
+    const rs = getComputedStyle(root);
+    const minW = rs.getPropertyValue('--lg-tab-min-width').trim();
+    const minPx = parseFloat(minW) * (minW.endsWith('rem') ? parseFloat(getComputedStyle(document.documentElement).fontSize) : 1);
     if (vertical) {
       const w = Math.max(...tabsInBar.map(t => t.offsetWidth));
-      if (w) for (const t of tabsInBar) t.style.minHeight = w + 'px';
+      if (w) for (const t of tabsInBar) t.style.minHeight = Math.max(w, minPx || 0) + 'px';
       return;
     }
     const h = Math.max(...tabsInBar.map(t => t.offsetHeight));
@@ -310,12 +313,15 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     // phone) that floor doesn't fit. Work out the room the tabs really have from
     // the root's width, not the bar's live one, so the answer is the same before
     // and after a setTabs() animation: the bar then never snaps when it ends.
-    const rs = getComputedStyle(root);
     const bs = getComputedStyle(bar);
     const circle = prominent ? h + 8 + (parseFloat(rs.columnGap) || 0) : 0;
     const room = root.clientWidth - parseFloat(rs.paddingLeft) - parseFloat(rs.paddingRight) - circle
       - parseFloat(bs.paddingLeft) - parseFloat(bs.paddingRight);
-    const width = room > 0 ? Math.min(h, Math.floor(room / tabsInBar.length)) : h;
+    // Tabs may overlap their neighbours (a negative start margin), which gives each of them that much more room.
+    const overlap = tabsInBar.length > 1 ? Math.max(0, -parseFloat(getComputedStyle(tabsInBar[1]).marginInlineStart) || 0) : 0;
+    const want = Math.max(h, minPx || 0);
+    const fit = Math.floor((room + overlap * (tabsInBar.length - 1)) / tabsInBar.length);
+    const width = room > 0 ? Math.min(want, fit) : want;
     for (const t of tabsInBar) t.style.minWidth = width + 'px';
   }
 

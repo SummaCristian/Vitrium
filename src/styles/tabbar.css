@@ -13,7 +13,10 @@
   --lg-tab-color: var(--lg-text-muted);
   --lg-tab-active-color: var(--lg-accent);
   /* Side clearance of the row. */
-  --lg-tabbar-inset: 1.75rem;
+  --lg-tabbar-inset: 1.3125rem;
+  /* Length every tab gets along the bar when there's room: its width in the row (narrower on a squeezed row),
+     its height in the rail. */
+  --lg-tab-min-width: 5.875rem;
 
   /* Bottom row. `bottom: 20px` alone anchors to the large viewport and ignores
      Safari's dynamic toolbar, so the bar wouldn't track it as the toolbar
@@ -152,6 +155,28 @@
 .lg-tabbar:not(.lg-tabbar--vertical) .lg-tabbar__bar--few .lg-tabbar__tab,
 .lg-tabbar:not(.lg-tabbar--vertical) .lg-tabbar__bar--few .lg-pill-active-cell {
   padding-inline: var(--lg-tab-padding-inline, 1.1875rem);
+}
+
+/* Row metrics, matched to the iOS 26 tab bar (measured on a 440pt-wide iPhone, 1pt = 1px): a larger icon close
+   above its label, a 62px bar, and equal-width tabs (--lg-tab-min-width, applied from JS in sizeTabs()) that
+   overlap their neighbours by 8px, so the lens is wider than the step between tabs. The rail is the same bar
+   turned on its side (see the vertical layout below), so it shares the icon, label and spacing. */
+.lg-tabbar:not(.lg-tabbar--compact) :is(.lg-tabbar__tab, .lg-pill-active-cell) {
+  gap: 0.125rem;
+  padding-block: 0.375rem;
+}
+
+.lg-tabbar:not(.lg-tabbar--vertical, .lg-tabbar--compact) .lg-tabbar__tab + .lg-tabbar__tab {
+  margin-inline-start: -0.5rem;
+}
+
+.lg-tabbar:not(.lg-tabbar--compact) .lg-tabbar__label {
+  line-height: 0.75rem;
+}
+
+.lg-tabbar:not(.lg-tabbar--compact) :is(.lg-tabbar__icon, .lg-tabbar__prominent, .lg-tabbar__action) > svg {
+  width: 1.75rem;
+  height: 1.75rem;
 }
 
 .lg-tabbar__tab:focus-visible {
@@ -398,25 +423,38 @@
   width: auto;   /* tabs stretch to the widest one; the rail's thickness is its width */
 }
 
-/* The rail's tabs are roomier than the row's, with larger type and icons. */
+/* The row turned on its side: same icon, label and spacing (set with the row's metrics above), tabs as tall as
+   the row's are wide (--lg-tab-min-width, from sizeTabs()) and overlapping by the same 8px. The rail is a touch
+   thicker than the row is tall (70px against 62px), which reads better standing up. */
 .lg-tabbar--vertical .lg-tabbar__tab,
 .lg-tabbar--vertical .lg-pill-active-cell {
-  padding: 1.25rem 0.75rem;
-  font-size: 0.75rem;
+  padding-inline: 0.5rem;
 }
 
-.lg-tabbar--vertical .lg-tabbar__icon > svg,
-.lg-tabbar--vertical .lg-tabbar__prominent > svg,
-.lg-tabbar--vertical .lg-tabbar__action > svg {
-  width: 1.4rem;
-  height: 1.4rem;
+.lg-tabbar--vertical .lg-tabbar__tab + .lg-tabbar__tab {
+  margin-block-start: -0.5rem;
+}
+
+.lg-tabbar--vertical .lg-tabbar__items {
+  min-width: 3.875rem;
+}
+
+/* A label longer than the rail is wide wraps onto a second line (the tab's length has room for it) instead of
+   widening the rail. A single word that can't break still widens it, just to that word's width. */
+.lg-tabbar--vertical .lg-tabbar__label {
+  max-width: 2.875rem;
+  min-width: min-content;
+  white-space: normal;
+  text-wrap: balance;
+  text-align: center;
 }
 
 /* At least square. The lens's corner radius is half its shorter side, so it
    stays concentric with the bar's full-pill radius (half the bar's thickness)
    only if no tab is shorter than the bar is wide; otherwise the lens's corners
    poke out of the bar. (Done from JS, sizeTabs(): in a row a minimum width
-   equal to the tab height, in a rail a minimum height equal to the tab width.
+   equal to the tab height, in a rail a minimum height equal to the tab width,
+   each raised to --lg-tab-min-width.
    Not `aspect-ratio`: it made the rail's thickness depend on its height,
    which Safari resolved differently at first layout and mid-animation.) */
 

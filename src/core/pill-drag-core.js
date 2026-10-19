@@ -20,16 +20,42 @@
 // Measurement uses offset* (not getBoundingClientRect) so it stays correct
 // while an ancestor is mid-transform, e.g. a modal mid morph-open.
 import { Spring, onSpringFrame } from './spring.js';
-import { isLifted, applyLift } from './lift.js';
+import { applyLift } from './lift.js';
 
-const RAIL_GIVE = 11;             // elastic px the pill can be pulled past the end anchors
 const CROSS_GIVE = 5;             // elastic px the pill can be pulled off its rail
-const STRETCH_GAIN = 0.9;         // pill speed (px/ms) → inertia deform ratio
-const STRETCH_MAX = 0.26;
+
+// The ends of the rail are walls: the lens slides a few px past the end anchor, meets the wall, and from there
+// squashes against it (shorter along the rail, taller across) while the finger keeps pushing, its outer edge
+// pinned. Measured off the iOS 26 tab bar.
+const WALL = {
+  travel: 5,                      // elastic px the lens slides past the end anchor
+  squash: 0.07,                   // most it squashes along the rail (a ratio), approached as the finger pushes on...
+  half: 40,                       // ...reaching half of it this many px past the wall
+  cross: 2.2,                     // the cross axis grows this much per unit of squash
+};
+
+// How the lifted lens deforms as it moves, as ratios of its lifted size. Measured off the iOS 26 tab bar.
+// Two parts: speed stretches it along the rail, a little behind (the speed part), and acceleration along the
+// direction of travel bends it on a soft spring, so it stretches more as it speeds up and, when it brakes,
+// swings once into a squash, deeper than the stretch was, before easing back.
+const STRETCH = {
+  speed: 0.18,                    // most stretch from speed alone...
+  speedHalf: 1000,                // ...half of it at this speed (px/s)
+  speedLag: { stiffness: 625, damping: 50, mass: 1 },   // it follows the speed about 40ms behind
+  accel: 7.0e-5,                  // target ratio per px/s² of acceleration along the travel
+  stiffness: 80,                  // the acceleration part's spring (damping ratio 0.7: swings once, no ringing)
+  damping: 12.5,
+  crossStretch: 1.3,              // the cross axis thins this much per unit of stretch...
+  crossSquash: 0.85,              // ...and grows this much per unit of squash
+  min: -0.22,
+  max: 0.13,
+};
+
 const TRAIL = {
-  follow: 0.09,                   // fraction of the drag the whole control trails by
-  give: 5,                        // px cap along the rail
+  follow: 0.013,                  // fraction of the drag (from where it was grabbed) the whole control leans by
+  give: 60,                       // px cap along the rail
   giveCross: 4,                   // px cap across it
+  grow: 0.0023,                   // and it grows by this much per px of lean
 };
 const DRAG_OVERSHOOT = 8;
 const HOLD_MS = 130;              // press-and-hold before an unselected cell grabs the pill
@@ -50,7 +76,11 @@ const rubber = (x, give) => (x * give) / (give + Math.abs(x));
 //                      consumer handles keys itself (e.g. its own extra cells).
 //   axis               'x' (default: cells in a row) or 'y' (cells in a column).
 //                      Change it later with setAxis() after re-laying the cells out.
-//   tapScale           how much the lens grows when grabbed.
+//   tapScale           how much the lens grows when grabbed (a uniform scale).
+//   liftOutset         instead, how many px it grows by on every side (iOS grows the lens by
+//                      the same amount both ways, so a wide lens grows proportionally less
+//                      along its length than across).
+//   liftScale          how much the whole control grows while the lens is lifted.
 //   copyScale          how much the highlighted copies under it grow, each about its
 //                      own middle, at full lift (iOS draws them about 1.2× while
 //                      lifted). The lens's own scale doesn't reach them: it would
@@ -65,6 +95,8 @@ export function createPillDragCore({
   activeCellClass = 'lg-pill-active-cell',
   liftedClass = 'lg-pill--lifted',
   tapScale = 1.45,
+  liftOutset = null,
+  liftScale = 1,
   copyScale = 1.2,
   trail = TRAIL,
   axis: initialAxis = 'x',
@@ -88,10 +120,25 @@ export function createPillDragCore({
   const crossOff = new Spring(0);
   const containerOff = new Spring(0);
   const containerCross = new Spring(0);
-  const scale = new Spring(1);
+  // How lifted the lens is: 0 at rest, 1 fully lifted (it dips a little below 0 as it settles back).
+  const lift = new Spring(0);
+  lift.eps = 0.002;
+  // The acceleration part of the lens's deformation (STRETCH), a ratio.
+  const bend = new Spring(0);
+  bend.eps = 0.0005;
+  // The speed part of it, a ratio, following the lens's speed a little behind.
+  const pace = new Spring(0);
+  pace.eps = 0.0005;
+  // How far the lens is squashed against a wall (WALL), a ratio; wallSide is which end (-1 / 1).
+  const wall = new Spring(0);
+  wall.eps = 0.0005;
+  let wallSide = 1;
+  let travelDir = 1;               // direction of the last real motion along the rail, held through a stop
+  let moving = false;
+  let lastV = 0, lastFrameT = 0;
 
-  let lastRenderT = performance.now();
-  let lastMainVal = 0, lastCrossVal = 0, smoothStretch = 0;
+  const LIFT_UP = { stiffness: 500, damping: 25, mass: 0.5 };
+  const LIFT_DOWN = { stiffness: 400, damping: 26, mass: 1 };   // settles with a small dip, like iOS
 
   const later = (fn, ms) => timers.push(setTimeout(fn, ms));
   const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
@@ -193,7 +240,7 @@ export function createPillDragCore({
   }
 
   /* --- Render ------------------------------------------------------ */
-  function updateMask(scMain = scale.value, scCross = scale.value) {
+  function updateMask(scMain, scCross, pos) {
     // No selection: nothing to cut out of the label layer.
     if (index < 0) { items.style.clipPath = ''; items.style.webkitClipPath = ''; return; }
     if (!itemsW || !itemsH) return;
@@ -202,8 +249,8 @@ export function createPillDragCore({
     const w = vertical ? crossVal : mainVal;
     const h = vertical ? mainVal : crossVal;
     const r = Math.min(w, h) / 2;
-    const cx = vertical ? itemsW / 2 + crossOff.value : pillPos.value + pillMain.value / 2;
-    const cy = vertical ? pillPos.value + pillMain.value / 2 : itemsH / 2 + crossOff.value;
+    const cx = vertical ? itemsW / 2 + crossOff.value : pos + pillMain.value / 2;
+    const cy = vertical ? pos + pillMain.value / 2 : itemsH / 2 + crossOff.value;
     const x = cx - w / 2, y = cy - h / 2;
     const d = `M0 0H${itemsW}V${itemsH}H0Z ` +
       `M${x + r} ${y}H${x + w - r}A${r} ${r} 0 0 1 ${x + w} ${y + r}V${y + h - r}A${r} ${r} 0 0 1 ${x + w - r} ${y + h}H${x + r}A${r} ${r} 0 0 1 ${x} ${y + h - r}V${y + r}A${r} ${r} 0 0 1 ${x + r} ${y}Z`;
@@ -213,48 +260,53 @@ export function createPillDragCore({
   }
 
   function render() {
-    const nowT = performance.now();
-    const gap = nowT - lastRenderT;
-    lastRenderT = nowT;
-    // The shared RAF loop pauses when idle; skip the velocity calc on the
-    // first frame after it restarts rather than dividing a stale delta.
-    if (gap > 100 || gap <= 0) {
-      lastMainVal = pillPos.value;
-      lastCrossVal = crossOff.value;
-      smoothStretch = 0;
-    }
-    const dt = Math.min(Math.max(gap, 1), 64);
-    const vMain = (pillPos.value - lastMainVal) / dt;
-    const vCross = (crossOff.value - lastCrossVal) / dt;
-    lastMainVal = pillPos.value;
-    lastCrossVal = crossOff.value;
+    const L = lift.value;
+    const lifted = L > 0.001;
+    const crossSize = vertical ? itemsW : itemsH;
 
-    const lifted = isLifted(scale.value);
-    const speed = Math.hypot(vMain, vCross);
-    const targetStretch = lifted ? Math.min(speed * STRETCH_GAIN, STRETCH_MAX) : 0;
-    smoothStretch = lifted ? smoothStretch + (targetStretch - smoothStretch) * 0.3 : 0;
-    const um = speed > 1e-3 ? Math.abs(vMain) / speed : 1;
-    const uc = speed > 1e-3 ? Math.abs(vCross) / speed : 0;
-    const stMain = smoothStretch * um;
-    const stCross = smoothStretch * uc;
-    const s = scale.value;
-    const scMain = s * (1 + stMain - 0.5 * stCross);
-    const scCross = s * (1 + stCross - 0.5 * stMain);
+    // The lift: a uniform scale (tapScale), or the same px added on every side (liftOutset).
+    const liftMain = liftOutset != null && pillMain.value ? 1 + (2 * liftOutset * L) / pillMain.value : 1 + (tapScale - 1) * L;
+    const liftCross = liftOutset != null && crossSize ? 1 + (2 * liftOutset * L) / crossSize : 1 + (tapScale - 1) * L;
+
+    // The deformation (STRETCH), from the position spring's own speed and acceleration along the rail.
+    // The acceleration is the change in speed since the last frame, not the spring's own force: dragged, its target
+    // moves in steps (one per pointer event) and the force between them is mostly braking, even at a steady pace.
+    const v = pillPos.resting ? 0 : pillPos.v;
+    const now = performance.now();
+    const gap = (now - lastFrameT) / 1000;
+    const acc = gap > 0 && gap < 0.1 ? (v - lastV) / gap : 0;
+    lastFrameT = now; lastV = v;
+    // Which way it's travelling: the way it moves, or, starting from rest (where the first kick of acceleration
+    // comes before any speed), the way it's pushed. Held through the stop, so braking reads as braking.
+    if (Math.abs(v) > 30) { travelDir = Math.sign(v); moving = true; }
+    else if (!moving && Math.abs(acc) > 2000) { travelDir = Math.sign(acc); moving = true; }
+    else if (Math.abs(v) < 5) moving = false;
+    const bendTarget = lifted ? STRETCH.accel * acc * travelDir : 0;
+    if (Math.abs(bendTarget - bend.target) > 1e-4) bend.to(bendTarget, { stiffness: STRETCH.stiffness, damping: STRETCH.damping, mass: 1 });
+    const speed = Math.abs(v);
+    const paceTarget = lifted ? STRETCH.speed * speed / (speed + STRETCH.speedHalf) : 0;
+    if (Math.abs(paceTarget - pace.target) > 1e-4) pace.to(paceTarget, STRETCH.speedLag);
+    const motion = Math.min(STRETCH.max, Math.max(STRETCH.min, Math.max(0, L) * pace.value + bend.value));
+    const q = wall.value;
+    const defMain = 1 + motion - q;
+    const defCross = 1 - motion * (motion > 0 ? STRETCH.crossStretch : STRETCH.crossSquash) + q * WALL.cross;
+    const scMain = liftMain * defMain;
+    const scCross = liftCross * defCross;
+    // Squashed against a wall, the lens keeps its outer edge on it: its middle moves out by what it lost.
+    const pos = pillPos.value + wallSide * (pillMain.value * liftMain * q) / 2;
 
     const sizeProp = vertical ? 'height' : 'width';
     pill.style[sizeProp] = pillMain.value + 'px';
     hit.style[sizeProp] = pillMain.value + 'px';
-    const posStr = vertical
-      ? `translateY(${pillPos.value}px) translateX(${crossOff.value}px)`
-      : `translateX(${pillPos.value}px) translateY(${crossOff.value}px)`;
+    const at = (p) => vertical ? `translateY(${p}px) translateX(${crossOff.value}px)` : `translateX(${p}px) translateY(${crossOff.value}px)`;
     const sx = vertical ? scCross : scMain, sy = vertical ? scMain : scCross;
-    pill.style.transform = `${posStr} scale(${sx}, ${sy})`;
-    hit.style.transform = posStr;
+    pill.style.transform = `${at(pos)} scale(${sx}, ${sy})`;
+    hit.style.transform = at(pillPos.value);
     pill.style.opacity = index >= 0 ? '1' : '0';
     // With no selection the hit overlay must not sit on top of a cell and eat its clicks.
     hit.style.pointerEvents = index >= 0 ? '' : 'none';
     // Full glass look only while lifted; flat at rest.
-    applyLift(pill, s, tapScale, { liftedClass });
+    applyLift(pill, 1 + L, 2, { liftedClass });
     // The copies stay put and at their own size while the lens slides, grows and
     // stretches over them: the row undoes the pill's scale (about the pill's
     // middle, its transform-origin) and its slide, and each copy grows on its
@@ -262,14 +314,16 @@ export function createPillDragCore({
     const ox = vertical ? itemsW / 2 : pillMain.value / 2;
     const oy = vertical ? pillMain.value / 2 : itemsH / 2;
     const slide = vertical
-      ? `translateY(${-pillPos.value}px) translateX(${-crossOff.value}px)`
-      : `translateX(${-pillPos.value}px) translateY(${-crossOff.value}px)`;
+      ? `translateY(${-pos}px) translateX(${-crossOff.value}px)`
+      : `translateX(${-pos}px) translateY(${-crossOff.value}px)`;
     activeRow.style.transform = `translate(${ox}px, ${oy}px) scale(${1 / sx}, ${1 / sy}) translate(${-ox}px, ${-oy}px) ${slide}`;
-    // The whole control (pill + chrome together) trails the drag a touch.
+    // The whole control (pill + chrome together) grows a touch while the lens is lifted, and leans after the
+    // drag, growing a little more the further it leans.
     const cMain = containerOff.value, cCross = containerCross.value;
     const cx = vertical ? cCross : cMain, cy = vertical ? cMain : cCross;
-    root.style.transform = (cx || cy) ? `translate(${cx}px, ${cy}px)` : '';
-    updateMask(scMain, scCross);
+    const grow = 1 + (liftScale - 1) * L + (trail.grow ?? 0) * Math.abs(cMain);
+    root.style.transform = (cx || cy || grow !== 1) ? `translate(${cx}px, ${cy}px) scale(${grow})` : '';
+    updateMask(scMain, scCross, pos);
     onRender?.({ pos: pillPos.value });
   }
   const offFrame = onSpringFrame(render);
@@ -289,7 +343,7 @@ export function createPillDragCore({
     if (!animate) {
       const a = anchors[i];
       if (a) { pillPos.set(a.pos); pillMain.set(a.size); }
-      scale.set(1);
+      lift.set(0);
       render();
       if (changed) onChange?.(i, { silent });
       return;
@@ -297,12 +351,12 @@ export function createPillDragCore({
     if (changed) onChange?.(i, { silent });
     const a = anchors[i];
     if (!a) return;
-    scale.to(tapScale, { stiffness: 500, damping: 25, mass: 0.5 });
+    lift.to(1, LIFT_UP);
     later(() => {
       pillPos.to(a.pos, { stiffness: 400, damping: 35, mass: 0.8 });
       pillMain.to(a.size, { stiffness: 400, damping: 35, mass: 0.8 });
     }, 50);
-    later(() => scale.to(1, { stiffness: 350, damping: 30, mass: 0.8 }), 250);
+    later(() => lift.to(0, LIFT_DOWN), 250);
   }
 
   // Clear the selection (the pill fades out). Doesn't fire onChange. A later
@@ -311,7 +365,7 @@ export function createPillDragCore({
     if (index < 0) return;
     index = -1;
     clearTimers();
-    scale.to(1, { stiffness: 350, damping: 30, mass: 0.8 });
+    lift.to(0, LIFT_DOWN);
     render();
   }
 
@@ -328,7 +382,7 @@ export function createPillDragCore({
   // lifts and glides under your finger, then tracks it). A quick tap on a
   // cell still just selects, via the click listener above.
   let dragging = false, grabbed = false, absoluteDrag = false;
-  let startX = 0, startY = 0, grantTime = 0, dragOriginPos = 0, itemsOrigin = 0;
+  let startX = 0, startY = 0, grantTime = 0, dragOriginPos = 0, grabAt = 0;
   // Screen px per layout px, read at grab time, so the pill tracks the pointer
   // when the control is scaled (CSS zoom or a transform on an ancestor).
   let ptrScale = 1;
@@ -338,10 +392,15 @@ export function createPillDragCore({
   const clampDragPos = (pos) => Math.max(anchors[0].pos - DRAG_OVERSHOOT,
     Math.min(anchors[anchors.length - 1].pos + DRAG_OVERSHOOT, pos));
 
-  const railDragPos = (raw) => {
+  // Where the lens goes for a pointer at `raw`: on the rail it follows, past an end it slides a few px
+  // further, then stops at the wall and squashes against it instead (WALL).
+  const wallDragPos = (raw) => {
     const lo = anchors[0].pos, hi = anchors[anchors.length - 1].pos;
-    if (raw < lo) return lo + rubber(raw - lo, RAIL_GIVE);
-    if (raw > hi) return hi + rubber(raw - hi, RAIL_GIVE);
+    const over = raw < lo ? lo - raw : raw > hi ? raw - hi : 0;
+    if (over) wallSide = raw < lo ? -1 : 1;
+    wall.to(WALL.squash * over / (over + WALL.half), { stiffness: 700, damping: 42, mass: 0.5 });
+    if (raw < lo) return lo - rubber(over, WALL.travel);
+    if (raw > hi) return hi + rubber(over, WALL.travel);
     return raw;
   };
 
@@ -352,7 +411,15 @@ export function createPillDragCore({
   const mainDelta = (e) => (vertical ? e.clientY - startY : e.clientX - startX) / ptrScale;
   const crossDelta = (e) => (vertical ? e.clientX - startX : e.clientY - startY) / ptrScale;
 
-  const pillEdgeAtPointer = (e) => (mainPos(e) - itemsOrigin) - pillMain.value / 2;
+  // The pointer in the items' own layout px, measured now: the control grows and leans while it's dragged, so a
+  // mapping taken at grab time would let the lens drift off the finger.
+  const layoutAt = (e) => {
+    const r = items.getBoundingClientRect();
+    const s = (vertical ? r.height / items.offsetHeight : r.width / items.offsetWidth) || 1;
+    return (vertical ? e.clientY - r.top : e.clientX - r.left) / s;
+  };
+  // Where the pointer puts the lens: under it (a cell held down), or moved by the drag (the lens grabbed).
+  const dragRaw = (e) => absoluteDrag ? layoutAt(e) - pillMain.value / 2 : dragOriginPos + layoutAt(e) - grabAt;
 
   function engage(e) {
     if (grabbed) return;
@@ -361,10 +428,11 @@ export function createPillDragCore({
     clearTimers();
     pillPos.stop(); pillMain.stop(); crossOff.stop();
     dragOriginPos = pillPos.value;
-    scale.to(tapScale, { stiffness: 500, damping: 25, mass: 0.5 });
+    grabAt = layoutAt(e);
+    lift.to(1, LIFT_UP);
     if (absoluteDrag) {
-      const raw = pillEdgeAtPointer(e);
-      pillPos.to(railDragPos(raw), { stiffness: 700, damping: 42, mass: 0.55 });
+      const raw = dragRaw(e);
+      pillPos.to(wallDragPos(raw), { stiffness: 700, damping: 42, mass: 0.55 });
       pillMain.to(sizeForPos(raw), { stiffness: 700, damping: 42, mass: 0.55 });
     }
   }
@@ -381,7 +449,6 @@ export function createPillDragCore({
     startX = e.clientX; startY = e.clientY;
     const r = items.getBoundingClientRect();
     ptrScale = (vertical ? r.height / items.offsetHeight : r.width / items.offsetWidth) || 1;
-    itemsOrigin = (vertical ? r.top : r.left) / ptrScale;
     grantTime = performance.now();
     samples = [{ x: mainPos(e), t: grantTime }];
 
@@ -402,8 +469,8 @@ export function createPillDragCore({
     }
     if (!absoluteDrag && now - grantTime < 50) return;
 
-    const raw = absoluteDrag ? pillEdgeAtPointer(e) : dragOriginPos + dMain;
-    pillPos.to(railDragPos(raw), { stiffness: 1000, damping: 70, mass: 0.5 });
+    const raw = dragRaw(e);
+    pillPos.to(wallDragPos(raw), { stiffness: 1000, damping: 70, mass: 0.5 });
     pillMain.to(sizeForPos(raw), { stiffness: 1000, damping: 70, mass: 0.5 });
     crossOff.to(rubber(dCross, CROSS_GIVE), { stiffness: 700, damping: 42, mass: 0.5 });
     containerOff.to(rubber(dMain * trail.follow, trail.give),
@@ -433,6 +500,7 @@ export function createPillDragCore({
     crossOff.to(0, { stiffness: 480, damping: 26, mass: 0.6 });
     containerOff.to(0, { stiffness: 320, damping: 24, mass: 0.8 });
     containerCross.to(0, { stiffness: 320, damping: 24, mass: 0.8 });
+    wall.to(0, LIFT_DOWN);
     const dMain = mainDelta(e), dCross = crossDelta(e);
 
     // A barely-moved grab of the pill itself is a tap on it.
@@ -443,7 +511,7 @@ export function createPillDragCore({
 
     // Cancelled, or a barely-moved grab of the pill itself → just settle back.
     if (terminated || (!absoluteDrag && Math.abs(dMain) < 8 && Math.abs(dCross) < 8)) {
-      scale.to(1, { stiffness: 350, damping: 30, mass: 0.8 });
+      lift.to(0, LIFT_DOWN);
       const a = anchors[index];
       pillPos.to(a.pos, { stiffness: 400, damping: 38, mass: 0.8 });
       pillMain.to(a.size, { stiffness: 400, damping: 38, mass: 0.8 });
@@ -452,8 +520,7 @@ export function createPillDragCore({
 
     const a = samples[0], b = samples[samples.length - 1];
     const v = b.t > a.t ? (b.x - a.x) / (b.t - a.t) : 0;
-    const from = absoluteDrag ? pillEdgeAtPointer(e) : dragOriginPos + dMain;
-    const projectedPos = clampDragPos(from + v * 80);
+    const projectedPos = clampDragPos(dragRaw(e) + v * 80);
     let nearest = 0, bestDist = Infinity;
     anchors.forEach((anchor, i) => {
       const d = Math.abs(projectedPos - anchor.pos);
@@ -462,7 +529,7 @@ export function createPillDragCore({
     // (With canSelect) a forbidden or unchanged target: spring back to the current cell,
     // snappier than a real move — it's a correction, not a selection.
     if (canSelect && (nearest === index || !canSelect(nearest))) {
-      scale.to(1, { stiffness: 350, damping: 30, mass: 0.8 });
+      lift.to(0, LIFT_DOWN);
       const cur = anchors[index];
       pillPos.to(cur.pos, { stiffness: 700, damping: 50, mass: 0.7 });
       pillMain.to(cur.size, { stiffness: 700, damping: 50, mass: 0.7 });
@@ -471,7 +538,7 @@ export function createPillDragCore({
     const target = anchors[nearest];
     pillPos.to(target.pos, { stiffness: 400, damping: 38, mass: 0.8 });
     pillMain.to(target.size, { stiffness: 400, damping: 38, mass: 0.8 });
-    later(() => scale.to(1, { stiffness: 350, damping: 30, mass: 0.8 }), 200);
+    later(() => lift.to(0, LIFT_DOWN), 200);
     if (nearest !== index) {
       index = nearest;
       onChange?.(nearest, { silent: false });
@@ -503,7 +570,7 @@ export function createPillDragCore({
     clearTimers();
     clearTimeout(holdTimer);
     offFrame();
-    [pillPos, pillMain, crossOff, containerOff, containerCross, scale].forEach(sp => sp.dispose());
+    [pillPos, pillMain, crossOff, containerOff, containerCross, lift, bend, pace, wall].forEach(sp => sp.dispose());
   }
 
   // Switch between a row and a column of cells. Re-lay the cells out first
@@ -516,7 +583,7 @@ export function createPillDragCore({
     vertical = v;
     didInit = false;
     for (const el of [pill, hit]) { el.style.width = ''; el.style.height = ''; }
-    crossOff.set(0); containerOff.set(0); containerCross.set(0);
+    crossOff.set(0); containerOff.set(0); containerCross.set(0); wall.set(0);
     refresh({ snap: true });
   }
 

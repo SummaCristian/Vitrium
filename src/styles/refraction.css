@@ -42,6 +42,12 @@
   --lg-refraction-dispersion: 0.15;
 }
 
+/* The tab bar's lens lifts by a fixed 8.5px a side (liftOutset) rather than tapScale: about 1.2x along its
+   length and 1.3x across it, so its bezel is set for that. */
+.lg-tabbar .lg-pill-inner {
+  --lg-refraction-bezel: 8px;
+}
+
 /* What shows in the lens is both what's behind it and its own copies of the
    labels (the active row, pill.css). While it's lifted the copies slide under
    it, so its backdrop filter takes in the two as one picture and bends them

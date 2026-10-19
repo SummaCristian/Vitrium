@@ -364,6 +364,9 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     root: group, items, ...parts,
     cellSelector: '.lg-tabbar__tab',
     axis: vertical ? 'y' : 'x',
+    // Measured off the iOS 26 tab bar: the lens grows by the same 8.5px on every side, and the bar with it by 3.6%.
+    liftOutset: 8.5,
+    liftScale: 1.036,
     keyboard: false,   // handled below, across the prominent tab too
     // A `press` tab in the compact bar is a button, not a selection.
     canSelect: (i) => !mainTabs[i].press,

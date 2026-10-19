@@ -157,7 +157,7 @@
   padding-inline: var(--lg-tab-padding-inline, 1.1875rem);
 }
 
-/* Row metrics, matched to the iOS 26 tab bar (measured on a 440pt-wide iPhone, 1pt = 1px): a larger icon close
+/* Row metrics, matched to the iOS 27 tab bar (measured on a 440pt-wide iPhone, 1pt = 1px): a larger icon close
    above its label, a 62px bar, and equal-width tabs (--lg-tab-min-width, applied from JS in sizeTabs()) that
    overlap their neighbours by 8px, so the lens is wider than the step between tabs. The rail is the same bar
    turned on its side (see the vertical layout below), so it shares the icon, label and spacing. */
@@ -361,12 +361,17 @@
 /* compact: true replaces the wide-screen rail with one horizontal bar centred
    at the top (the iPadOS style). It sits where a top row would, whatever the
    placement. Tabs show only their label, and the prominent last tab (kept in the
-   bar, not detached) shows only its icon. */
+   bar, not detached) shows only its icon. Metrics measured off the iPadOS 27 tab bar (1pt = 1px): 17px labels,
+   tabs as wide as their content plus 16px a side, a 36px lens in a 44px bar. */
 .lg-tabbar--compact .lg-tabbar__tab,
 .lg-tabbar--compact .lg-pill-active-cell {
-  padding: 0.625rem 1.25rem;
-  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  font-size: 1.0625rem;
   font-weight: 600;
+}
+
+.lg-tabbar--compact .lg-tabbar__label {
+  line-height: 1.25rem;
 }
 
 .lg-tabbar--compact .lg-tabbar__tab[data-kind="icon"] {

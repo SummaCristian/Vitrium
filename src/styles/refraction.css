@@ -42,9 +42,10 @@
   --lg-refraction-dispersion: 0.15;
 }
 
-/* The tab bar's lens lifts by a fixed 8.5px a side (liftOutset) rather than tapScale: about 1.2x along its
-   length and 1.3x across it, so its bezel is set for that. */
-.lg-tabbar .lg-pill-inner {
+/* The tab bar's and the segmented control's lenses lift by a fixed 8.5px a side (liftOutset) rather than
+   tapScale: about 1.2x along their length and 1.3x or more across, so their bezel is set for that. */
+.lg-tabbar .lg-pill-inner,
+.lg-seg .lg-pill-inner {
   --lg-refraction-bezel: 8px;
 }
 

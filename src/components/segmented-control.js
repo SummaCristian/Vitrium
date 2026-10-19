@@ -84,6 +84,9 @@ export function createSegmentedControl(root, { items: itemDefs, value, onSelect,
     root, items: itemsEl, pill, hit, activeRow,
     cellSelector: '.lg-seg__item',
     axis: orientation === 'vertical' ? 'y' : 'x',
+    // Measured off the iPadOS 27 tab bar's lens: it grows by the same 8.5px on every side, and the control by 3%.
+    liftOutset: 8.5,
+    liftScale: 1.03,
     onChange(i, { silent }) {
       markActive(i);
       onSelect?.(cellsOf()[i].dataset.value, { silent });

@@ -319,7 +319,8 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
       - parseFloat(bs.paddingLeft) - parseFloat(bs.paddingRight);
     // Tabs may overlap their neighbours (a negative start margin), which gives each of them that much more room.
     const overlap = tabsInBar.length > 1 ? Math.max(0, -parseFloat(getComputedStyle(tabsInBar[1]).marginInlineStart) || 0) : 0;
-    const want = Math.max(h, minPx || 0);
+    // The compact bar's tabs fit their content (as iPadOS's do); only the row's are all one length.
+    const want = Math.max(h, compactOn ? 0 : minPx || 0);
     const fit = Math.floor((room + overlap * (tabsInBar.length - 1)) / tabsInBar.length);
     const width = room > 0 ? Math.min(want, fit) : want;
     for (const t of tabsInBar) t.style.minWidth = width + 'px';
@@ -364,7 +365,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     root: group, items, ...parts,
     cellSelector: '.lg-tabbar__tab',
     axis: vertical ? 'y' : 'x',
-    // Measured off the iOS 26 tab bar: the lens grows by the same 8.5px on every side, and the bar with it by 3.6%.
+    // Measured off the iOS 27 tab bar: the lens grows by the same 8.5px on every side, and the bar with it by 3.6%.
     liftOutset: 8.5,
     liftScale: 1.036,
     keyboard: false,   // handled below, across the prominent tab too

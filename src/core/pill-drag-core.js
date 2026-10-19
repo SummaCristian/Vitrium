@@ -25,7 +25,7 @@ const CROSS_GIVE = 5;             // elastic px the pill can be pulled off its r
 
 // The ends of the rail are walls: the lens slides a few px past the end anchor, meets the wall, and from there
 // squashes against it (shorter along the rail, taller across) while the finger keeps pushing, its outer edge
-// pinned. Measured off the iOS 26 tab bar.
+// pinned. Measured off the iOS 27 tab bar.
 const WALL = {
   travel: 5,                      // elastic px the lens slides past the end anchor
   squash: 0.07,                   // most it squashes along the rail (a ratio), approached as the finger pushes on...
@@ -33,7 +33,7 @@ const WALL = {
   cross: 2.2,                     // the cross axis grows this much per unit of squash
 };
 
-// How the lifted lens deforms as it moves, as ratios of its lifted size. Measured off the iOS 26 tab bar.
+// How the lifted lens deforms as it moves, as ratios of its lifted size. Measured off the iOS 27 tab bar.
 // Two parts: speed stretches it along the rail, a little behind (the speed part), and acceleration along the
 // direction of travel bends it on a soft spring, so it stretches more as it speeds up and, when it brakes,
 // swings once into a squash, deeper than the stretch was, before easing back.
@@ -132,7 +132,7 @@ export function createPillDragCore({
   // back). Everything that makes it look lifted follows it: its size (liftOutset / tapScale), the control's
   // growth (liftScale), the ring under it, and its material, glass above half its height and the flat fill
   // below (GLASS_FROM..GLASS_TO crossfades the two). So a lens let go mid-throw comes down, and goes flat, while
-  // it's still flying. Measured off the iOS 26 tab bar.
+  // it's still flying. Measured off the iOS 27 tab bar.
   const lift = new Spring(0);
   lift.eps = 0.002;
   // The acceleration part of the lens's deformation (STRETCH), a ratio.
@@ -153,7 +153,7 @@ export function createPillDragCore({
   // held still or not. Let go, it falls like a dropped thing, whatever the lens is still doing: its height goes
   // h0 - (t / FALL_S)², hanging up there at first and then dropping faster and faster, so from full height it
   // turns flat (half height) about 0.2s in, as a thrown lens arrives, and lands at FALL_S; there the spring takes over at the speed it
-  // landed with, for the small dip below rest. Measured off the iOS 26 tab bar.
+  // landed with, for the small dip below rest. Measured off the iOS 27 tab bar.
   const LIFT_UP = { stiffness: 500, damping: 25, mass: 0.5 };
   const LIFT_DOWN = { stiffness: 400, damping: 26, mass: 1 };   // the dip on landing
   const FALL_S = 0.3;

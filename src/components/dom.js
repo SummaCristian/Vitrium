@@ -21,12 +21,16 @@ export function el(tag, className, attrs) {
 // and active-row), and the invisible hit target. The active row sits in a
 // clipping layer of its own beside the fill, so refraction can slide it under
 // the lens, into what the lens's backdrop filter bends (styles/refraction.css).
-export function createPillParts() {
-  const pill = el('div', 'lg-pill');
+// With `fade` (the default) the flat resting fill is a layer of its own, and the
+// lens crossfades between it and the glass (the inner layer) as the core's
+// --lg-glass goes from 0 to 1; without it the inner layer is both, swapped at once.
+export function createPillParts({ fade = true } = {}) {
+  const pill = el('div', fade ? 'lg-pill lg-pill--fade' : 'lg-pill');
   const inner = el('div', 'lg-pill-inner');
   const lens = el('div', 'lg-pill-lens');
   const activeRow = el('div', 'lg-pill-active-row');
   lens.appendChild(activeRow);
+  if (fade) pill.append(el('div', 'lg-pill-fill'));
   pill.append(inner, lens);
   const hit = el('div', 'lg-pill-hit');
   return { pill, activeRow, hit };

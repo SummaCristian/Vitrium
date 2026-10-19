@@ -71,6 +71,47 @@
     inset 0 0 0 1px var(--lg-pill-border);
 }
 
+/* The crossfading lens (createPillParts' `fade`): the flat resting fill is a layer of its own, and the core
+   fades between it and the glass with --lg-glass (0 flat, 1 glass), on a timeline of its own: the glass comes
+   in once the lens moves and goes after it lands, while its size is still settling (pill-drag-core.js). The
+   stroke and the ring fade with it. */
+.lg-pill--fade {
+  --lg-glass: 0;
+}
+
+.lg-pill--fade .lg-pill-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--lg-pill-bg);
+  opacity: calc(1 - var(--lg-glass));
+}
+
+.lg-pill--fade .lg-pill-inner {
+  background: transparent;
+  opacity: var(--lg-glass);
+  transition: none;
+}
+
+.lg-pill--fade.lg-pill--lifted::after {
+  opacity: calc(var(--lg-stroke-opacity) * var(--lg-glass));
+  transition: none;
+}
+
+/* The rim (outline and highlight) moves from the pill onto the glass layer, so it fades in and out with it
+   rather than switching with the lifted class. */
+.lg-pill--fade.lg-pill--lifted {
+  box-shadow: none;
+}
+
+.lg-pill--fade.lg-pill--lifted .lg-pill-inner {
+  box-shadow:
+    0 0 0 0.1px var(--lg-outline),
+    var(--lg-highlight),
+    inset 0 1px 0 var(--lg-pill-highlight),
+    inset 0 0 0 1px var(--lg-pill-border);
+}
+
 /* Holds a highlighted duplicate of every cell, counter-translated by the core
    so each duplicate stays put while the pill (which clips it) slides over. */
 /* The active row's frame, beside the fill and painted over it (see

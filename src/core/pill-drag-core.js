@@ -20,7 +20,6 @@
 // Measurement uses offset* (not getBoundingClientRect) so it stays correct
 // while an ancestor is mid-transform, e.g. a modal mid morph-open.
 import { Spring, onSpringFrame } from './spring.js';
-import { applyLift } from './lift.js';
 
 const CROSS_GIVE = 5;             // elastic px the pill can be pulled off its rail
 
@@ -57,6 +56,14 @@ const TRAIL = {
   giveCross: 4,                   // px cap across it
   grow: 0.0023,                   // and it grows by this much per px of lean
 };
+// A throw: let go faster than minSpeed (px/s), the lens coasts on; it would come to rest about `coast` (s) of
+// its speed further on, and the nearest cell to that is its spot. It slows into it at a rate (1/s) of its
+// speed over the distance left, held between minRate and maxRate (iOS slows a thrown lens over about 0.1s).
+// maxSpeed (px/s) is as fast as the lens ever moves, dragged or thrown: the fastest an iOS lens goes is about
+// 3500-4000pt/s, and a mouse can fling it far past that.
+const THROW = { minSpeed: 200, coast: 0.1, minRate: 9, maxRate: 30, maxSpeed: 3500 };
+// How the lens follows the finger while it's dragged: critically damped, about 25ms behind.
+const FOLLOW = { stiffness: 6000, damping: 155, mass: 0.5 };
 const DRAG_OVERSHOOT = 8;
 const HOLD_MS = 130;              // press-and-hold before an unselected cell grabs the pill
 const ENGAGE_MOVE = 6;            // ...or this much finger travel, whichever comes first
@@ -116,11 +123,16 @@ export function createPillDragCore({
   let timers = [];
 
   const pillPos = new Spring(0);
+  pillPos.maxV = THROW.maxSpeed;
   const pillMain = new Spring(0);
   const crossOff = new Spring(0);
   const containerOff = new Spring(0);
   const containerCross = new Spring(0);
-  // How lifted the lens is: 0 at rest, 1 fully lifted (it dips a little below 0 as it settles back).
+  // The lens's height above the control: 0 at rest, 1 fully lifted (it dips a little below 0 as it settles
+  // back). Everything that makes it look lifted follows it: its size (liftOutset / tapScale), the control's
+  // growth (liftScale), the ring under it, and its material, glass above half its height and the flat fill
+  // below (GLASS_FROM..GLASS_TO crossfades the two). So a lens let go mid-throw comes down, and goes flat, while
+  // it's still flying. Measured off the iOS 26 tab bar.
   const lift = new Spring(0);
   lift.eps = 0.002;
   // The acceleration part of the lens's deformation (STRETCH), a ratio.
@@ -137,8 +149,31 @@ export function createPillDragCore({
   let moving = false;
   let lastV = 0, lastFrameT = 0;
 
+  // A press raises it a little, still flat (PRESS_LIFT, under GLASS_FROM), and PRESS_GLASS_MS later all the way,
+  // held still or not. Let go, it falls like a dropped thing, whatever the lens is still doing: its height goes
+  // h0 - (t / FALL_S)², hanging up there at first and then dropping faster and faster, so from full height it
+  // turns flat (half height) about 0.2s in, as a thrown lens arrives, and lands at FALL_S; there the spring takes over at the speed it
+  // landed with, for the small dip below rest. Measured off the iOS 26 tab bar.
   const LIFT_UP = { stiffness: 500, damping: 25, mass: 0.5 };
-  const LIFT_DOWN = { stiffness: 400, damping: 26, mass: 1 };   // settles with a small dip, like iOS
+  const LIFT_DOWN = { stiffness: 400, damping: 26, mass: 1 };   // the dip on landing
+  const FALL_S = 0.3;
+  const LAND_KEEP = 0.3;
+  const PRESS_LIFT = 0.3;
+  const PRESS_GLASS_MS = 60;
+  const GLASS_FROM = 0.3, GLASS_TO = 0.7;
+  const TAP_HOLD_MS = 80;    // a tap lets the lens fall once it's (nearly) all the way up
+
+  // While the lens is in play (pressed, lifted, or still moving after), its motion deforms it; once it's at rest
+  // on the ground the deformation's targets drop to 0, and what's left of it eases out.
+  let active = false;
+  let fallStart = 0, fallFrom = 0;   // while it falls (render() drives the height along the parabola)
+  const raise = () => { active = true; fallStart = 0; lift.to(1, LIFT_UP); };
+  const settle = () => {
+    if (fallStart) return;   // already on its way down
+    fallFrom = Math.max(0, lift.value);
+    fallStart = performance.now();
+    lift.to(0, LIFT_DOWN);   // keeps the frame loop going; render() overrides the height until it lands
+  };
 
   const later = (fn, ms) => timers.push(setTimeout(fn, ms));
   const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
@@ -189,7 +224,7 @@ export function createPillDragCore({
     // One duplicate per cell, centered on that cell's own anchor midpoint
     // rather than laid out by flex, which avoids sub-pixel drift between two
     // flow layouts. Each grows about its own middle toward copyScale as the
-    // pill lifts (--lg-lift, from applyLift): 1 at rest, so it sits exactly on
+    // pill lifts (--lg-lift, set by render()): 1 at rest, so it sits exactly on
     // its label then.
     activeRow.style.setProperty('--lg-pill-copy-scale', copyScale);
     activeRow.innerHTML = '';
@@ -260,6 +295,17 @@ export function createPillDragCore({
   }
 
   function render() {
+    if (fallStart) {
+      const t = (performance.now() - fallStart) / 1000;
+      const h = fallFrom - (t / FALL_S) ** 2;
+      lift.v = -2 * t / FALL_S ** 2;
+      if (h > 0) lift.value = h;
+      else {
+        // Landed: the spring carries on from here, with a little of that speed, for a slight dip. (All of it
+        // dips the lens visibly below rest a beat after a throw's squash, a second bounce iOS doesn't have.)
+        lift.value = 0; lift.v *= LAND_KEEP; fallStart = 0;
+      }
+    }
     const L = lift.value;
     const lifted = L > 0.001;
     const crossSize = vertical ? itemsW : itemsH;
@@ -281,12 +327,15 @@ export function createPillDragCore({
     if (Math.abs(v) > 30) { travelDir = Math.sign(v); moving = true; }
     else if (!moving && Math.abs(acc) > 2000) { travelDir = Math.sign(acc); moving = true; }
     else if (Math.abs(v) < 5) moving = false;
-    const bendTarget = lifted ? STRETCH.accel * acc * travelDir : 0;
+    // The deformation runs while the lens is in play, lifted or not (a lens let go mid-throw comes down flat but
+    // still stretched, and squashes when it stops); once it's at rest on the ground, what's left eases out.
+    if (active && !lifted && pillPos.resting && lift.resting) active = false;
+    const bendTarget = active ? STRETCH.accel * acc * travelDir : 0;
     if (Math.abs(bendTarget - bend.target) > 1e-4) bend.to(bendTarget, { stiffness: STRETCH.stiffness, damping: STRETCH.damping, mass: 1 });
     const speed = Math.abs(v);
-    const paceTarget = lifted ? STRETCH.speed * speed / (speed + STRETCH.speedHalf) : 0;
+    const paceTarget = active ? STRETCH.speed * speed / (speed + STRETCH.speedHalf) : 0;
     if (Math.abs(paceTarget - pace.target) > 1e-4) pace.to(paceTarget, STRETCH.speedLag);
-    const motion = Math.min(STRETCH.max, Math.max(STRETCH.min, Math.max(0, L) * pace.value + bend.value));
+    const motion = Math.min(STRETCH.max, Math.max(STRETCH.min, pace.value + bend.value));
     const q = wall.value;
     const defMain = 1 + motion - q;
     const defCross = 1 - motion * (motion > 0 ? STRETCH.crossStretch : STRETCH.crossSquash) + q * WALL.cross;
@@ -305,8 +354,14 @@ export function createPillDragCore({
     pill.style.opacity = index >= 0 ? '1' : '0';
     // With no selection the hit overlay must not sit on top of a cell and eat its clicks.
     hit.style.pointerEvents = index >= 0 ? '' : 'none';
-    // Full glass look only while lifted; flat at rest.
-    applyLift(pill, 1 + L, 2, { liftedClass });
+    // The material follows the height: glass above GLASS_TO, the flat fill below GLASS_FROM, crossfaded between
+    // (--lg-glass, pill.css). The lifted class turns the glass's filters on, so it's set while any glass shows;
+    // the ring under the lens (--lg-lift) is its height, as far as it's glass.
+    const u = Math.min(1, Math.max(0, (L - GLASS_FROM) / (GLASS_TO - GLASS_FROM)));
+    const g = u * u * (3 - 2 * u);
+    pill.classList.toggle(liftedClass, g > 0.01);
+    pill.style.setProperty('--lg-lift', (Math.min(1, Math.max(0, L)) * g).toFixed(3));
+    pill.style.setProperty('--lg-glass', g.toFixed(3));
     // The copies stay put and at their own size while the lens slides, grows and
     // stretches over them: the row undoes the pill's scale (about the pill's
     // middle, its transform-origin) and its slide, and each copy grows on its
@@ -343,7 +398,7 @@ export function createPillDragCore({
     if (!animate) {
       const a = anchors[i];
       if (a) { pillPos.set(a.pos); pillMain.set(a.size); }
-      lift.set(0);
+      lift.set(0); fallStart = 0;
       render();
       if (changed) onChange?.(i, { silent });
       return;
@@ -351,12 +406,12 @@ export function createPillDragCore({
     if (changed) onChange?.(i, { silent });
     const a = anchors[i];
     if (!a) return;
-    lift.to(1, LIFT_UP);
+    raise();
     later(() => {
       pillPos.to(a.pos, { stiffness: 400, damping: 35, mass: 0.8 });
       pillMain.to(a.size, { stiffness: 400, damping: 35, mass: 0.8 });
     }, 50);
-    later(() => lift.to(0, LIFT_DOWN), 250);
+    later(settle, TAP_HOLD_MS);   // and it comes down while it's still sliding in
   }
 
   // Clear the selection (the pill fades out). Doesn't fire onChange. A later
@@ -365,7 +420,7 @@ export function createPillDragCore({
     if (index < 0) return;
     index = -1;
     clearTimers();
-    lift.to(0, LIFT_DOWN);
+    settle();
     render();
   }
 
@@ -429,7 +484,7 @@ export function createPillDragCore({
     pillPos.stop(); pillMain.stop(); crossOff.stop();
     dragOriginPos = pillPos.value;
     grabAt = layoutAt(e);
-    lift.to(1, LIFT_UP);
+    raise();
     if (absoluteDrag) {
       const raw = dragRaw(e);
       pillPos.to(wallDragPos(raw), { stiffness: 700, damping: 42, mass: 0.55 });
@@ -452,8 +507,14 @@ export function createPillDragCore({
     grantTime = performance.now();
     samples = [{ x: mainPos(e), t: grantTime }];
 
+    // A press, anywhere on the control, grows the lens a little, still flat, and a moment later lifts it into
+    // glass whether or not the finger moves.
+    clearTimers();
+    active = true;
+    fallStart = 0;
+    if (lift.target < PRESS_LIFT) lift.to(PRESS_LIFT, LIFT_UP);
+    later(raise, PRESS_GLASS_MS);
     if (absoluteDrag) holdTimer = setTimeout(() => engage(e), HOLD_MS);
-    else engage(e); // grabbing the pill itself: no wait
   }
 
   function onDragMove(e) {
@@ -470,8 +531,9 @@ export function createPillDragCore({
     if (!absoluteDrag && now - grantTime < 50) return;
 
     const raw = dragRaw(e);
-    pillPos.to(wallDragPos(raw), { stiffness: 1000, damping: 70, mass: 0.5 });
-    pillMain.to(sizeForPos(raw), { stiffness: 1000, damping: 70, mass: 0.5 });
+    // Close behind the finger (about 25ms): a looser follow would leave a flicked lens far behind it, and slow.
+    pillPos.to(wallDragPos(raw), FOLLOW);
+    pillMain.to(sizeForPos(raw), FOLLOW);
     crossOff.to(rubber(dCross, CROSS_GIVE), { stiffness: 700, damping: 42, mass: 0.5 });
     containerOff.to(rubber(dMain * trail.follow, trail.give),
       { stiffness: 260, damping: 26, mass: 1 });
@@ -485,8 +547,15 @@ export function createPillDragCore({
     clearTimeout(holdTimer); holdTimer = 0;
     try { captureEl?.releasePointerCapture(e.pointerId); } catch { /* already gone */ }
 
-    // Never engaged → a quick tap on a cell; let its click select it.
-    if (!grabbed) { captureEl = null; return; }
+    // Never engaged: a tap. On the lens itself it's onPillTap's; on a cell its click selects it (which lifts
+    // the lens again). Either way the press lets go.
+    if (!grabbed) {
+      captureEl = null;
+      clearTimers();   // a press let go before it lifted doesn't lift after
+      if (!terminated && !absoluteDrag && onPillTap) onPillTap();
+      else settle();
+      return;
+    }
 
     // We drove the pill, so suppress the cell's click (whichever cell the
     // browser routes it to) — the selection is decided below.
@@ -511,16 +580,23 @@ export function createPillDragCore({
 
     // Cancelled, or a barely-moved grab of the pill itself → just settle back.
     if (terminated || (!absoluteDrag && Math.abs(dMain) < 8 && Math.abs(dCross) < 8)) {
-      lift.to(0, LIFT_DOWN);
+      settle();
       const a = anchors[index];
       pillPos.to(a.pos, { stiffness: 400, damping: 38, mass: 0.8 });
       pillMain.to(a.size, { stiffness: 400, damping: 38, mass: 0.8 });
       return;
     }
 
+    // Where it comes to rest: thrown, where the lens would coast to on its own (THROW.coast of its speed), else
+    // a little ahead of the finger.
+    // A flick hands the lens the finger's speed, if the lens hasn't caught up with it yet.
     const a = samples[0], b = samples[samples.length - 1];
     const v = b.t > a.t ? (b.x - a.x) / (b.t - a.t) : 0;
-    const projectedPos = clampDragPos(dragRaw(e) + v * 80);
+    let v0 = pillPos.resting ? 0 : pillPos.v;
+    if (Math.sign(v) === Math.sign(v0 || v) && Math.abs(v * 1000) > Math.abs(v0)) {
+      v0 = pillPos.v = Math.sign(v) * Math.min(Math.abs(v * 1000), THROW.maxSpeed);
+    }
+    const projectedPos = clampDragPos(Math.abs(v0) > THROW.minSpeed ? pillPos.value + v0 * THROW.coast : dragRaw(e) + v * 80);
     let nearest = 0, bestDist = Infinity;
     anchors.forEach((anchor, i) => {
       const d = Math.abs(projectedPos - anchor.pos);
@@ -529,16 +605,27 @@ export function createPillDragCore({
     // (With canSelect) a forbidden or unchanged target: spring back to the current cell,
     // snappier than a real move — it's a correction, not a selection.
     if (canSelect && (nearest === index || !canSelect(nearest))) {
-      lift.to(0, LIFT_DOWN);
+      settle();
       const cur = anchors[index];
       pillPos.to(cur.pos, { stiffness: 700, damping: 50, mass: 0.7 });
       pillMain.to(cur.size, { stiffness: 700, damping: 50, mass: 0.7 });
       return;
     }
     const target = anchors[nearest];
-    pillPos.to(target.pos, { stiffness: 400, damping: 38, mass: 0.8 });
-    pillMain.to(target.size, { stiffness: 400, damping: 38, mass: 0.8 });
-    later(() => lift.to(0, LIFT_DOWN), 200);
+    // Thrown toward where it's going, it carries on at the speed it left the finger and only slows down from
+    // there, like the iOS lens: a critically damped spring whose rate is that speed over the distance left
+    // moves the lens as a pure exponential decay into its spot. (A fixed spring would pull it on toward a spot
+    // past where it would have coasted to, like a magnet.) Let go slowly, or sent back, it just springs there.
+    const dist = target.pos - pillPos.value;
+    let toSpot = { stiffness: 400, damping: 38, mass: 0.8 };
+    if (Math.sign(v0) === Math.sign(dist) && Math.abs(v0) > THROW.minSpeed && Math.abs(dist) > 1) {
+      const w = Math.min(THROW.maxRate, Math.max(THROW.minRate, Math.abs(v0 / dist)));
+      toSpot = { stiffness: w * w, damping: 2 * w, mass: 1 };
+    }
+    pillPos.to(target.pos, toSpot);
+    pillMain.to(target.size, toSpot);
+    // Let go, it comes down at once: thrown, it goes flat while it's still flying in.
+    settle();
     if (nearest !== index) {
       index = nearest;
       onChange?.(nearest, { silent: false });

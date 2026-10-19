@@ -30,6 +30,8 @@ export class Spring {
     // How close to its target (and how slow) it must be to count as arrived. In the spring's own units, so a spring that runs
     // 0 -> 1 across a large distance (a layout morph) wants this much smaller than one measured in pixels.
     this.eps = 0.05;
+    // Optional top speed (units per second): however hard it's pulled, it never moves faster than this.
+    this.maxV = Infinity;
     springs.add(this);
   }
   to(target, { stiffness = 300, damping = 30, mass = 1 } = {}) {
@@ -47,6 +49,7 @@ export class Spring {
     for (let i = 0; i < n; i++) {
       const F = -this.k * (this.value - this.target) - this.c * this.v;
       this.v += (F / this.m) * h;
+      if (Math.abs(this.v) > this.maxV) this.v = Math.sign(this.v) * this.maxV;
       this.value += this.v * h;
     }
     if (Math.abs(this.v) < this.eps && Math.abs(this.value - this.target) < this.eps) {

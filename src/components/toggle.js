@@ -20,7 +20,8 @@ export function createToggle({ value = false, onChange, label, color } = {}) {
   const items = el('div', 'lg-toggle__items');
   for (const pos of ['off', 'on']) items.appendChild(el('span', `lg-toggle__cell lg-toggle__cell--${pos}`));
 
-  const { pill, activeRow, hit } = createPillParts();
+  // The thumb's resting look is its own (toggle.css), so it swaps to glass at once rather than crossfading.
+  const { pill, activeRow, hit } = createPillParts({ fade: false });
   root.append(items, pill, hit);
 
   const setColor = (c) => {

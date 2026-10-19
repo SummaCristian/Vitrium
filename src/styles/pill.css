@@ -95,7 +95,11 @@
   --lg-ring-offset: 4px;
   --lg-ring-blur: 5px;
   --lg-ring-spread: 1px;
-  --lg-ring-drop: 7px;
+  /* Its top half, seen through the clear glass, is as dark as the bottom one below it (darker, even, with the
+     refraction squeezing it in at the rim), peaking about 8px below the lens's top: no fade toward the top. */
+  --lg-ring-drop: 5.5px;
+  --lg-ring-top: 1;
+  --lg-ring-strength: calc(var(--lg-lift) * 1.1);
 }
 
 .lg-pill--fade .lg-pill-fill {

@@ -28,24 +28,27 @@ const CROSS_GIVE = 5;             // elastic px the pill can be pulled off its r
 // pinned. Measured off the iOS 27 tab bar.
 const WALL = {
   travel: 5,                      // elastic px the lens slides past the end anchor
-  squash: 0.07,                   // most it squashes along the rail (a ratio), approached as the finger pushes on...
+  squash: 0.07,                   // most it squashes along the rail (x STRETCH.length px), approached as the finger pushes on...
   half: 40,                       // ...reaching half of it this many px past the wall
-  cross: 2.2,                     // the cross axis grows this much per unit of squash
+  cross: 1.55,                    // the cross axis grows this much per px of squash
 };
 
-// How the lifted lens deforms as it moves, as ratios of its lifted size. Measured off the iOS 27 tab bar.
+// How the lifted lens deforms as it moves. Measured off the iOS and iPadOS 27 tab bars, whose lenses deform by
+// the same number of points whatever their size (an iPad lens 55pt tall thins by as much as an iPhone one 73pt
+// tall), so the amounts are in px: a ratio below is that many times `length`.
 // Two parts: speed stretches it along the rail, a little behind (the speed part), and acceleration along the
 // direction of travel bends it on a soft spring, so it stretches more as it speeds up and, when it brakes,
 // swings once into a squash, deeper than the stretch was, before easing back.
 const STRETCH = {
+  length: 104.6,                  // px per unit of stretch (the iPhone lens's lifted length, which it was fitted on)
   speed: 0.18,                    // most stretch from speed alone...
   speedHalf: 1000,                // ...half of it at this speed (px/s)
   speedLag: { stiffness: 625, damping: 50, mass: 1 },   // it follows the speed about 40ms behind
   accel: 7.0e-5,                  // target ratio per px/s² of acceleration along the travel
   stiffness: 80,                  // the acceleration part's spring (damping ratio 0.7: swings once, no ringing)
   damping: 12.5,
-  crossStretch: 1.3,              // the cross axis thins this much per unit of stretch...
-  crossSquash: 0.85,              // ...and grows this much per unit of squash
+  crossStretch: 0.915,            // the cross axis thins this many px per px of stretch...
+  crossSquash: 0.6,               // ...and grows this many px per px of squash
   min: -0.22,
   max: 0.13,
 };
@@ -55,6 +58,9 @@ const TRAIL = {
   give: 60,                       // px cap along the rail
   giveCross: 4,                   // px cap across it
   grow: 0.0023,                   // and it grows by this much per px of lean
+  // Optional: pushed past an end, the whole control is pulled along too, by a rubber-banded share of how far the
+  // finger went past it, and grows with it (the iPadOS 27 tab bar's; the iPhone's doesn't move):
+  //   wall: { follow, give, grow }
 };
 // A throw: let go faster than minSpeed (px/s), the lens coasts on; it would come to rest about `coast` (s) of
 // its speed further on, and the nearest cell to that is its spot. It slows into it at a rate (1/s) of its
@@ -78,7 +84,7 @@ const rubber = (x, give) => (x * give) / (give + Math.abs(x));
 //   canSelect(index)   false → that cell can't be chosen: a tap calls
 //                      onReject(index) instead, a drag released over it
 //                      springs back to the current cell.
-//   trail              overrides TRAIL, how far the whole control follows a drag.
+//   trail              overrides TRAIL, how far the whole control follows a drag (setTrail() later).
 //   keyboard           arrow keys cycle the cells (default). Pass false when the
 //                      consumer handles keys itself (e.g. its own extra cells).
 //   axis               'x' (default: cells in a row) or 'y' (cells in a column).
@@ -128,6 +134,9 @@ export function createPillDragCore({
   const crossOff = new Spring(0);
   const containerOff = new Spring(0);
   const containerCross = new Spring(0);
+  // The pull from pushing past an end (trail.wall), along the rail, and how far past it the finger is now.
+  const pull = new Spring(0);
+  let overNow = 0;
   // The lens's height above the control: 0 at rest, 1 fully lifted (it dips a little below 0 as it settles
   // back). Everything that makes it look lifted follows it: its size (liftOutset / tapScale), the control's
   // growth (liftScale), the ring under it, and its material, glass above half its height and the flat fill
@@ -337,12 +346,13 @@ export function createPillDragCore({
     if (Math.abs(paceTarget - pace.target) > 1e-4) pace.to(paceTarget, STRETCH.speedLag);
     const motion = Math.min(STRETCH.max, Math.max(STRETCH.min, pace.value + bend.value));
     const q = wall.value;
-    const defMain = 1 + motion - q;
-    const defCross = 1 - motion * (motion > 0 ? STRETCH.crossStretch : STRETCH.crossSquash) + q * WALL.cross;
-    const scMain = liftMain * defMain;
-    const scCross = liftCross * defCross;
+    // In px, added to the lifted size (see STRETCH.length), then as a scale of the lens's own size.
+    const dMain = STRETCH.length * (motion - q);
+    const dCross = STRETCH.length * (-motion * (motion > 0 ? STRETCH.crossStretch : STRETCH.crossSquash) + q * WALL.cross);
+    const scMain = pillMain.value ? liftMain + dMain / pillMain.value : liftMain;
+    const scCross = crossSize ? liftCross + dCross / crossSize : liftCross;
     // Squashed against a wall, the lens keeps its outer edge on it: its middle moves out by what it lost.
-    const pos = pillPos.value + wallSide * (pillMain.value * liftMain * q) / 2;
+    const pos = pillPos.value + wallSide * (STRETCH.length * q) / 2;
 
     const sizeProp = vertical ? 'height' : 'width';
     pill.style[sizeProp] = pillMain.value + 'px';
@@ -350,6 +360,11 @@ export function createPillDragCore({
     const at = (p) => vertical ? `translateY(${p}px) translateX(${crossOff.value}px)` : `translateX(${p}px) translateY(${crossOff.value}px)`;
     const sx = vertical ? scCross : scMain, sy = vertical ? scMain : scCross;
     pill.style.transform = `${at(pos)} scale(${sx}, ${sy})`;
+    // Its ends stay round as it stretches: a capsule's are half its on-screen short side across, so the radius
+    // is set per axis, undoing the scale on each (the layers inside inherit it).
+    const onW = (vertical ? crossSize : pillMain.value) * sx, onH = (vertical ? pillMain.value : crossSize) * sy;
+    const R = Math.min(onW, onH) / 2;
+    pill.style.borderRadius = sx > 0 && sy > 0 ? `${R / sx}px / ${R / sy}px` : '';
     hit.style.transform = at(pillPos.value);
     pill.style.opacity = index >= 0 ? '1' : '0';
     // With no selection the hit overlay must not sit on top of a cell and eat its clicks.
@@ -374,9 +389,10 @@ export function createPillDragCore({
     activeRow.style.transform = `translate(${ox}px, ${oy}px) scale(${1 / sx}, ${1 / sy}) translate(${-ox}px, ${-oy}px) ${slide}`;
     // The whole control (pill + chrome together) grows a touch while the lens is lifted, and leans after the
     // drag, growing a little more the further it leans.
-    const cMain = containerOff.value, cCross = containerCross.value;
+    const cMain = containerOff.value + pull.value, cCross = containerCross.value;
     const cx = vertical ? cCross : cMain, cy = vertical ? cMain : cCross;
-    const grow = 1 + (liftScale - 1) * L + (trail.grow ?? 0) * Math.abs(cMain);
+    const grow = 1 + (liftScale - 1) * L + (trail.grow ?? 0) * Math.abs(containerOff.value)
+      + (trail.wall?.grow ?? 0) * Math.abs(pull.value);
     root.style.transform = (cx || cy || grow !== 1) ? `translate(${cx}px, ${cy}px) scale(${grow})` : '';
     updateMask(scMain, scCross, pos);
     onRender?.({ pos: pillPos.value });
@@ -453,6 +469,7 @@ export function createPillDragCore({
     const lo = anchors[0].pos, hi = anchors[anchors.length - 1].pos;
     const over = raw < lo ? lo - raw : raw > hi ? raw - hi : 0;
     if (over) wallSide = raw < lo ? -1 : 1;
+    overNow = over ? wallSide * over : 0;
     wall.to(WALL.squash * over / (over + WALL.half), { stiffness: 700, damping: 42, mass: 0.5 });
     if (raw < lo) return lo - rubber(over, WALL.travel);
     if (raw > hi) return hi + rubber(over, WALL.travel);
@@ -539,6 +556,8 @@ export function createPillDragCore({
       { stiffness: 260, damping: 26, mass: 1 });
     containerCross.to(rubber(dCross * trail.follow, trail.giveCross),
       { stiffness: 260, damping: 26, mass: 1 });
+    const w = trail.wall;
+    pull.to(w ? Math.sign(overNow) * rubber(Math.abs(overNow) * w.follow, w.give) : 0, { stiffness: 260, damping: 26, mass: 1 });
   }
 
   function release(e, terminated) {
@@ -569,6 +588,8 @@ export function createPillDragCore({
     crossOff.to(0, { stiffness: 480, damping: 26, mass: 0.6 });
     containerOff.to(0, { stiffness: 320, damping: 24, mass: 0.8 });
     containerCross.to(0, { stiffness: 320, damping: 24, mass: 0.8 });
+    pull.to(0, { stiffness: 320, damping: 24, mass: 0.8 });
+    overNow = 0;
     wall.to(0, LIFT_DOWN);
     const dMain = mainDelta(e), dCross = crossDelta(e);
 
@@ -657,7 +678,7 @@ export function createPillDragCore({
     clearTimers();
     clearTimeout(holdTimer);
     offFrame();
-    [pillPos, pillMain, crossOff, containerOff, containerCross, lift, bend, pace, wall].forEach(sp => sp.dispose());
+    [pillPos, pillMain, crossOff, containerOff, containerCross, pull, lift, bend, pace, wall].forEach(sp => sp.dispose());
   }
 
   // Switch between a row and a column of cells. Re-lay the cells out first
@@ -670,12 +691,15 @@ export function createPillDragCore({
     vertical = v;
     didInit = false;
     for (const el of [pill, hit]) { el.style.width = ''; el.style.height = ''; }
-    crossOff.set(0); containerOff.set(0); containerCross.set(0); wall.set(0);
+    crossOff.set(0); containerOff.set(0); containerCross.set(0); pull.set(0); wall.set(0);
     refresh({ snap: true });
   }
 
   return {
     setAxis,
+    // Change how the whole control follows a drag (TRAIL, with `next`'s keys over it), e.g. when the consumer
+    // changes layout. null goes back to TRAIL.
+    setTrail(next) { trail = { ...TRAIL, ...next }; },
     destroy,
     refresh,
     select,

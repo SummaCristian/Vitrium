@@ -160,6 +160,10 @@ const deform2 = (vx, vy) => {
   return [1 + s * ux - 0.5 * s * uy, 1 + s * uy - 0.5 * s * ux];
 };
 
+// Measured off the iPadOS 27 tab bar: pushed hard past an end, the whole bar is pulled about 30px that way and
+// grows about 5% more; a gentle arrival barely moves it.
+const COMPACT_WALL_PULL = { follow: 1.2, give: 70, grow: 0.0012 };
+
 const MIN_TABS_FOR_PROMINENT = 3;
 const FEW_TABS = 3;   // this many or fewer keep the full side padding at every width
 
@@ -379,6 +383,9 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
       enterPanel(currentId);
     },
   });
+  // The compact bar (iPadOS's) is pulled along when its lens is pushed past an end; the row and rail aren't.
+  const syncTrail = () => core.setTrail(compactOn ? { wall: COMPACT_WALL_PULL } : null);
+  syncTrail();
 
   /* --- Prominent tab (a plain glass circle, no pill) ------------------------- */
   let pBtn = null;
@@ -856,6 +863,7 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
     markActive();
     sizeTabs();
     core.setAxis(vertical ? 'y' : 'x');
+    syncTrail();
     sizeCircles();
     syncPageSpace();
   }

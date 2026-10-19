@@ -56,7 +56,8 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
-  border-radius: var(--lg-radius-pill);
+  /* The pill's: pill-drag-core sets it per axis as the lens stretches, so its ends stay round. */
+  border-radius: inherit;
 
   background: var(--lg-pill-bg);
   transition: background 0.15s ease, backdrop-filter 0.15s ease, -webkit-backdrop-filter 0.15s ease, box-shadow 0.15s ease;

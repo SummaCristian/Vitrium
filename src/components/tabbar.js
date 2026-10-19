@@ -160,9 +160,10 @@ const deform2 = (vx, vy) => {
   return [1 + s * ux - 0.5 * s * uy, 1 + s * uy - 0.5 * s * ux];
 };
 
-// Measured off the iPadOS 27 tab bar: pushed hard past an end, the whole bar is pulled about 30px that way and
-// grows about 5% more; a gentle arrival barely moves it.
-const COMPACT_WALL_PULL = { follow: 1.2, give: 70, grow: 0.0012 };
+// Measured off the iPadOS 27 tab bar: pushed hard past an end, the whole bar slides about 55px that way and
+// stretches about 8% along itself while thinning about 7% across (its text widens with it); a gentle arrival
+// barely moves it.
+const COMPACT_WALL_PULL = { follow: 1.5, give: 80, stretch: 0.0016 };
 
 const MIN_TABS_FOR_PROMINENT = 3;
 const FEW_TABS = 3;   // this many or fewer keep the full side padding at every width

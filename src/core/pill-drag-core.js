@@ -59,8 +59,9 @@ const TRAIL = {
   giveCross: 4,                   // px cap across it
   grow: 0.0023,                   // and it grows by this much per px of lean
   // Optional: pushed past an end, the whole control is pulled along too, by a rubber-banded share of how far the
-  // finger went past it, and grows with it (the iPadOS 27 tab bar's; the iPhone's doesn't move):
-  //   wall: { follow, give, grow }
+  // finger went past it, and stretched that way, thinning across to keep its area (the iPadOS 27 tab bar's; the
+  // iPhone's barely moves): `stretch` is per px of pull.
+  //   wall: { follow, give, stretch }
 };
 // A throw: let go faster than minSpeed (px/s), the lens coasts on; it would come to rest about `coast` (s) of
 // its speed further on, and the nearest cell to that is its spot. It slows into it at a rate (1/s) of its
@@ -284,7 +285,7 @@ export function createPillDragCore({
   }
 
   /* --- Render ------------------------------------------------------ */
-  function updateMask(scMain, scCross, pos) {
+  function updateMask(scMain, scCross, pos, gx = 1, gy = 1) {
     // No selection: nothing to cut out of the label layer.
     if (index < 0) { items.style.clipPath = ''; items.style.webkitClipPath = ''; return; }
     if (!itemsW || !itemsH) return;
@@ -292,12 +293,13 @@ export function createPillDragCore({
     const crossVal = (vertical ? itemsW : itemsH) * scCross;
     const w = vertical ? crossVal : mainVal;
     const h = vertical ? mainVal : crossVal;
-    const r = Math.min(w, h) / 2;
+    // Round on screen, under the control's own stretch (gx, gy): radii per axis.
+    const R = Math.min(w * gx, h * gy) / 2, rx = R / gx, ry = R / gy;
     const cx = vertical ? itemsW / 2 + crossOff.value : pos + pillMain.value / 2;
     const cy = vertical ? pos + pillMain.value / 2 : itemsH / 2 + crossOff.value;
     const x = cx - w / 2, y = cy - h / 2;
     const d = `M0 0H${itemsW}V${itemsH}H0Z ` +
-      `M${x + r} ${y}H${x + w - r}A${r} ${r} 0 0 1 ${x + w} ${y + r}V${y + h - r}A${r} ${r} 0 0 1 ${x + w - r} ${y + h}H${x + r}A${r} ${r} 0 0 1 ${x} ${y + h - r}V${y + r}A${r} ${r} 0 0 1 ${x + r} ${y}Z`;
+      `M${x + rx} ${y}H${x + w - rx}A${rx} ${ry} 0 0 1 ${x + w} ${y + ry}V${y + h - ry}A${rx} ${ry} 0 0 1 ${x + w - rx} ${y + h}H${x + rx}A${rx} ${ry} 0 0 1 ${x} ${y + h - ry}V${y + ry}A${rx} ${ry} 0 0 1 ${x + rx} ${y}Z`;
     const clip = `path(evenodd, "${d}")`;
     items.style.clipPath = clip;
     items.style.webkitClipPath = clip;
@@ -360,11 +362,6 @@ export function createPillDragCore({
     const at = (p) => vertical ? `translateY(${p}px) translateX(${crossOff.value}px)` : `translateX(${p}px) translateY(${crossOff.value}px)`;
     const sx = vertical ? scCross : scMain, sy = vertical ? scMain : scCross;
     pill.style.transform = `${at(pos)} scale(${sx}, ${sy})`;
-    // Its ends stay round as it stretches: a capsule's are half its on-screen short side across, so the radius
-    // is set per axis, undoing the scale on each (the layers inside inherit it).
-    const onW = (vertical ? crossSize : pillMain.value) * sx, onH = (vertical ? pillMain.value : crossSize) * sy;
-    const R = Math.min(onW, onH) / 2;
-    pill.style.borderRadius = sx > 0 && sy > 0 ? `${R / sx}px / ${R / sy}px` : '';
     hit.style.transform = at(pillPos.value);
     pill.style.opacity = index >= 0 ? '1' : '0';
     // With no selection the hit overlay must not sit on top of a cell and eat its clicks.
@@ -391,10 +388,19 @@ export function createPillDragCore({
     // drag, growing a little more the further it leans.
     const cMain = containerOff.value + pull.value, cCross = containerCross.value;
     const cx = vertical ? cCross : cMain, cy = vertical ? cMain : cCross;
-    const grow = 1 + (liftScale - 1) * L + (trail.grow ?? 0) * Math.abs(containerOff.value)
-      + (trail.wall?.grow ?? 0) * Math.abs(pull.value);
-    root.style.transform = (cx || cy || grow !== 1) ? `translate(${cx}px, ${cy}px) scale(${grow})` : '';
-    updateMask(scMain, scCross, pos);
+    // Pulled past an end (trail.wall), it stretches along the rail and thins across, keeping its area.
+    const grow = 1 + (liftScale - 1) * L + (trail.grow ?? 0) * Math.abs(containerOff.value);
+    const stretch = 1 + (trail.wall?.stretch ?? 0) * Math.abs(pull.value);
+    const gMain = grow * stretch, gCross = grow / stretch;
+    const gx = vertical ? gCross : gMain, gy = vertical ? gMain : gCross;
+    root.style.transform = (cx || cy || gx !== 1 || gy !== 1) ? `translate(${cx}px, ${cy}px) scale(${gx}, ${gy})` : '';
+    // The lens's ends stay round as it (and the control around it) stretches: a capsule's are half its on-screen
+    // short side across, so the radius is set per axis, undoing both scales on each (the layers inside inherit it).
+    const kx = sx * gx, ky = sy * gy;
+    const onW = (vertical ? crossSize : pillMain.value) * kx, onH = (vertical ? pillMain.value : crossSize) * ky;
+    const R = Math.min(onW, onH) / 2;
+    pill.style.borderRadius = kx > 0 && ky > 0 ? `${R / kx}px / ${R / ky}px` : '';
+    updateMask(scMain, scCross, pos, gx, gy);
     onRender?.({ pos: pillPos.value });
   }
   const offFrame = onSpringFrame(render);

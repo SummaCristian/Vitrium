@@ -467,8 +467,8 @@ test.describe('refraction', () => {
 
     const log = bendLog(preview, '.lg-tabbar__bar', 2000);
     await option(page, 'Tabs', '2').click();
-    // (The change reaches the preview through the playground, a few frames after the click.)
-    heldThrough(await log, 150, 500);
+    // (The log starts before the click, and the change reaches the preview through the playground, so it is flat some hundreds of ms in, not a frame.)
+    heldThrough(await log, 150, 900);
   });
 
   test('stays off, with the blur, while blur is off', async ({ page }) => {

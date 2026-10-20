@@ -64,9 +64,8 @@ export function createSegmentedControl(root, { items: itemDefs, value, onSelect,
   let glassMode = setGlass(track, glass) ?? 'regular';
   const itemsEl = el('div', 'lg-seg__items');
   while (root.firstChild) itemsEl.appendChild(root.firstChild);
-  track.appendChild(itemsEl);
-
-  const { pill, activeRow, hit } = createPillParts();
+  const { pill, activeRow, hit, hover } = createPillParts();
+  track.append(hover, itemsEl);
   root.append(track, pill, hit);
 
   const cellsOf = () => Array.from(itemsEl.querySelectorAll('.lg-seg__item'));
@@ -81,7 +80,7 @@ export function createSegmentedControl(root, { items: itemDefs, value, onSelect,
   }
 
   const core = createPillDragCore({
-    root, items: itemsEl, pill, hit, activeRow,
+    root, items: itemsEl, pill, hit, activeRow, hover,
     cellSelector: '.lg-seg__item',
     axis: orientation === 'vertical' ? 'y' : 'x',
     // Measured off the iPadOS 27 tab bar's lens: it grows by the same 8.5px on every side, and the control by 3%.

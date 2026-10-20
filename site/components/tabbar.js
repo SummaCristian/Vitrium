@@ -96,7 +96,7 @@ export default {
 
     return [
       section('Overview', {},
-        h('p', {}, 'A tab bar is the main navigation of an app: a glass bar of tabs with a pill that slides to the selected one, resizes to each tab, and can be grabbed and dragged. It is fixed to the viewport, like a native one, so it does not scroll away.'),
+        h('p', {}, 'A tab bar is the main navigation of an app: a glass bar of tabs with a pill that slides to the selected one, resizes to each tab, and can be grabbed and dragged. With a mouse or pen, a flat pill also shows under the tab the pointer is over, and the pill grows when the pointer is over the selected tab, as on iPadOS. It is fixed to the viewport, like a native one, so it does not scroll away.'),
         h('p', {}, 'It has several layouts and picks between them for you: a row along the bottom or top edge, a vertical rail on the side, or one compact bar centered at the top. Change the layout while it is showing and it animates between them.')),
 
       section('Playground', {},

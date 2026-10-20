@@ -33,5 +33,7 @@ export function createPillParts({ fade = true } = {}) {
   if (fade) pill.append(el('div', 'lg-pill-fill'));
   pill.append(inner, lens);
   const hit = el('div', 'lg-pill-hit');
-  return { pill, activeRow, hit };
+  // The hover pill (pill-drag-core.js): the consumer puts it in the track, right before the items.
+  const hover = el('div', 'lg-pill-hover');
+  return { pill, activeRow, hit, hover };
 }

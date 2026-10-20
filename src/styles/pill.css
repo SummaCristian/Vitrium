@@ -169,6 +169,21 @@
   pointer-events: none;
 }
 
+/* The hover pill (pill-drag-core.js): the resting lens's flat fill, on the cell a mouse or pen is over. It sits in
+   the track, whose glass is a stacking context of its own: z-index -1 paints it over the track's tint and ring but
+   under the labels. Placed, sized and faded from JS. */
+.lg-pill-hover {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: var(--lg-radius-pill);
+  background: var(--lg-pill-bg);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
 /* Invisible grab target laid over the pill. */
 .lg-pill-hit {
   position: absolute;

@@ -273,8 +273,8 @@ export function createTabBar(root, { tabs: initialTabs, value, onSelect, action,
   const items = el('div', 'lg-tabbar__items', { role: 'tablist' });
   if (label) items.setAttribute('aria-label', label);
   items.setAttribute('aria-orientation', vertical ? 'vertical' : 'horizontal');
-  bar.appendChild(items);
   const parts = createPillParts();
+  bar.append(parts.hover, items);
   group.append(bar, parts.pill, parts.hit);
   root.appendChild(group);
 

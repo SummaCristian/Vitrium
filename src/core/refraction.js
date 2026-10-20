@@ -75,6 +75,23 @@ const DEFAULT_DEPTH = 25;  // px of the largest shift at the rim, --lg-refractio
 // magnifies the backdrop toward the rim. With the defaults the band is the
 // outer 60% of the bezel.
 const DEFAULT_CURVE = 2.5;
+// A lens: glass whose face also bends the other way (--lg-refraction-lens-depth,
+// none by default). Inside its rim it shrinks what's behind it toward its middle:
+// each point shows what's a little further out, so just in from the rim it shows a
+// squeezed band of what's *around* it. The rim still bends inward as above, and
+// shows, mirrored, what's a few px in. Measured off the iOS 27 toggle's lifted
+// thumb (a 59 × 39pt lens dragged slowly over the track, fitted pixel by pixel to
+// where the track shows through it across five frames): outward, lens-depth ×
+// (1 − d / lens-bezel) at d px in from the rim, the same along the lens and
+// across it, smoothed over --lg-refraction-lens-smooth (which also carries some of
+// it along the length into the middle, as the lens does), and not fitted into
+// the surface: it reaches the middle. Inward, a narrow rim (bezel, depth, curve)
+// deep enough to fold: the track shows through it as a thin line along the top
+// and bottom edges, and floods the end of the lens over it up to the rim.
+// The backdrop a filter sees ends at the surface's edge, so a lens's filter sits
+// on a layer of its own (.lg-refraction-layer) reaching LENS_PAD px past the
+// largest outward shift, and cuts its picture back to the surface's shape itself.
+const LENS_PAD = 2;
 // Dispersion splits the bend by color: red bends this much further, blue this
 // much less, per unit of --lg-refraction-dispersion.
 const CHANNELS = [['R', 1], ['G', 0], ['B', -1]];
@@ -116,36 +133,121 @@ export function displacementMap(w, h, { radius = 0, bezel = DEFAULT_BEZEL, n = 2
   const b = Math.max(1, Math.min(bezel, hw, hh));
   for (let y = 0; y < ph; y++) {
     for (let x = 0; x < pw; x++) {
-      const px = (x + 0.5) / res - hw;
-      const py = (y + 0.5) / res - hh;
-      const qx = Math.abs(px) - (hw - r);
-      const qy = Math.abs(py) - (hh - r);
-      let inward, nx, ny;
-      if (qx > 0 && qy > 0) {
-        // In a corner: distance from the superellipse arc, normal along its gradient.
-        const len = n === 2 ? Math.hypot(qx, qy) : (qx ** n + qy ** n) ** (1 / n);
-        inward = r - len;
-        const gx = n === 2 ? qx : qx ** (n - 1);
-        const gy = n === 2 ? qy : qy ** (n - 1);
-        const gl = Math.hypot(gx, gy) || 1;
-        nx = gx / gl; ny = gy / gl;
-      } else if (qx > qy) {
-        inward = r - qx; nx = 1; ny = 0;
-      } else {
-        inward = r - qy; nx = 0; ny = 1;
-      }
+      const e = edge((x + 0.5) / res - hw, (y + 0.5) / res - hh, hw, hh, r, n);
       let R = 128, G = 128;
-      if (inward >= 0 && inward < b) {
-        const t = 1 - inward / b;
+      if (e.inward >= 0 && e.inward < b) {
+        const t = 1 - e.inward / b;
         const mag = t ** curve;
-        R = 128 - 127 * Math.sign(px) * nx * mag;
-        G = 128 - 127 * Math.sign(py) * ny * mag;
+        R = 128 - 127 * e.ox * mag;
+        G = 128 - 127 * e.oy * mag;
       }
       const i = (y * pw + x) * 4;
       data[i] = R; data[i + 1] = G; data[i + 2] = 128; data[i + 3] = 255;
     }
   }
   return { data, width: pw, height: ph };
+}
+
+// A lens's map (--lg-refraction-lens-depth), as RGBA bytes like displacementMap's (and its shape in
+// blue), but over the surface's layer: `margin` px bigger than the `w` x `h` box on every side, and in
+// units of `rim` + `lens` px, the most it can shift. Two bends added up:
+//   outward, `lens` × (1 − d / lensBezel) at d px in from the rim, smoothed (a Gaussian of `smooth` px,
+//     taking all of it as it stands just outside) so the two halves of the lens meet without a seam in
+//     the middle and the long axis keeps some of it into the middle;
+//   inward, `rim` × (1 − d / bezel) ** curve, as displacementMap's.
+export function lensMap(w, h, {
+  radius = 0, n = 2, res = 1, margin = 0,
+  bezel = DEFAULT_BEZEL, curve = DEFAULT_CURVE, rim = 0,
+  lensBezel = DEFAULT_BEZEL, lens = 0, smooth = 0,
+} = {}) {
+  const bw = w + 2 * margin, bh = h + 2 * margin;
+  const pw = Math.max(1, Math.round(bw * res));
+  const ph = Math.max(1, Math.round(bh * res));
+  // Worked out past the map, so the smoothing has the field to draw on at its edges.
+  const pad = Math.ceil(3 * smooth * res);
+  const gw = pw + 2 * pad, gh = ph + 2 * pad;
+  const fx = new Float32Array(gw * gh), fy = new Float32Array(gw * gh);
+  const hw = w / 2, hh = h / 2;
+  const r = Math.max(0, Math.min(radius, hw, hh));
+  const lb = Math.max(1, lensBezel);
+  const reach = rim + lens || 1;
+  const at = (x, y) => edge((x + 0.5) / res - bw / 2, (y + 0.5) / res - bh / 2, hw, hh, r, n);
+  for (let y = 0; y < gh; y++) {
+    for (let x = 0; x < gw; x++) {
+      const e = at(x - pad, y - pad);
+      const mag = lens * (e.inward <= 0 ? 1 : Math.max(0, 1 - e.inward / lb)) / reach;
+      fx[y * gw + x] = e.ox * mag;
+      fy[y * gw + x] = e.oy * mag;
+    }
+  }
+  if (smooth > 0) {
+    gaussian(fx, gw, gh, smooth * res);
+    gaussian(fy, gw, gh, smooth * res);
+  }
+  const b = Math.max(1, Math.min(bezel, hw, hh));
+  // Blue is the box's shape, which the filter cuts its picture to (primitives): the layer is bigger than the
+  // box and nothing else clips it. Outside it the offset is left at none.
+  const data = new Uint8ClampedArray(pw * ph * 4);
+  for (let y = 0; y < ph; y++) {
+    for (let x = 0; x < pw; x++) {
+      const g = (y + pad) * gw + x + pad, i = (y * pw + x) * 4;
+      const e = at(x, y);
+      const fold = e.inward >= 0 && e.inward < b ? rim * (1 - e.inward / b) ** curve / reach : 0;
+      // Eased over the pixel the rim crosses, which the lift's scale would otherwise show as steps.
+      const inside = Math.min(1, Math.max(0, e.inward * res + 0.5));
+      data[i] = 128 + 127 * (fx[g] - e.ox * fold) * inside;
+      data[i + 1] = 128 + 127 * (fy[g] - e.oy * fold) * inside;
+      data[i + 2] = 255 * inside; data[i + 3] = 255;
+    }
+  }
+  return { data, width: pw, height: ph };
+}
+
+// Where (px, py), from the middle of a `2hw` x `2hh` box with corners of radius `r` and exponent `n`,
+// stands against its edge: `inward`, how far in from the nearest edge (negative outside), and that edge's
+// outward normal (ox, oy).
+function edge(px, py, hw, hh, r, n) {
+  const qx = Math.abs(px) - (hw - r);
+  const qy = Math.abs(py) - (hh - r);
+  let inward, nx, ny;
+  if (qx > 0 && qy > 0) {
+    // In a corner: distance from the superellipse arc, normal along its gradient.
+    const len = n === 2 ? Math.hypot(qx, qy) : (qx ** n + qy ** n) ** (1 / n);
+    inward = r - len;
+    const gx = n === 2 ? qx : qx ** (n - 1);
+    const gy = n === 2 ? qy : qy ** (n - 1);
+    const gl = Math.hypot(gx, gy) || 1;
+    nx = gx / gl; ny = gy / gl;
+  } else if (qx > qy) {
+    inward = r - qx; nx = 1; ny = 0;
+  } else {
+    inward = r - qy; nx = 0; ny = 1;
+  }
+  return { inward, ox: Math.sign(px) * nx, oy: Math.sign(py) * ny };
+}
+
+// A separable Gaussian blur of a `w` x `h` field in place, `sigma` in its own pixels, its edges held.
+function gaussian(f, w, h, sigma) {
+  const rad = Math.ceil(3 * sigma);
+  const k = new Float32Array(2 * rad + 1);
+  let sum = 0;
+  for (let i = -rad; i <= rad; i++) sum += k[i + rad] = Math.exp(-(i * i) / (2 * sigma * sigma));
+  for (let i = 0; i < k.length; i++) k[i] /= sum;
+  const tmp = new Float32Array(f.length);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let a = 0;
+      for (let i = -rad; i <= rad; i++) a += k[i + rad] * f[y * w + Math.min(w - 1, Math.max(0, x + i))];
+      tmp[y * w + x] = a;
+    }
+  }
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let a = 0;
+      for (let i = -rad; i <= rad; i++) a += k[i + rad] * tmp[Math.min(h - 1, Math.max(0, y + i)) * w + x];
+      f[y * w + x] = a;
+    }
+  }
 }
 
 // The bezel and the shift at the rim for a `w` x `h` surface, from the tokens:
@@ -162,10 +264,11 @@ export function fitBend(w, h, { bezel = DEFAULT_BEZEL, depth = DEFAULT_DEPTH } =
 // Encoded maps, by geometry, so a row of identical buttons builds one.
 const cache = new Map();
 function mapURL(w, h, opts) {
-  const key = `${w}x${h}:${opts.radius}:${opts.n}:${opts.bezel}:${opts.res}:${opts.curve}`;
+  const key = `${w}x${h}:${opts.radius}:${opts.n}:${opts.bezel}:${opts.res}:${opts.curve}` +
+    (opts.lens ? `:lens:${opts.rim}:${opts.lens}:${opts.lensBezel}:${opts.smooth}:${opts.margin}` : '');
   let url = cache.get(key);
   if (url) { cache.delete(key); cache.set(key, url); return url; }
-  const { data, width, height } = displacementMap(w, h, opts);
+  const { data, width, height } = opts.lens ? lensMap(w, h, opts) : displacementMap(w, h, opts);
   const canvas = document.createElement('canvas');
   canvas.width = width; canvas.height = height;
   canvas.getContext('2d').putImageData(new ImageData(data, width, height), 0, 0);
@@ -239,7 +342,7 @@ function applyBase(el, s, base) {
 function build(el, s, radiusOverride) {
   clearTimeout(s.timer); s.timer = 0;
   const m = measure(el, radiusOverride);
-  if (m) applyMap(s, m);
+  if (m) applyMap(el, s, m);
 }
 
 // What a map is built from: the surface's size, corners and tokens. Only reads, so
@@ -257,18 +360,29 @@ function measure(el, radiusOverride) {
   });
   const dispersion = Math.max(0, px(cs, '--lg-refraction-dispersion', 0));
   const curve = Math.max(1, px(cs, '--lg-refraction-curve', DEFAULT_CURVE));
-  return { w, h, radius, n, bezel, shift, dispersion, curve };
+  // A lens's outward bend: none unless the surface asks for one.
+  const lens = Math.max(0, px(cs, '--lg-refraction-lens-depth', 0));
+  const lensBezel = px(cs, '--lg-refraction-lens-bezel', DEFAULT_BEZEL);
+  const smooth = lens ? Math.max(0, px(cs, '--lg-refraction-lens-smooth', 0)) : 0;
+  // A lens's layer reaches past the furthest it samples, dispersion included.
+  const margin = lens ? Math.ceil(lens * (1 + dispersion)) + LENS_PAD : 0;
+  return { w, h, radius, n, bezel, shift, dispersion, curve, lens, lensBezel, smooth, margin };
 }
 
 // Puts a measured map on the surface's filter. Only writes.
-function applyMap(s, { w, h, radius, n, bezel, shift, dispersion, curve }) {
-  const res = w * h > LARGE_AREA ? 0.5 : 1;
-  s.img.setAttribute('href', mapURL(w, h, { radius, bezel, n, res, curve }));
+function applyMap(el, s, { w, h, radius, n, bezel, shift, dispersion, curve, lens, lensBezel, smooth, margin }) {
+  // A lens is small and grows when lifted, and bends every pixel of itself: at one texel per CSS px its edges
+  // would show the steps, so it's built at the screen's own resolution (up to 3).
+  const res = w * h > LARGE_AREA ? 0.5 : lens ? Math.min(3, Math.max(1, Math.ceil(globalThis.devicePixelRatio || 1))) : 1;
+  s.img.setAttribute('href', mapURL(w, h, { radius, bezel, n, res, curve, rim: shift, lens, lensBezel, smooth, margin }));
+  setLayer(el, s, margin);
   setSize(s, w, h);
-  primitives(s, dispersion > 0);
+  primitives(s, dispersion > 0, lens > 0, lens ? LENS_AA / (globalThis.devicePixelRatio || 1) : 0);
   // feDisplacementMap shifts by scale × (channel − 0.5), and the channels reach
-  // about ±0.5, so the largest shift is half the scale.
-  for (const d of s.disps) d.full = 2 * shift * (1 + d.k * dispersion);
+  // about ±0.5, so the largest shift is half the scale. A lens's map is in units
+  // of both its bends (lensMap).
+  const reach = lens ? shift + lens : shift;
+  for (const d of s.disps) d.full = 2 * reach * (1 + d.k * dispersion);
   bend(s, s.bend);
   s.w = w; s.h = h;
 }
@@ -389,15 +503,46 @@ function hold(el, s) {
 // while the color stays at 0.7, which reads as gray. So each channel carries a
 // third of the alpha, an arithmetic sum brings it back to whole, and the colors,
 // a third of their own once unpremultiplied, are scaled back up.
-function primitives(s, chroma) {
-  if (s.chroma === chroma && s.disps) return;
+//
+// A lens (`lens`) is drawn over what it bends, unbent, so under another glass
+// surface the translucent fill it bends would let the unbent picture show
+// through it: what's around the lens, pulled in at the rim, would read as a
+// faint wash over the very thing it should cover. Its picture is made opaque
+// (alpha × LENS_OPAQUE: a fill a quarter opaque or more comes out solid, in its
+// own color), which changes nothing over a page, already opaque. Then it's cut to
+// the lens's shape, the map's blue (lensMap): its layer reaches past the lens, and
+// a CSS clip won't do, as Chromium's GPU path cuts a backdrop filter off from the
+// page behind it under a rounded clip whose corners differ across, which a lens
+// stretching on the move has (pill-drag-core.js sets them per axis).
+//
+// The displacement takes whole pixels of the backdrop, never a blend of two, so
+// the edges it moves come out stepped, and where the rim folds a lot of the
+// backdrop into a little room it leaves stray pixels. The lens is clear glass
+// that bends every pixel of itself, so it shows: its picture is softened by
+// LENS_AA screen px (`soften`, in the filter's own px), after the bend. Softened
+// before it instead, the fold magnifies the blur into a smear.
+const LENS_OPAQUE = 4;
+const LENS_AA = 0.6;
+function primitives(s, chroma, lens = false, soften = 0) {
+  if (s.chroma === chroma && s.lens === lens && s.soften === soften && s.disps) return;
   s.chroma = chroma;
+  s.lens = lens;
+  s.soften = soften;
   while (s.filter.lastChild !== s.img) s.filter.lastChild.remove();
   const displace = (result) => svg('feDisplacementMap', { in: 'SourceGraphic', in2: 'map', scale: 0, xChannelSelector: 'R', yChannelSelector: 'G', result });
+  const opaque = () => {
+    if (!lens) return;
+    if (soften) s.filter.append(svg('feGaussianBlur', { in: 'out', stdDeviation: soften, result: 'out' }));
+    const t = svg('feComponentTransfer', { in: 'out', result: 'solid' });
+    t.append(svg('feFuncA', { type: 'linear', slope: LENS_OPAQUE }));
+    const shape = svg('feColorMatrix', { in: 'map', type: 'matrix', result: 'shape', values: '0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 1 0 0' });
+    s.filter.append(t, shape, svg('feComposite', { in: 'solid', in2: 'shape', operator: 'in', result: 'lens' }));
+  };
   if (!chroma) {
     const node = displace('out');
     s.filter.append(node);
     s.disps = [{ node, k: 0 }];
+    opaque();
     return;
   }
   s.disps = [];
@@ -417,15 +562,36 @@ function primitives(s, chroma) {
   const whole = svg('feComponentTransfer', { in: last, result: 'out' });
   for (const f of ['feFuncR', 'feFuncG', 'feFuncB']) whole.append(svg(f, { type: 'linear', slope: 3 }));
   s.filter.append(whole);
+  opaque();
 }
 
-// The map covers the box, and so does the filter region: past the map there's
-// no offset to read.
+// The map covers the box (a lens's, its layer), and so does the filter region:
+// past the map there's no offset to read.
 function setSize(s, w, h) {
   for (const node of [s.img, s.filter]) {
-    node.setAttribute('width', w);
-    node.setAttribute('height', h);
+    node.setAttribute('width', w + 2 * s.margin);
+    node.setAttribute('height', h + 2 * s.margin);
   }
+}
+
+// A lens (margin > 0) takes its filter off itself and onto a layer `margin` px bigger (styles/refraction.css),
+// which the filter cuts back to its shape (primitives). It's the first thing in it, painted under the rest.
+function setLayer(el, s, margin) {
+  s.margin = margin;
+  if (!margin) {
+    s.layer?.remove(); s.layer = null;
+    el.classList.remove('lg-refracting--lens');
+    el.style.removeProperty('--_lg-refraction-margin');
+    return;
+  }
+  if (!s.layer) {
+    s.layer = document.createElement('span');
+    s.layer.className = 'lg-refraction-layer';
+    s.layer.setAttribute('aria-hidden', 'true');
+  }
+  if (s.layer.parentNode !== el) el.prepend(s.layer);
+  el.classList.add('lg-refracting--lens');
+  el.style.setProperty('--_lg-refraction-margin', margin + 'px');
 }
 
 // A size change: stretch the map that's there right away, rebuild it once settled.
@@ -502,12 +668,12 @@ function activate(els) {
     const img = svg('feImage', { x: 0, y: 0, preserveAspectRatio: 'none', result: 'map' });
     filter.append(img);
     filterHost().append(filter);
-    const s = { id, filter, img, disps: null, chroma: null, w: 0, h: 0, timer: 0, base: '', manual, bend: 1, held: false, ramp: 0 };
+    const s = { id, filter, img, disps: null, chroma: null, w: 0, h: 0, timer: 0, base: '', manual, bend: 1, held: false, ramp: 0, margin: 0, layer: null };
     primitives(s, false);   // a plain bend until the map reads the tokens
     surfaces.set(el, s);
     el.classList.add('lg-refracting');
     applyBase(el, s, base);
-    if (holds.has(el)) hold(el, s); else if (map) applyMap(s, map);
+    if (holds.has(el)) hold(el, s); else if (map) applyMap(el, s, map);
     el.addEventListener('transitionend', onTransitionEnd);
     ro ??= new ResizeObserver((entries) => {
       for (const { target } of entries) {
@@ -539,6 +705,7 @@ function deactivate(el) {
   // current one again, if any. A surface's own hold stays: only its morph replaces it.
   if (holds.get(el)?.inner) holds.delete(el);
   s.filter.remove();
+  setLayer(el, s, 0);
   surfaces.delete(el);
   ro?.unobserve(el);
   el.removeEventListener('transitionend', onTransitionEnd);
@@ -559,7 +726,7 @@ const restyled = new Set();   // elements whose glass style changed: the surface
 // Classes that flip while glass is pressed, dragged or lifted. They change
 // nothing refraction reads, and a press toggles several of them, so a change to
 // these alone isn't worth a look (re-reading a surface forces a style recalc).
-const TRANSIENT = new Set(['lg-refracting', 'lg-pressing', 'lg-dragging', 'lg-settling', 'lg-pill--lifted', 'is-active']);
+const TRANSIENT = new Set(['lg-refracting', 'lg-refracting--lens', 'lg-pressing', 'lg-dragging', 'lg-settling', 'lg-pill--lifted', 'is-active']);
 const signature = (cls) => (cls ?? '').split(/\s+/).filter((c) => c && !TRANSIENT.has(c)).sort().join(' ');
 
 let wanted = true;            // the page's switch, setRefraction()

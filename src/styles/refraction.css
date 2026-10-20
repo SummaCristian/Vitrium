@@ -42,6 +42,45 @@
   --lg-refraction-dispersion: 0.15;
 }
 
+/* The toggle's thumb, lifted, is a lens (--lg-refraction-lens-*, core/refraction.js, and below): its face
+   shrinks the track toward its middle and pulls the page around it in, as white bands above and below the
+   track, while its rim bends inward, deep and narrow, so the track shows through it as a faint line along the
+   top and bottom edges and floods the end of the lens over it up to the rim. Measured off the iOS 27 toggle
+   (a 59 × 39pt lens dragged slowly over the track), fitted to where the track shows through it, pixel by
+   pixel, across five frames: outward 5.2pt at the rim fading linearly over 23.5pt, smoothed over 6.3pt;
+   inward 10pt at the rim over a 6.3pt bezel, on a t^1.9 curve; no color split. Divided by the lift's scale
+   (tapScale 1.45), as above. */
+.lg-toggle .lg-pill-inner {
+  --lg-refraction-lens-depth: 3.61px;
+  --lg-refraction-lens-bezel: 16.2px;
+  --lg-refraction-lens-smooth: 4.33px;
+  --lg-refraction-bezel: 4.33px;
+  --lg-refraction-depth: 6.93px;
+  --lg-refraction-curve: 1.92;
+  --lg-refraction-dispersion: 0;
+}
+
+/* A lens shows what's just around it, and the lifted pill's rim (pill.css: the outline and highlight on the pill,
+   the inner edge on the glass) is painted under its glass, so it would show its own rim again, pulled in. On a
+   lens the rim is drawn over the glass instead, on top of the refraction's layer. */
+:root[data-refraction="on"] .lg-pill--lifted:has(> .lg-refracting--lens),
+:root[data-refraction="on"] .lg-pill--lifted > .lg-refracting--lens {
+  box-shadow: none;
+}
+
+:root[data-refraction="on"] .lg-pill--lifted > .lg-refracting--lens::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 0.1px var(--lg-outline),
+    var(--lg-highlight),
+    inset 0 1px 0 var(--lg-pill-highlight),
+    inset 0 0 0 1px var(--lg-pill-border);
+}
+
 /* The tab bar's and the segmented control's lenses lift by a fixed 8.5px a side (liftOutset) rather than
    tapScale: about 1.2x along their length and 1.3x or more across, so their bezel is set for that. */
 .lg-tabbar .lg-pill-inner,
@@ -70,9 +109,36 @@
 }
 
 /* At rest the lens is a flat fill with no backdrop, and keeps none. */
-:root[data-refraction="on"] .lg-pill:not(.lg-pill--lifted) .lg-pill-inner.lg-refracting {
+:root[data-refraction="on"] .lg-pill:not(.lg-pill--lifted) .lg-pill-inner.lg-refracting,
+:root[data-refraction="on"] .lg-pill:not(.lg-pill--lifted) .lg-refraction-layer {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
+}
+
+/* A lens (a surface with --lg-refraction-lens-depth, core/refraction.js) shows what's around it, which its
+   own backdrop doesn't reach. Its filter goes on a layer of its own, reaching --_lg-refraction-margin past it,
+   and the filter cuts its picture back to the surface's shape. Nothing may clip the layer: under a rounded
+   clip whose corners differ across (a stretching lens's), Chromium's GPU path cuts a backdrop filter off from
+   the page behind it. The layer is painted first in the surface (isolation makes that its stacking context),
+   over its background: a lens carries any tint in a layer of its own. Keyed on .lg-refracting too, so lifting
+   that to read the surface's own backdrop brings it back. */
+.lg-refraction-layer {
+  position: absolute;
+  inset: calc(var(--_lg-refraction-margin, 0px) * -1);
+  z-index: -1;
+  pointer-events: none;
+}
+
+:root[data-refraction="on"] .lg-refracting.lg-refracting--lens {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  overflow: visible;
+  isolation: isolate;
+}
+
+:root[data-refraction="on"] .lg-refracting--lens > .lg-refraction-layer {
+  -webkit-backdrop-filter: var(--_lg-refraction);
+  backdrop-filter: var(--_lg-refraction);
 }
 /* Glass style (components/glass-style.js), for glass that isn't refracting:
    [data-glass-style] on <html> sets it for the whole page, and on any element

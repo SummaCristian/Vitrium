@@ -70,6 +70,10 @@
      by 1 - --lg-shadow-tint, at --lg-shadow-tint-alpha. */
   --lg-shadow-tint: 0.85;
   --lg-shadow-tint-alpha: 0.2;
+  /* Presence: a faint, tight shadow some glass keeps at every elevation, low included, so it stands off the page
+     (see --lg-presence in glass.css): buttons cast it in this color, tinted glass in its own, at the tint alpha. */
+  --lg-shadow-presence-color: rgba(0, 0, 0, 0.12);
+  --lg-shadow-presence-tint-alpha: 0.55;
 
   /* Elevation: how high a glass surface floats, and so the shadow it casts. Measured off iOS / iPadOS 27 on a
      white page, the levels are:
@@ -267,6 +271,7 @@
   --lg-rim-shade-alpha: 0.9;
   --lg-shadow-tint: 1;
   --lg-shadow-tint-alpha: 0.1;
+  --lg-shadow-presence-color: rgba(0, 0, 0, 0.4);
   --lg-ring-color: rgba(0, 0, 0, 0.25);
   --lg-ring-fill: rgba(0, 0, 0, 0.04);
   --lg-ring-tint-alpha: 0.2;
@@ -303,6 +308,7 @@
     --lg-rim-shade-alpha: 0.9;
     --lg-shadow-tint: 1;
     --lg-shadow-tint-alpha: 0.1;
+    --lg-shadow-presence-color: rgba(0, 0, 0, 0.4);
     --lg-ring-color: rgba(0, 0, 0, 0.25);
     --lg-ring-fill: rgba(0, 0, 0, 0.04);
     --lg-ring-tint-alpha: 0.2;

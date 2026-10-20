@@ -27,6 +27,8 @@
     filter 0.2s ease;
   /* Adapt native rendering (focus rings, etc.) to the theme. */
   color-scheme: light dark;
+  /* A faint shadow at every level, so the button stands off the page (see --lg-presence in glass.css). */
+  --lg-presence: 1;
 }
 
 .lg-button:focus-visible {

@@ -24,6 +24,9 @@
                              high a ring a little below, extra-high a wide, soft
                              ring well below. Put it on the surface or on any
                              ancestor, such as a component's root.
+   --lg-presence: 1          a faint, tight shadow kept at every level, for
+                             controls that would read flat: buttons and tinted
+                             glass (in the tint's color) set it.
 
    Combine with .liquid-glass (liquid-glass.css) for the press/deform physics. */
 
@@ -61,8 +64,11 @@
   /* The default level's faint shadow, cast only where the level asks for it
      (--lg-elevation-drop). */
   --_drop: 0 5px 14px -4px color-mix(in srgb, var(--lg-shadow-color) calc(50% * var(--lg-elevation-drop, 1)), transparent);
-  --lg-shadow: var(--lg-shadow-rim), var(--_drop);
-  --lg-shadow-compact: var(--lg-shadow-rim), var(--_drop);
+  /* Presence, on whatever sets --lg-presence: 1 (buttons, tinted glass): a faint, tight shadow right under the
+     edge at every level, low included, for controls that would otherwise read flat on the page. */
+  --_presence: 0 3px 10px -3px color-mix(in srgb, var(--lg-shadow-presence-color) calc(100% * var(--lg-presence, 0)), transparent);
+  --lg-shadow: var(--lg-shadow-rim), var(--_presence), var(--_drop);
+  --lg-shadow-compact: var(--lg-shadow-rim), var(--_presence), var(--_drop);
   isolation: isolate;
 }
 
@@ -80,6 +86,12 @@
   --lg-elevation: 1;
   --lg-elevation-strength: 0;
   --lg-elevation-drop: 1;
+  --lg-presence: 0;
+}
+
+/* Colored glass always has presence: without it a tinted control reads flat below the high ring. */
+.lg-glass--tinted {
+  --lg-presence: 1;
 }
 
 .lg-elevation-low {
@@ -286,8 +298,8 @@
       inset 0 1px 0 0 color(from var(--_rim-top) display-p3 r g b / calc(alpha * var(--_rim-k) * 0.5)),
       inset 0 1px 0 1px color(from var(--_rim-top) display-p3 r g b / calc(alpha * var(--_rim-k) * 0.3));
     --lg-shadow-rim: 0 0 0 0.1px var(--lg-outline), var(--lg-highlight);
-    --lg-shadow: var(--lg-shadow-rim), var(--_drop);
-    --lg-shadow-compact: var(--lg-shadow-rim), var(--_drop);
+    --lg-shadow: var(--lg-shadow-rim), var(--_presence), var(--_drop);
+    --lg-shadow-compact: var(--lg-shadow-rim), var(--_presence), var(--_drop);
   }
 
   .lg-glass--clear {
@@ -317,6 +329,7 @@
       l c h / var(--lg-shadow-tint-alpha)
     );
     --lg-ring-color: oklch(from var(--lg-shadow-color) l c h / var(--lg-ring-tint-alpha));
+    --lg-shadow-presence-color: oklch(from var(--lg-shadow-color) l c h / var(--lg-shadow-presence-tint-alpha));
   }
 }
 

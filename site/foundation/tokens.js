@@ -57,6 +57,8 @@ const NOTES = {
   '--lg-stroke-clear': 'How strong the stroke is on clear glass, as a fraction of regular.',
   '--lg-shadow-tint': 'Tinted glass: how much of the tint colors the drop shadow (0 is black).',
   '--lg-shadow-tint-alpha': 'Tinted glass: opacity of the colored drop shadow.',
+  '--lg-shadow-presence-color': 'Presence: the faint, tight shadow buttons keep at every elevation, low included.',
+  '--lg-shadow-presence-tint-alpha': 'Presence on tinted glass, which casts it in its own color: its opacity.',
   '--lg-ring-color': 'Color of the ring shadow glass casts, at the high level.',
   '--lg-ring-offset': 'How far below the glass its ring shadow lands, at the high level.',
   '--lg-ring-blur': 'Softness of the ring shadow, at the high level.',

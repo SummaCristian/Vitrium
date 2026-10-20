@@ -101,6 +101,7 @@ const NOTES = {
   '--lg-toggle-on': 'On-color of the toggle track.',
   '--lg-danger': 'Destructive actions.',
   '--lg-pill-bg': 'Resting fill of a sliding pill.',
+  '--lg-pill-rest-blur': 'Blur behind a resting pill in the tab bar, and in a segmented control with `blur` on, over the bar\'s own.',
   '--lg-pill-highlight': 'Highlight on the lifted pill.',
   '--lg-pill-border': 'Border of the lifted pill.',
   '--lg-ease-spring': 'Spring-back easing with overshoot.',

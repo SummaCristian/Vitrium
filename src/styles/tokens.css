@@ -223,6 +223,9 @@
   /* Sliding pill (tab bar, segmented control, toggle thumb): flat fill at
      rest, full glass while lifted. */
   --lg-pill-bg: color-mix(in srgb, var(--lg-text) 8%, transparent);
+  /* The resting lens's blur of what's behind it (see .lg-pill-fill in pill.css): on top of the bar's own, so the
+     selected cell reads a little softer than the rest of the bar. */
+  --lg-pill-rest-blur: 2px;
   --lg-pill-highlight: rgba(255, 255, 255, 0.3);
   --lg-pill-border: rgba(255, 255, 255, 0.1);
 
@@ -348,6 +351,7 @@
    backdrop-filter is disabled and the tint becomes near-opaque so surfaces
    stay legible without the blur behind them. Must come after the theme blocks. */
 :root[data-blur="off"] {
+  --lg-pill-rest-blur: 0px;
   --lg-blur-sm: 0px;
   --lg-blur-md: 0px;
   --lg-blur-lg: 0px;

@@ -110,6 +110,16 @@
   opacity: calc(1 - var(--lg-glass));
 }
 
+/* At rest the fill frosts what's behind it a little (--lg-pill-rest-blur). The lens isn't inside the bar or the track
+   but over it, so this blurs the bar's already blurred backdrop again: the selected cell reads a touch softer than the
+   rest of the bar. The segmented control's track blurs only when asked (`blur`), and so does its lens. The fill fades
+   out as the lens turns to glass, handing over to the glass's own blur. */
+.lg-tabbar .lg-pill--fade .lg-pill-fill,
+.lg-seg--blur .lg-pill--fade .lg-pill-fill {
+  -webkit-backdrop-filter: blur(var(--lg-pill-rest-blur));
+  backdrop-filter: blur(var(--lg-pill-rest-blur));
+}
+
 .lg-pill--fade .lg-pill-inner {
   background: transparent;
   opacity: var(--lg-glass);

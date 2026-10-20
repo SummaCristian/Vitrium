@@ -20,7 +20,17 @@
 
 .lg-toggle.on {
   background: var(--lg-toggle-on);
-  box-shadow: none;
+}
+
+/* Disabled: dimmed, as iOS dims a switch it won't let you flip, and deaf to the pointer (hover included). The
+   thumb's grab target turns its own pointer events back on (pill.css), so it's turned off by name. */
+.lg-toggle:disabled,
+.lg-toggle:disabled .lg-pill-hit {
+  pointer-events: none;
+}
+
+.lg-toggle:disabled {
+  opacity: 0.4;
 }
 
 .lg-toggle:focus-visible {
@@ -72,13 +82,18 @@
 }
 
 /* The thumb is too small to lift as far as other glass: the full ring offset
-   left its shadow looking detached. */
+   left its shadow looking detached. Its glass is clear, as iOS's is: where refraction is off (Safari, Firefox)
+   the lifted lens shows the track through it unbent, rather than through the pill's usual blur and gray fill,
+   which smeared the green under it. No backdrop filter at all, not even a zero blur: that would cut the frost
+   (::before, above) off from what's behind the lens. */
 .lg-toggle .lg-pill {
   --lg-ring-offset: 5px;
 }
 
 .lg-toggle .lg-pill.lg-pill--lifted .lg-pill-inner {
-  background: var(--lg-pill-bg);
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 /* The rim's stroke comes and goes with the glass rather than at once with the lifted class: the glass outlasts

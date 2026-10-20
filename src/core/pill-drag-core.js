@@ -159,6 +159,9 @@ const clamp = (x, m) => Math.max(-m, Math.min(m, x));
 //                      the pill; without this it just settles back).
 //   hover              an element for the hover pill (HOVER), placed in the track
 //                      before `items`; without it, nothing shows on hover.
+//   hoverLens          hover without the pill: wherever a mouse or pen is on the control, the selected lens leans
+//                      and stretches toward it (as it does over its own cell with `hover`), by its offset from the
+//                      selected cell's middle. true, or HOVER's keys to tune it with (over HOVER).
 //   onRender({ pos })  after every frame's transforms are written.
 //   onAim(index)       during a drag, the cell under the lens changed (before it's let go, and again when it's let
 //                      go, back to the selected one if that's where it settles): for a control that shows where the
@@ -170,6 +173,7 @@ const clamp = (x, m) => Math.max(-m, Math.min(m, x));
 export function createPillDragCore({
   root, items, pill, hit, activeRow,
   hover = null,
+  hoverLens = null,
   cellSelector,
   activeCellClass = 'lg-pill-active-cell',
   liftedClass = 'lg-pill--lifted',
@@ -251,6 +255,7 @@ export function createPillDragCore({
   selHov.eps = 0.002;
   const selLean = new Spring(0), selLeanCross = new Spring(0), selExtra = new Spring(0);
   let selShown = false, ptr = null;
+  let ptrAt = null;   // with hoverLens: the pointer's client position over the control
   // The hovered labels' growth (0..1) per cell, and the selected copy last grown.
   const labelGrow = new Map();
   let grownCopy = null;
@@ -283,6 +288,8 @@ export function createPillDragCore({
   // How it deforms as it moves (`stretch`, over STRETCH) and how closely it follows a drag (`follow`, over FOLLOW).
   const ST = { ...STRETCH, ...stretch };
   const followSpring = { ...FOLLOW, ...follow };
+  // How hover moves things (`hoverLens`'s keys, over HOVER).
+  const HV = { ...HOVER, ...(hoverLens && typeof hoverLens === 'object' ? hoverLens : null) };
 
   // While the lens is in play (pressed, lifted, or still moving after), its motion deforms it; once it's at rest
   // on the ground the deformation's targets drop to 0, and what's left of it eases out.
@@ -483,8 +490,8 @@ export function createPillDragCore({
     // In px, added to the lifted size (see STRETCH.length), then as a scale of the lens's own size.
     const dMain = ST.length * (motion - q);
     const dCross = ST.length * (-motion * (motion > 0 ? ST.crossStretch : ST.crossSquash) + q * WALLS.cross);
-    // Hovered (at rest), it grows by HOVER.selScale and leans and stretches toward the pointer.
-    const hs = 1 + (HOVER.selScale - 1) * sh;
+    // Hovered (at rest), it grows by HV.selScale and leans and stretches toward the pointer.
+    const hs = 1 + (HV.selScale - 1) * sh;
     const scMain = pillMain.value ? liftMain * hs + (dMain + selExtra.value * sh) / pillMain.value : liftMain * hs;
     // Across, it grows only into half the track's padding on either side, so a narrow track (a column) keeps it.
     const hsCross = crossSize ? Math.min(hs, Math.max(1, 1 + Math.min(padCross[0], padCross[1]) / crossSize)) : hs;
@@ -565,12 +572,12 @@ export function createPillDragCore({
 
   function renderHover(L, g, crossSize, sh) {
     if (!hover) return;
-    // The labels: the hovered cell's grows (HOVER.label), and the selected cell's copy with its lens (HOVER.selLabel).
-    for (const [el, sp] of labelGrow) el.style.scale = sp.value > 0.001 ? String(1 + (HOVER.label - 1) * sp.value) : '';
+    // The labels: the hovered cell's grows (HV.label), and the selected cell's copy with its lens (HV.selLabel).
+    for (const [el, sp] of labelGrow) el.style.scale = sp.value > 0.001 ? String(1 + (HV.label - 1) * sp.value) : '';
     const copy = index >= 0 ? activeRow.children[index] : null;
     if (grownCopy && grownCopy !== copy) grownCopy.style.removeProperty('--lg-pill-hover-scale');
     if (copy) {
-      if (sh > 0.001) copy.style.setProperty('--lg-pill-hover-scale', String(1 + (HOVER.selLabel - 1) * sh));
+      if (sh > 0.001) copy.style.setProperty('--lg-pill-hover-scale', String(1 + (HV.selLabel - 1) * sh));
       else copy.style.removeProperty('--lg-pill-hover-scale');
     }
     grownCopy = copy;
@@ -596,7 +603,7 @@ export function createPillDragCore({
   function growLabel(i) {
     const el = cells[i];
     if (el && !labelGrow.has(el)) labelGrow.set(el, new Spring(0));
-    for (const [c, sp] of labelGrow) sp.to(c === el ? 1 : 0, HOVER.fade);
+    for (const [c, sp] of labelGrow) sp.to(c === el ? 1 : 0, HV.fade);
   }
 
   // An element's box in the pointer's units (see rectK; until it's settled, the units current engines use).
@@ -621,8 +628,17 @@ export function createPillDragCore({
   // The pointer (a mouse or pen, not a finger) over the cells. Over the selected one its lens grows toward it;
   // over another, the hover pill goes there.
   function hoverAt(e) {
-    if (!hover || !anchors.length || e.pointerType === 'touch') return;
+    if (!(hover || hoverLens) || !anchors.length || e.pointerType === 'touch') return;
     if (dragging && grabbed) return hoverOff();
+    if (!hover) {
+      // Lens only: the pointer anywhere on the control aims the selected lens.
+      calibrate(e, cells.indexOf(e.target.closest?.(cellSelector)));
+      ptrAt = [e.clientX, e.clientY];
+      ptr = lensPtr();
+      if (ptr && selShown) aimSelected();
+      syncSelected();
+      return;
+    }
     // The cell is the one the browser finds under the pointer (the lens's grab target lies over the selected one),
     // not one worked out from coordinates: some hosts (VS Code's preview) report boxes under CSS zoom in other
     // units than the pointer, which put that a cell or more off.
@@ -648,7 +664,7 @@ export function createPillDragCore({
     const off = clamp((vertical ? e.clientY - my : e.clientX - mx) / k, anchors[i].size / 2);
     const offCross = clamp((vertical ? e.clientX - mx : e.clientY - my) / k, crossSize / 2);
     const a = anchors[i];
-    const leanCross = clamp(offCross * HOVER.leanCross, HOVER.leanCrossMax);
+    const leanCross = clamp(offCross * HV.leanCross, HV.leanCrossMax);
     ptr = { i, off, offCross };
     if (i === index) {
       if (!handover) hideHover();
@@ -664,48 +680,62 @@ export function createPillDragCore({
     if (hovIdx < 0 || (hovVis.target === 0 && hovVis.value < 0.05)) {
       hovPos.set(a.pos); hovMain.set(a.size);   // coming in: placed on the cell at once
     } else if (i !== hovIdx) {
-      hovPos.to(a.pos, HOVER.glide); hovMain.to(a.size, HOVER.glide);
+      hovPos.to(a.pos, HV.glide); hovMain.to(a.size, HV.glide);
     }
     hovIdx = i;
     growLabel(i);
     if (!hoverPressed) {
-      const extra = Math.abs(off) * HOVER.stretch;
-      hovLean.to(clamp(off * HOVER.lean, HOVER.leanMax) + Math.sign(off) * extra / 2, HOVER.glide);
-      hovExtra.to(extra, HOVER.glide);
-      hovLeanCross.to(leanCross, HOVER.glide);
+      const extra = Math.abs(off) * HV.stretch;
+      hovLean.to(clamp(off * HV.lean, HV.leanMax) + Math.sign(off) * extra / 2, HV.glide);
+      hovExtra.to(extra, HV.glide);
+      hovLeanCross.to(leanCross, HV.glide);
     }
-    hovVis.to(1, HOVER.fade);
+    hovVis.to(1, HV.fade);
   }
 
   function hideHover() {
     if (handover || hovVis.target === 0) return;
-    hovVis.to(0, HOVER.fade);
+    hovVis.to(0, HV.fade);
   }
 
   // The pointer left the control (or grabbed the lens): everything hover shows goes.
   function hoverOff() {
     hideHover();
     growLabel(-1);
-    ptr = null;
+    ptr = null; ptrAt = null;
     syncSelected();
+  }
+
+  // With hoverLens, where the pointer (ptrAt) is from the selected cell's middle, in its own px: along the rail as far
+  // as the cells reach, across within them.
+  function lensPtr() {
+    if (!ptrAt || index < 0 || !cells[index]) return null;
+    const box = rectOf(cells[index]);
+    const k = (vertical ? box.height : box.width) / anchors[index].size || 1;
+    const mx = (box.left + box.right) / 2, my = (box.top + box.bottom) / 2;
+    const off = clamp((vertical ? ptrAt[1] - my : ptrAt[0] - mx) / k, vertical ? itemsH : itemsW);
+    const offCross = clamp((vertical ? ptrAt[0] - mx : ptrAt[1] - my) / k, (vertical ? itemsW : itemsH) / 2);
+    return { i: index, off, offCross };
   }
 
   // The selected lens leans and stretches toward the pointer over it.
   function aimSelected() {
-    const extra = Math.min(HOVER.selStretchMax, Math.abs(ptr.off) * HOVER.selStretch);
-    selLean.to(clamp(ptr.off * HOVER.selLean, HOVER.leanMax) + Math.sign(ptr.off) * extra / 2, HOVER.glide);
-    selExtra.to(extra, HOVER.glide);
-    selLeanCross.to(clamp(ptr.offCross * HOVER.leanCross, HOVER.leanCrossMax), HOVER.glide);
+    const extra = Math.min(HV.selStretchMax, Math.abs(ptr.off) * HV.selStretch);
+    selLean.to(clamp(ptr.off * HV.selLean, HV.leanMax) + Math.sign(ptr.off) * extra / 2, HV.glide);
+    selExtra.to(extra, HV.glide);
+    selLeanCross.to(clamp(ptr.offCross * HV.leanCross, HV.leanCrossMax), HV.glide);
   }
 
   // The selected cell hovered grows its lens, once the lens is at rest (not pressed, lifted or still settling): also
   // when the lens has just landed on the cell under a pointer that hasn't moved since it was picked.
   function syncSelected(L = lift.value) {
+    // With hoverLens, a lens that has landed on another cell under a pointer that hasn't moved aims from there.
+    if (!hover && ptrAt && ptr && ptr.i !== index) ptr = lensPtr();
     const on = !!ptr && ptr.i === index && !active && !dragging && !fallStart && L < 0.01;
     if (on === selShown) return;
     selShown = on;
     if (on) { growLabel(-1); aimSelected(); }
-    selHov.to(on ? 1 : 0, on ? HOVER.grow : HOVER.shrink);
+    selHov.to(on ? 1 : 0, on ? HV.grow : HV.shrink);
   }
 
   const offFrame = onSpringFrame(render);
@@ -849,7 +879,7 @@ export function createPillDragCore({
     // Pressed, the hovered cell's pill stops leaning, back on its cell.
     if (!onHit && cells.indexOf(captureEl) === hovIdx && hovVis.target > 0) {
       hoverPressed = true;
-      hovLean.to(0, HOVER.press); hovExtra.to(0, HOVER.press); hovLeanCross.to(0, HOVER.press);
+      hovLean.to(0, HV.press); hovExtra.to(0, HV.press); hovLeanCross.to(0, HV.press);
     }
 
     // A press, anywhere on the control, grows the lens a little, still flat, and a moment later lifts it into
@@ -988,7 +1018,7 @@ export function createPillDragCore({
     }
   }
 
-  if (hover) {
+  if (hover || hoverLens) {
     // On the whole control, not just the cells: the lens's grab target lies over the selected cell outside `items`,
     // and the hole cut in `items` under the lens (updateMask) takes it out from under the pointer.
     root.addEventListener('pointermove', hoverAt);

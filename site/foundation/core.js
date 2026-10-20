@@ -329,6 +329,7 @@ core.select(1, { animate: false, silent: true });`),
           ['`walls`', 'How far past an end the lifted lens goes (`travel`, px) and how much it squashes pushed against it (`squash`). The toggle\'s goes 9.9px and doesn\'t squash.'],
           ['`follow`, `stretch`', 'The spring the lens follows a drag on, and how it deforms as it moves (with speed, and as it speeds up and brakes). The toggle\'s trails about 100ms behind and deforms far less than the tab bar\'s, as iOS 27\'s does. A tap\'s slide and how long the lens stays up after it are in `lift` (`tapSlide`, `tapSlideMs`, `tapHoldMs`).'],
           ['`onAim(index)`, `flipUnlessCrossed`, `holdMs`', 'For a control that shows where the dragged lens is before it\'s let go: `onAim` reports the cell under it as that changes. `flipUnlessCrossed` makes any grab of the lens that never crossed into the next cell a tap. `holdMs` is how long a cell is held before the lens comes to the finger (0: at once, lifting and moving together). The toggle uses all three.'],
+          ['`hoverLens`', 'Hover without the hover pill: wherever a mouse or pen is on the control, the selected lens leans and stretches toward it. `true`, or the hover\'s numbers to tune it with. The toggle\'s thumb leans about half as far as the tab bar\'s lens and doesn\'t grow.'],
         ]),
         table(['Member', 'Description'], [
           ['`select(index, { animate, silent })`', 'Select a cell. Silent selects do not call `onChange`.'],

@@ -19,11 +19,12 @@ export default {
         { key: 'value', label: 'Value', type: 'bool', default: true },
         { key: 'colorMode', label: 'On color', type: 'choice', choices: COLOR_MODES, default: 'default' },
         { key: 'color', label: 'Custom color', type: 'color', default: '#ff375f', when: (s) => s.colorMode === 'custom' },
+        { key: 'disabled', label: 'Disabled', type: 'bool', default: false },
       ],
       render(s, stage) {
         log = readout('Tap, press Space, or drag the thumb');
         toggle = createToggle({
-          value: s.value, color: colorOf(s.colorMode, s.color), label: 'Demo',
+          value: s.value, color: colorOf(s.colorMode, s.color), label: 'Demo', disabled: s.disabled,
           onChange: (on) => { log.textContent = `onChange(${on})`; },
         });
         stage.append(h('div', { class: 'demo-stack' }, h('div', { class: 'demo-zoom' }, toggle.el), log));
@@ -31,12 +32,13 @@ export default {
       // The thumb springs and the track fades to its new color, so changes are set on the live toggle.
       patch(s, stage, key) {
         if (key === 'value') toggle.set(s.value);
+        else if (key === 'disabled') toggle.setDisabled(s.disabled);
         else toggle.setColor(colorOf(s.colorMode, s.color));
       },
       code: (s) => `import { createToggle } from 'vitrium';
 
 const toggle = createToggle({
-${lines('  ', `value: ${s.value},`, s.colorMode !== 'default' && `color: ${s.colorMode === 'custom' ? `'${s.color}'` : `'accent'`},`, `label: 'Notifications',`, 'onChange(on) {},')}
+${lines('  ', `value: ${s.value},`, s.colorMode !== 'default' && `color: ${s.colorMode === 'custom' ? `'${s.color}'` : `'accent'`},`, s.disabled && 'disabled: true,', `label: 'Notifications',`, 'onChange(on) {},')}
 });
 document.body.append(toggle.el);`,
     });
@@ -73,7 +75,7 @@ document.body.append(toggle.el);`,
 
     return [
       section('Overview', {},
-        h('p', {}, 'A toggle is an on/off switch with a thumb you can tap, or grab and drag. The thumb lifts into glass while you hold it, follows your finger, and settles on whichever end is nearer when you let go.'),
+        h('p', {}, 'A toggle is an on/off switch with a thumb you can tap, or grab and drag. The white thumb frosts into a lens of clear glass while you hold it, follows your finger a beat behind, and flips when you let go, unless you dragged it across to the other side, where it stays. It moves and looks like the iOS 27 switch, measured off recordings of it.'),
         h('p', {}, 'It is a real `<button role="switch">`, so Space and Enter work, it is in the tab order, and screen readers announce it as a switch that is on or off.')),
 
       section('Playground', {},
@@ -82,13 +84,16 @@ document.body.append(toggle.el);`,
 
       section('Interaction', {},
         table(['Input', 'What happens'], [
-          ['Tap the thumb or the track', 'Flips. A tap is anything that moves less than 8px.'],
-          ['Press and hold', 'The thumb lifts into a glass pill.'],
-          ['Drag', 'The thumb follows the finger along the track, and can be pulled up to 8px past either end. Horizontal drags belong to the thumb; vertical ones still scroll the page.'],
-          ['Release', 'It commits to the end the thumb is nearer, so letting go past the middle flips it, and letting go before the middle puts it back.'],
-          ['Space or Enter', 'Flips, with the same spring.'],
+          ['Hover (mouse or pen)', 'The thumb leans a little toward the pointer, wherever it is on the toggle, and stretches after it. iOS has no hover here: this is Vitrium\'s.'],
+          ['Tap the thumb or the track', 'Flips: the thumb lifts, slides over and lands.'],
+          ['Press and hold the thumb', 'It lifts into a lens of clear glass, through a frost, and stays there.'],
+          ['Press and hold the track', 'The lens lifts and comes to your finger as it does.'],
+          ['Drag', 'The lens follows the finger along the track, about 100ms behind, and stretches a little as it goes. Past either end it slides on a rubber band, up to about 10px. The track takes the color of the side the lens is over as it crosses the middle. Horizontal drags belong to the thumb; vertical ones still scroll the page.'],
+          ['Release', 'It flips, unless the lens was taken across the middle: then it stays on the side it was let go on. So a press that stays on its own side (held still, or moved and brought back) is a tap.'],
+          ['Space or Enter, arrow keys', 'Flip it, with the same spring. Left turns it off and right on.'],
         ]),
-        h('p', {}, 'The thumb is a spring, so it can be grabbed again mid-flight and keeps its momentum. With `prefers-reduced-motion` on, it jumps instead.')),
+        h('p', {}, 'The thumb is a spring, so it can be grabbed again mid-flight and keeps its momentum. With `prefers-reduced-motion` on, it jumps instead.'),
+        h('p', {}, 'Lifted, the lens is bigger than the toggle: about 11px past it to either side (and the rubber band on top of that) and 5px above and below. A container that clips its overflow needs that much room around the toggle.')),
 
       section('On-color', {},
         h('p', {}, 'The track uses `--lg-toggle-on`, the iOS green, as its on-color. Pass `color` to change it for one toggle: any CSS color, or `"accent"` to follow `--lg-accent`.'),
@@ -125,16 +130,17 @@ const row = (name, value) => {
           h('li', {}, h('strong', {}, 'Give it a label. '), 'Without `label` the switch is announced with no name. Use the same words as the text beside it.'),
           h('li', {}, h('strong', {}, 'State is exposed. '), 'The root has `role="switch"` and `aria-checked`, kept in step by `set()` and by the user alike.'),
           h('li', {}, h('strong', {}, 'Keyboard. '), 'Tab to focus, Space or Enter to flip. The focus ring is the accent color, offset 2px, on keyboard focus only.'),
+          h('li', {}, h('strong', {}, 'Disabled. '), 'A disabled toggle is a disabled `<button>`: out of the tab order, and announced as unavailable.'),
           h('li', {}, h('strong', {}, 'Clicking the text beside it does not flip it. '), 'It is not a `<label>`. If you want that, add a click handler on the row that calls `toggle.set(!toggle.on)`, and call your own save code there, since `set` is silent.'))),
 
       section('Styling', {},
-        h('p', {}, 'The toggle is 61 by 31, the proportions of an iOS switch, and the size is fixed: the thumb\'s travel is measured from it. What can change is color, through tokens:'),
+        h('p', {}, 'The toggle is 63 by 28 with a 37 by 24 thumb, iOS 27\'s, and the size is fixed: the thumb\'s travel and the lens\'s physics are measured from it. What can change is color, through tokens:'),
         table(['Token', 'What it colors'], [
           ['`--lg-toggle-on`', 'The track when on. Set on one toggle by `color`, or override it for all.'],
-          ['`--lg-text`', 'The track when off (10% of it) and its inner outline (18%).'],
-          ['`--lg-pill-bg`', 'The thumb while it is lifted into glass.'],
+          ['`--lg-toggle-off`', 'The track when off: a translucent gray, so it reads on any background (darker in the dark theme).'],
           ['`--lg-accent`', 'The focus ring, and the on-color when `color: "accent"`.'],
         ]),
+        h('p', {}, 'The thumb is white in both themes, as on iOS. Lifted, its lens is clear glass that bends the track under it; where refraction is off (Safari, Firefox), it is clear without the bend.'),
         codeBlock(`
 :root { --lg-toggle-on: #30b0c7; }         /* every toggle */
 .danger-zone { --lg-toggle-on: #ff453a; }  /* toggles inside one element */`, 'text')),
@@ -145,13 +151,15 @@ const row = (name, value) => {
           ['value', 'boolean', 'Initial state. Default: `false`.'],
           ['label', 'string', 'Accessible name.'],
           ['color', "CSS color | 'accent'", "On-color of the track. Default: `--lg-toggle-on`."],
+          ['disabled', 'boolean', 'Dimmed, and takes no input. Default: `false`.'],
           ['onChange', '(on: boolean) => void', 'Called when the user changes it. Not called by `set()`.'],
         ].map((r) => [h('code', {}, r[0]), h('code', {}, r[1]), r[2]])),
         h('h3', { class: 'sub-label' }, 'Returned object'),
         table(['Member', 'Description'], [
           ['el', 'The root `<button>`. Append it wherever it should go.'],
           ['on', 'The current value (read-only).'],
-          ['set(value, { animate })', 'Set it from code. Silent, and animates unless `animate` is `false`.'],
+          ['set(value, { animate })', 'Set it from code. Silent, and animates unless `animate` is `false`. Setting the value it already has does nothing.'],
+          ['setDisabled(disabled), disabled', 'Disable it or enable it again, and read which it is. A disabled toggle can still be `set()`.'],
           ['setColor(color)', 'Change the on-color. `null` restores the default.'],
           ['refresh({ snap })', 'Re-measure and re-place the thumb. Called for you when the toggle is resized; call it yourself after moving it between containers.'],
           ['destroy()', 'Remove its listeners and observers.'],

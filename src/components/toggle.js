@@ -56,15 +56,20 @@ const TOGGLE_LENS = {
   // Pressed on the bare track, iOS only lifts the lens where it is; ours comes to the finger, and at once, as it
   // lifts, rather than after a hold.
   holdMs: 0,
+  // Hovered with a mouse or pen (iOS has no hover here: this one is ours), the white thumb leans toward the pointer
+  // wherever it is on the toggle and stretches a little after it, about half as far as the tab bar's lens, without
+  // growing (it sits 2pt in from the track's edge, and the core keeps it inside the track). Over the empty half it
+  // reaches toward where a tap would send it.
+  hoverLens: { selScale: 1, selLean: 0.06, leanMax: 3, selStretch: 0.08, selStretchMax: 2, leanCross: 0, leanCrossMax: 0 },
 };
 
 // `color` is the track's on-color: any CSS color, or 'accent' to follow the
 // system accent (--lg-accent, so it updates when the accent does). Omit it for
 // the default (--lg-toggle-on). setColor() changes it later; null restores the default.
 //
-// Returns { el, set, setColor, refresh, on }. User changes call `onChange(isOn)`;
+// Returns { el, set, setColor, setDisabled, refresh, destroy, on, disabled }. User changes call `onChange(isOn)`;
 // set(isOn) is programmatic (silent) and animates by default.
-export function createToggle({ value = false, onChange, label, color } = {}) {
+export function createToggle({ value = false, onChange, label, color, disabled = false } = {}) {
   const root = el('button', 'lg-toggle' + (value ? ' on' : ''), { type: 'button', role: 'switch' });
   root.setAttribute('aria-checked', String(value));
   if (label) root.setAttribute('aria-label', label);
@@ -87,10 +92,16 @@ export function createToggle({ value = false, onChange, label, color } = {}) {
     el: root,
     setColor,
     get on() { return root.getAttribute('aria-checked') === 'true'; },
+    // Already there: nothing to do (selecting the cell the lens is on would still lift it).
     set(v, { animate = true } = {}) {
+      v = !!v;
+      if (v === api.on && core.index === (v ? 1 : 0)) return;
       apply(v);
       core.select(v ? 1 : 0, { animate, silent: true });
     },
+    get disabled() { return root.disabled; },
+    // A disabled toggle is dimmed and takes no input (toggle.css); set() still moves it.
+    setDisabled(v) { root.disabled = !!v; },
     refresh({ snap = false } = {}) { core.refresh({ snap }); },
     destroy() { ro.disconnect(); core.destroy(); },
   };
@@ -119,6 +130,8 @@ export function createToggle({ value = false, onChange, label, color } = {}) {
   // cells handle their own taps; a click after a drag targets the hit overlay
   // and must not toggle a second time.
   root.addEventListener('click', (e) => { if (e.target === root) flip(); });
+
+  api.setDisabled(disabled);
 
   const ro = new ResizeObserver(() => core.refresh());
   ro.observe(root);

@@ -55,6 +55,24 @@ const STRETCH = {
   max: 0.13,
 };
 
+// The lens's height over time (see `lift` in createPillDragCore): the springs it rises and dips on, how a press
+// starts it (to `press`, flat, then all the way `pressMs` later), how it falls once let go (a parabola, `fallS` long
+// from full height, keeping `landKeep` of its speed for a dip), and the stretch of its height over which it turns
+// from the flat fill to glass on the way up (`glass`) and on the way down (`glassDown`, the same by default), the
+// glass trailing its height by `glassLag` s going down. Measured off the iOS 27 tab bar.
+const LIFT = {
+  up: { stiffness: 500, damping: 25, mass: 0.5 },
+  down: { stiffness: 400, damping: 26, mass: 1 },
+  press: 0.3,
+  pressMs: 60,
+  fall: 'parabola',   // or 'linear': at a steady rate, from full height in fallS
+  fallS: 0.3,
+  landKeep: 0.3,
+  glass: [0.3, 0.7],
+  glassDown: null,
+  glassLag: 0,
+};
+
 const TRAIL = {
   follow: 0.013,                  // fraction of the drag (from where it was grabbed) the whole control leans by
   give: 60,                       // px cap along the rail
@@ -123,6 +141,9 @@ const clamp = (x, m) => Math.max(-m, Math.min(m, x));
 //                      the same amount both ways, so a wide lens grows proportionally less
 //                      along its length than across).
 //   liftScale          how much the whole control grows while the lens is lifted.
+//   lift               the lens's height over time, for a control whose lens rises and falls unlike the tab bar's:
+//                      LIFT's keys, over it.
+//   walls              how far past an end the lens goes and how it squashes there: WALL's keys, over it.
 //   copyScale          how much the highlighted copies under it grow, each about its
 //                      own middle, at full lift (iOS draws them about 1.2× while
 //                      lifted). The lens's own scale doesn't reach them: it would
@@ -142,6 +163,8 @@ export function createPillDragCore({
   tapScale = 1.45,
   liftOutset = null,
   liftScale = 1,
+  lift: liftOptions = null,
+  walls = null,
   copyScale = 1.2,
   trail = TRAIL,
   axis: initialAxis = 'x',
@@ -221,15 +244,24 @@ export function createPillDragCore({
   // held still or not. Let go, it falls like a dropped thing, whatever the lens is still doing: its height goes
   // h0 - (t / FALL_S)², hanging up there at first and then dropping faster and faster, so from full height it
   // turns flat (half height) about 0.2s in, as a thrown lens arrives, and lands at FALL_S; there the spring takes over at the speed it
-  // landed with, for the small dip below rest. Measured off the iOS 27 tab bar.
-  const LIFT_UP = { stiffness: 500, damping: 25, mass: 0.5 };
-  const LIFT_DOWN = { stiffness: 400, damping: 26, mass: 1 };   // the dip on landing
-  const FALL_S = 0.3;
-  const LAND_KEEP = 0.3;
-  const PRESS_LIFT = 0.3;
-  const PRESS_GLASS_MS = 60;
-  const GLASS_FROM = 0.3, GLASS_TO = 0.7;
+  // landed with, for the small dip below rest. Measured off the iOS 27 tab bar (LIFT, at the top).
+  // A control whose lens rises and falls otherwise passes its own (`lift`, over LIFT).
+  const lf = { ...LIFT, ...liftOptions };
+  const LIFT_UP = lf.up;
+  const LIFT_DOWN = lf.down;   // the dip on landing
+  const FALL_S = lf.fallS;
+  const LAND_KEEP = lf.landKeep;
+  const PRESS_LIFT = lf.press;
+  const PRESS_GLASS_MS = lf.pressMs;
+  const [GLASS_FROM, GLASS_TO] = lf.glass;
+  const [GLASS_DOWN_FROM, GLASS_DOWN_TO] = lf.glassDown ?? lf.glass;
   const TAP_HOLD_MS = 80;    // a tap lets the lens fall once it's (nearly) all the way up
+  // On the way down the glass may trail its height (lf.glassLag, s): a spring about that far behind.
+  const glassLag = lf.glassLag > 0 ? { stiffness: (2.15 / lf.glassLag) ** 2, damping: 2 * 2.15 / lf.glassLag, mass: 1 } : null;
+  const glassTrail = new Spring(0);
+  glassTrail.eps = 0.002;
+  // How far past an end the lens goes, and how it squashes there (`walls`, over WALL).
+  const WALLS = { ...WALL, ...walls };
 
   // While the lens is in play (pressed, lifted, or still moving after), its motion deforms it; once it's at rest
   // on the ground the deformation's targets drop to 0, and what's left of it eases out.
@@ -384,8 +416,9 @@ export function createPillDragCore({
   function render() {
     if (fallStart) {
       const t = (performance.now() - fallStart) / 1000;
-      const h = fallFrom - (t / FALL_S) ** 2;
-      lift.v = -2 * t / FALL_S ** 2;
+      const linear = lf.fall === 'linear';
+      const h = fallFrom - (linear ? t / FALL_S : (t / FALL_S) ** 2);
+      lift.v = linear ? -1 / FALL_S : -2 * t / FALL_S ** 2;
       if (h > 0) lift.value = h;
       else {
         // Landed: the spring carries on from here, with a little of that speed, for a slight dip. (All of it
@@ -428,7 +461,7 @@ export function createPillDragCore({
     const q = wall.value;
     // In px, added to the lifted size (see STRETCH.length), then as a scale of the lens's own size.
     const dMain = STRETCH.length * (motion - q);
-    const dCross = STRETCH.length * (-motion * (motion > 0 ? STRETCH.crossStretch : STRETCH.crossSquash) + q * WALL.cross);
+    const dCross = STRETCH.length * (-motion * (motion > 0 ? STRETCH.crossStretch : STRETCH.crossSquash) + q * WALLS.cross);
     // Hovered (at rest), it grows by HOVER.selScale and leans and stretches toward the pointer.
     const hs = 1 + (HOVER.selScale - 1) * sh;
     const scMain = pillMain.value ? liftMain * hs + (dMain + selExtra.value * sh) / pillMain.value : liftMain * hs;
@@ -458,10 +491,18 @@ export function createPillDragCore({
     // With no selection the hit overlay must not sit on top of a cell and eat its clicks.
     hit.style.pointerEvents = index >= 0 ? '' : 'none';
     // The material follows the height: glass above GLASS_TO, the flat fill below GLASS_FROM, crossfaded between
-    // (--lg-glass, pill.css). The lifted class turns the glass's filters on, so it's set while any glass shows;
-    // the ring under the lens (--lg-lift) is its height, as far as it's glass.
-    const u = Math.min(1, Math.max(0, (L - GLASS_FROM) / (GLASS_TO - GLASS_FROM)));
-    const g = u * u * (3 - 2 * u);
+    // (--lg-glass, pill.css), over its own stretch on the way down if it has one, and trailing the height there
+    // by glassLag. The lifted class turns the glass's filters on, so it's set while any glass shows; the ring
+    // under the lens (--lg-lift) is its height, as far as it's glass.
+    const down = lift.target === 0;
+    const [g0, g1] = down ? [GLASS_DOWN_FROM, GLASS_DOWN_TO] : [GLASS_FROM, GLASS_TO];
+    const u = Math.min(1, Math.max(0, (L - g0) / (g1 - g0)));
+    let g = u * u * (3 - 2 * u);
+    if (glassLag) {
+      if (!down || g >= glassTrail.value) { if (glassTrail.value !== g || !glassTrail.resting) glassTrail.set(g); }
+      else if (Math.abs(glassTrail.target - g) > 1e-4) glassTrail.to(g, glassLag);
+      g = glassTrail.value;
+    }
     pill.classList.toggle(liftedClass, g > 0.01);
     pill.style.setProperty('--lg-lift', (Math.min(1, Math.max(0, L)) * g).toFixed(3));
     pill.style.setProperty('--lg-glass', g.toFixed(3));
@@ -719,9 +760,9 @@ export function createPillDragCore({
     const over = raw < lo ? lo - raw : raw > hi ? raw - hi : 0;
     if (over) wallSide = raw < lo ? -1 : 1;
     overNow = over ? wallSide * over : 0;
-    wall.to(WALL.squash * over / (over + WALL.half), { stiffness: 700, damping: 42, mass: 0.5 });
-    if (raw < lo) return lo - rubber(over, WALL.travel);
-    if (raw > hi) return hi + rubber(over, WALL.travel);
+    wall.to(WALLS.squash * over / (over + WALLS.half), { stiffness: 700, damping: 42, mass: 0.5 });
+    if (raw < lo) return lo - rubber(over, WALLS.travel);
+    if (raw > hi) return hi + rubber(over, WALLS.travel);
     return raw;
   };
 
@@ -941,7 +982,7 @@ export function createPillDragCore({
     clearTimers();
     clearTimeout(holdTimer);
     offFrame();
-    [pillPos, pillMain, crossOff, containerOff, containerCross, pull, lift, bend, pace, wall,
+    [pillPos, pillMain, crossOff, containerOff, containerCross, pull, lift, glassTrail, bend, pace, wall,
       hovPos, hovMain, hovLean, hovLeanCross, hovExtra, hovVis, selHov, selLean, selLeanCross, selExtra,
       ...labelGrow.values()].forEach(sp => sp.dispose());
   }

@@ -325,6 +325,8 @@ core.select(1, { animate: false, silent: true });`),
           ['`onRender({ pos })`', 'After every frame\'s transforms are written.'],
           ['`trail`, `tapScale`', 'How far the whole control follows a drag, and how much the lens grows when grabbed. Default `tapScale`: 1.45.'],
           ['`copyScale`', 'How much the highlighted copies under the lens grow while it is lifted, each about its own middle, so they stay in place while the lens slides, grows and stretches over them. Default: 1.2, as iOS draws them.'],
+          ['`lift`', 'How the lens rises and falls, for a control whose lens moves unlike the tab bar\'s: the spring it rises on (`up`), how a press starts it (`press`, `pressMs`), how it falls once let go (`fall`: `"parabola"` or `"linear"`, `fallS`, `landKeep`), and over what share of its height it turns to glass on the way up and down (`glass`, `glassDown`, `glassLag`). The toggle passes its own, measured off iOS 27.'],
+          ['`walls`', 'How far past an end the lifted lens goes (`travel`, px) and how much it squashes pushed against it (`squash`). The toggle\'s goes 9.5px and doesn\'t squash.'],
         ]),
         table(['Member', 'Description'], [
           ['`select(index, { animate, silent })`', 'Select a cell. Silent selects do not call `onChange`.'],

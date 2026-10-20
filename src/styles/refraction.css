@@ -48,14 +48,14 @@
    top and bottom edges and floods the end of the lens over it up to the rim. Measured off the iOS 27 toggle
    (a 59 × 39pt lens dragged slowly over the track), fitted to where the track shows through it, pixel by
    pixel, across five frames: outward 5.2pt at the rim fading linearly over 23.5pt, smoothed over 6.3pt;
-   inward 10pt at the rim over a 6.3pt bezel, on a t^1.9 curve; no color split. Divided by the lift's scale
-   (tapScale 1.45), as above. */
+   inward 10pt at the rim over a 6.3pt bezel, on a t^1.9 curve; no color split. Divided by the toggle's lift
+   scale (1.6, components/toggle.js), as above. */
 .lg-toggle .lg-pill-inner {
-  --lg-refraction-lens-depth: 3.61px;
-  --lg-refraction-lens-bezel: 16.2px;
-  --lg-refraction-lens-smooth: 4.33px;
-  --lg-refraction-bezel: 4.33px;
-  --lg-refraction-depth: 6.93px;
+  --lg-refraction-lens-depth: 3.27px;
+  --lg-refraction-lens-bezel: 14.7px;
+  --lg-refraction-lens-smooth: 3.93px;
+  --lg-refraction-bezel: 3.93px;
+  --lg-refraction-depth: 6.28px;
   --lg-refraction-curve: 1.92;
   --lg-refraction-dispersion: 0;
 }
@@ -74,6 +74,8 @@
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
+  /* As much as the lens is glass: a lens whose glass trails its height (the toggle's) keeps it a while. */
+  opacity: var(--lg-glass, 1);
   box-shadow:
     0 0 0 0.1px var(--lg-outline),
     var(--lg-highlight),

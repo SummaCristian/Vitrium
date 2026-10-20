@@ -1,9 +1,10 @@
 /* iOS-style switch. The thumb is a pill driven by pill-drag-core. */
 
+/* iOS 27's: a 63 × 28pt track and a 37 × 24pt thumb, 2pt in from its edges. */
 .lg-toggle {
   position: relative;
-  width: 61px;
-  height: 31px;
+  width: 63px;
+  height: 28px;
   padding: 0;
   border: none;
   border-radius: var(--lg-radius-pill);
@@ -28,31 +29,47 @@
   outline-offset: 2px;
 }
 
-/* Thumb travel box (61 - 3 - 3 = 55 × 25). The two cells sit at its ends and
+/* Thumb travel box (63 - 2 - 2 = 59 × 24). The two cells sit at its ends and
    overlap in the middle: they exist only to give the core its two anchors. */
 .lg-toggle__items {
   position: absolute;
-  inset: 3px;
+  inset: 2px;
 }
 
 .lg-toggle__cell {
   position: absolute;
   top: 0;
-  width: 36px;
-  height: 25px;
+  width: 37px;
+  height: 24px;
   touch-action: pan-y;
 }
 
 .lg-toggle__cell--off { left: 0; }
-.lg-toggle__cell--on { left: 19px; } /* 55 - 36 */
+.lg-toggle__cell--on { left: 22px; } /* 59 - 37 */
 
-/* Resting thumb: frosted white capsule; gives way to glass while lifted. */
+/* The thumb is a white layer over the lens: solid at rest, with no shadow, and as the lens lifts it thins out
+   and frosts what's under it on the way, so the thumb turns to clear glass through a blur. Measured off iOS 27:
+   a third of the way up the lens is still most of the way white and blurred about 1pt; back down, the white
+   and the blur come back the same way. It follows the glass (--lg-glass, pill-drag-core.js), blurring 3pt on
+   screen per unit of white (here 1.9px, before the lift's 1.6 scale). Painted over the lens's refraction (its
+   layer, refraction.css) and under its rim. */
 .lg-toggle .lg-pill-inner {
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow:
-    0 1px 4px rgba(0, 0, 0, 0.2),
-    0 0.5px 1px rgba(0, 0, 0, 0.1),
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.6);
+  background: transparent;
+  box-shadow: none;
+}
+
+.lg-toggle .lg-pill-inner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: rgb(255 255 255 / calc(1 - var(--lg-glass, 0)));
+}
+
+.lg-toggle .lg-pill--lifted .lg-pill-inner::before {
+  -webkit-backdrop-filter: blur(calc((1 - var(--lg-glass, 0)) * 1.9px));
+  backdrop-filter: blur(calc((1 - var(--lg-glass, 0)) * 1.9px));
 }
 
 /* The thumb is too small to lift as far as other glass: the full ring offset
@@ -63,6 +80,13 @@
 
 .lg-toggle .lg-pill.lg-pill--lifted .lg-pill-inner {
   background: var(--lg-pill-bg);
+}
+
+/* The rim's stroke comes and goes with the glass rather than at once with the lifted class: the glass outlasts
+   the lift on the way down, and the thumb would wear a ring while it whitens. */
+.lg-toggle .lg-pill.lg-pill--lifted::after {
+  opacity: calc(var(--lg-stroke-opacity) * var(--lg-glass, 1));
+  transition: none;
 }
 
 .lg-toggle .lg-pill-hit {

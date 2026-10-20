@@ -83,7 +83,7 @@ function div(className, attrs) {
 // radius    the open panel's corner radius, px (default 16)
 // maxHeight how tall the panel may grow before its body scrolls: 'normal' (default, a
 //           comfortable 420px), 'page' (the page's height less the safe areas and 20px), or px
-// glassStyle 'frost' (default) | 'transparent' | 'inherit' (the page's): the panel's glass style
+// glassStyle 'frost' (default) | 'transparent' | 'curated' | 'inherit' (the page's): the panel's glass style
 // onOpen()          as soon as opening starts
 // onAfterOpen()     once the morph has landed (focus a control, highlight a row)
 // onClose()         as soon as closing starts

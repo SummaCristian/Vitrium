@@ -190,7 +190,7 @@ const stepper = createStepper({
           ['el', 'The capsule. Append it to a container.'],
           ['value', 'The current value (read-only).'],
           ['set(value, { silent })', 'Change it from code. Silent by default.'],
-          ['setDisabled(disabled)', 'Enable or disable it.'],
+          ['setDisabled(disabled)', 'Enable or disable it. It starts enabled: there is no `disabled` option.'],
           ['setGlass(mode)', 'Switch between `"regular"` and `"clear"` glass.'],
           ['glass', 'The current glass, `"regular"` or `"clear"` (read-only).'],
           ['destroy()', 'Remove it and stop a hold in progress.'],

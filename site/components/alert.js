@@ -262,7 +262,7 @@ modal.deactivate();   // everything back as it was`),
         ].map((r) => [h('code', {}, r[0]), h('code', {}, r[1]), r[2]])),
         h('h3', { class: 'sub-label' }, 'Returned object'),
         table(['Member', 'Description'], [
-          ['present({ from })', 'Show it. Returns a promise for the answer. `from` is the element a morph grows from.'],
+          ['present({ from })', 'Show it. Returns a promise for the answer: the chosen action\'s `id`, or `null` if it was dismissed. `from` is the element a morph grows from. Called while it is showing, it returns the same promise.'],
           ['dismiss()', 'Close it, resolving with `null`.'],
           ['setTransition(mode)', 'Change how it comes and goes.'],
           ['isOpen', 'Whether it is showing (read-only).'],

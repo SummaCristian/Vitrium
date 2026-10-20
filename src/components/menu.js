@@ -31,7 +31,7 @@
 // (px, default 220), maxHeight ('normal' (default, 420px), 'page' (the page's height less
 // some padding) or px: past it the list scrolls inside the panel), glass ('regular' by default, or 'clear': the panel's material;
 // clear lets more of the page through, at some cost to legibility), glassStyle ('frost' by default, whatever the page's style is;
-// 'transparent', or 'inherit' to follow the page), onOpen, onClose.
+// 'transparent', 'curated', or 'inherit' to follow the page), onOpen, onClose.
 // Returns { el, trigger, open(), close(), isOpen, setItems(items), setGlass(mode), glass, destroy() }.
 import { createMorphPopup } from '../core/morph-popup.js';
 import { icons } from './icons.js';

@@ -37,7 +37,8 @@
 //   glassStyle     'frost' (default, whatever the page's style is) | 'transparent' | 'curated' | 'inherit' (the page's)
 //   onShow / onHide
 //
-// Returns { el, show(target?), hide(), toggle(), update(), setPlacement(), setContent(), setGlass(), glass, isOpen, destroy() }.
+// Returns { el, show(target?, { fromKeyboard }), hide(), toggle({ fromKeyboard }), update() (a promise), setPlacement(),
+// setContent(), setGlass(), glass, isOpen, destroy() }. fromKeyboard moves focus into it, as opening from the keyboard does.
 //
 // Keyboard: activating the trigger from the keyboard moves focus into the
 // popover; Escape closes it and returns focus to the trigger; Tab past the last

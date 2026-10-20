@@ -135,7 +135,7 @@ const clamp = (x, m) => Math.max(-m, Math.min(m, x));
 //   canSelect(index)   false → that cell can't be chosen: a tap calls
 //                      onReject(index) instead, a drag released over it
 //                      springs back to the current cell.
-//   trail              overrides TRAIL, how far the whole control follows a drag (setTrail() later).
+//   trail              how far the whole control follows a drag: TRAIL with these keys over it (setTrail() later).
 //   keyboard           arrow keys cycle the cells (default). Pass false when the
 //                      consumer handles keys itself (e.g. its own extra cells).
 //   axis               'x' (default: cells in a row) or 'y' (cells in a column).
@@ -265,8 +265,8 @@ const clamp = (x, m) => Math.max(-m, Math.min(m, x));
  * @property {PillStretch | null} [stretch]  STRETCH's keys, over it.
  * @property {SpringConfig | null} [follow]  The spring the lens follows a drag on, over FOLLOW.
  * @property {number} [copyScale]  How much the highlighted copies grow at full lift. Default: 1.2.
- * @property {PillTrail} [trail]  How far the whole control follows a drag, in place of TRAIL (not over it: give all
- *   three of follow, give and giveCross). setTrail() changes it later. Default: TRAIL.
+ * @property {Partial<PillTrail>} [trail]  How far the whole control follows a drag: TRAIL with these keys over it.
+ *   setTrail() changes it later. Default: TRAIL.
  * @property {'x' | 'y'} [axis]  'x', cells in a row, or 'y', in a column. Default: 'x'.
  * @property {boolean} [keyboard]  The arrow keys cycle the cells. Default: true.
  * @property {(index: number) => boolean} [canSelect]  false: that cell can't be chosen.
@@ -314,7 +314,7 @@ export function createPillDragCore({
   stretch = null,
   follow = null,
   copyScale = 1.2,
-  trail = TRAIL,
+  trail: trailOption = null,
   axis: initialAxis = 'x',
   keyboard = true,
   canSelect,
@@ -333,6 +333,7 @@ export function createPillDragCore({
   let vertical = initialAxis === 'y';
   let didInit = false;
   let timers = [];
+  let trail = { ...TRAIL, ...trailOption };
 
   const pillPos = new Spring(0);
   pillPos.maxV = THROW.maxSpeed;

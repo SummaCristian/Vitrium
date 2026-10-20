@@ -136,8 +136,9 @@ createPillDragCore({ ...coreOptions, lift: { fall: 'ease' } });
 createPillDragCore({ ...coreOptions, lift: { glass: 0.5 } });
 // @ts-expect-error: the axis is 'x' or 'y'
 createPillDragCore({ ...coreOptions, axis: 'horizontal' });
-// @ts-expect-error: a trail given at creation replaces TRAIL, so it needs follow, give and giveCross
 createPillDragCore({ ...coreOptions, trail: { follow: 0.02 } });
+// @ts-expect-error: follow is a number
+createPillDragCore({ ...coreOptions, trail: { follow: 'more' } });
 
 /* --- Morph popup, modal layer ------------------------------------------------------------- */
 const trigger = document.createElement('button');

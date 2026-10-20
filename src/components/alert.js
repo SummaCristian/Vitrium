@@ -37,7 +37,7 @@
 //
 // Options: title, message, content (Node / trusted HTML, between the message
 // and the actions), actions, dismissible, transition, zIndex, glassStyle ('frost' by default, whatever the page's
-// style is; 'transparent', or 'inherit' to follow the page).
+// style is; 'transparent', 'curated', or 'inherit' to follow the page).
 // Returns { el, present({ from }), dismiss(), setTransition(mode), isOpen, destroy() }.
 import { attachLiquidGlass, holdHoverLift } from '../core/liquid-glass.js';
 import { morphRefraction } from '../core/refraction.js';

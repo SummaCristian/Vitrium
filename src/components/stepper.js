@@ -11,8 +11,8 @@
 // It carries the liquid-glass press / drag deform like the other glass controls.
 //
 // Options: value, min, max, step, label, labels ([decrease, increase] names),
-// format, onChange(value, { silent }).
-// Returns { el, value, set(v, { silent }), setDisabled(bool), destroy() }.
+// format, glass ('regular' | 'clear'), onChange(value, { silent }). It starts enabled: setDisabled() turns it off.
+// Returns { el, value, set(v, { silent }), setDisabled(bool), setGlass(mode), glass, destroy() }.
 import { attachLiquidGlass } from '../core/liquid-glass.js';
 import { clamp, decimals } from '../core/value-math.js';
 import { icons } from './icons.js';

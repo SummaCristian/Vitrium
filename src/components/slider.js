@@ -14,7 +14,7 @@
 // Each thumb is a real `role="slider"`: Left/Down and Right/Up move by `step`
 // (flipped in a right-to-left layout), PageUp/PageDown by ten steps, Home/End
 // jump to the ends. `onChange(value, { silent })` fires on every change while
-// dragging; `onCommit(value)` once when the drag ends or a key is pressed.
+// dragging; `onCommit(value)` once when the drag ends, or when a key press changes the value.
 // set() is silent by default.
 //
 // Options: value, min, max, step (0 = continuous), minGap (range only, in value
@@ -59,7 +59,7 @@ const DROP = { stiffness: 350, damping: 30, mass: 0.8 };
  * @property {boolean} [disabled]  Starts disabled. Default: false.
  * @property {(value: V, info: { silent: boolean }) => void} [onChange]  Every change while dragging or using the
  *   keys, and set() when it isn't silent.
- * @property {(value: V) => void} [onCommit]  Once when a drag ends or a key is pressed.
+ * @property {(value: V) => void} [onCommit]  Once when a drag ends, or when a key press changes the value.
  */
 /**
  * What createSlider returns: typed over its value, a number or a [low, high] pair.

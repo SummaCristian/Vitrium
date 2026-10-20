@@ -57,8 +57,9 @@
 //                    It has no effect on a stretched sheet, so a phone layout
 //                    is unaffected. Change it later with setSide().
 //   responsive       [{ minWidth, width, margin }]: overrides applied while
-//                    the viewport is at least minWidth wide (the last match wins)
-//   geometry         { inset: [min, max], radius: [min, max] | number }, px,
+//                    the viewport is at least minWidth wide (the last match wins).
+//                    A width of null (or 0) stretches it again.
+//   geometry         { inset: [min, max] | number, radius: [min, max] | number }, px,
 //                    interpolated linearly with the sheet's size, from the smallest
 //                    to the largest detent. The corner radius defaults to
 //                    [38.7, 28]: rounder when collapsed, easing to 28 as it opens
@@ -106,6 +107,9 @@
 //   onPresent(), onDismiss(reason)   reason: 'swipe' | 'scrim' | 'escape' | 'api'
 //   give, flingVelocity, hardFlingVelocity   physics overrides
 //   onDetentChange(id), onResize(px, { gesturing })
+//
+// present({ detent, from }) brings it in at `detent` (default: the initial one); `from` is the element a morph
+// grows from. On a sheet that's already in, it does nothing: setDetent() moves it.
 //
 // Returns { el, contentEl, headerEl, footerEl, present, dismiss, presented,
 //           setDetent, detent, height, detentHeight, isGesturing, scrollTop,

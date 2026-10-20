@@ -195,7 +195,7 @@ createSlider({ value: 40, label: 'Volume', format: (v) => \`\${v} percent\` });`
           ['format', '(value) => string', 'Text a screen reader reads for a value.'],
           ['disabled', 'boolean', 'Start disabled.'],
           ['onChange', '(value, { silent }) => void', 'Every change while dragging or using the keys.'],
-          ['onCommit', '(value) => void', 'Once when a drag ends or a key is pressed.'],
+          ['onCommit', '(value) => void', 'Once when a drag ends, or when a key press changes the value.'],
         ].map((r) => [h('code', {}, r[0]), h('code', {}, r[1]), r[2]])),
         h('h3', { class: 'sub-label' }, 'Returned object'),
         table(['Member', 'Description'], [

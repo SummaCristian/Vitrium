@@ -13,6 +13,7 @@ import { setGlass } from './glass-mode.js';
 //   label   accessible name. Required for an icon-only button; otherwise the
 //           visible text is the name, and `label` overrides it if given.
 //   onClick(event)
+//   className  extra classes
 //   tint    optional CSS color for tinted glass
 //   glass   'regular' (default) | 'clear'. Change it later with setGlass(button, mode).
 //   claimTouch  the button sits on a layer above the content (a fixed header):

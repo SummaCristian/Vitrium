@@ -103,6 +103,8 @@ const ENGAGE_MOVE = 6;            // ...or this much finger travel, whichever co
 
 // Asymptotic rubber-band (approaches ±give, never past it).
 const rubber = (x, give) => (x * give) / (give + Math.abs(x));
+// x held within ±m.
+const clamp = (x, m) => Math.max(-m, Math.min(m, x));
 
 // onChange(index, { silent }) fires whenever a *different* cell becomes the
 // selected one. `silent` is true only for a programmatic select(..., { silent }).
@@ -184,8 +186,15 @@ export function createPillDragCore({
   const wall = new Spring(0);
   wall.eps = 0.0005;
   let wallSide = 1;
-  let crossNow = 0;
-  let trackPad = [0, 0];                // the lens's offset across the rail this frame (drag wobble and hover lean)
+  let crossNow = 0;                // the lens's offset across the rail this frame (drag wobble and hover lean)
+  // The track's padding around the cells, before and after them, along the rail and across it: room the hovered
+  // lens may grow into.
+  let padMain = [0, 0], padCross = [0, 0];
+  // Under CSS `zoom` on an ancestor, getBoundingClientRect() is in the pointer's units in current engines, but in
+  // units the zoom doesn't scale in others (VS Code's preview), where every position read off it is out by the
+  // zoom. rectK turns a rect into the pointer's units: 1, or the zoom. Which one is settled from a pointer over a
+  // cell (the browser's own hit test says which cell that is: only one of the two puts it there); null until then.
+  let zoom = 1, rectK = null;
   // The hover pill (HOVER): the cell it's on (its start and length there), its lean toward the pointer (along the
   // rail and across) and stretch after it, and how visible it is. hoverPressed: pressed, it stops leaning.
   // handover: the cell it's on was just picked, and it stays under the lens arriving there until that lands on it.
@@ -271,6 +280,9 @@ export function createPillDragCore({
       if (vertical) { el.style.width = itemsW + 'px'; el.style.height = ''; }
       else { el.style.height = itemsH + 'px'; el.style.width = ''; }
     }
+    zoom = 1;
+    for (let el = items; el; el = el.parentElement) zoom *= parseFloat(getComputedStyle(el).zoom) || 1;
+    if (Math.abs(zoom - 1) < 1e-3) { zoom = 1; rectK = 1; }
     activeRow.style.width = itemsW + 'px';
     activeRow.style.height = itemsH + 'px';
     const track = hover?.offsetParent;
@@ -278,8 +290,9 @@ export function createPillDragCore({
       const l = itemsOffsetIn(track, 'offsetLeft'), t = itemsOffsetIn(track, 'offsetTop');
       hover.style.left = l + 'px';
       hover.style.top = t + 'px';
-      // The track's padding before and after the cells, along the rail: room the hovered lens may grow into.
-      trackPad = vertical ? [t, track.clientHeight - t - itemsH] : [l, track.clientWidth - l - itemsW];
+      const padX = [l, track.clientWidth - l - itemsW], padY = [t, track.clientHeight - t - itemsH];
+      padMain = vertical ? padY : padX;
+      padCross = vertical ? padX : padY;
     }
 
     // Cells are usually positioned against `items` itself, but may share an
@@ -292,7 +305,8 @@ export function createPillDragCore({
     // rather than laid out by flex, which avoids sub-pixel drift between two
     // flow layouts. Each grows about its own middle toward copyScale as the
     // pill lifts (--lg-lift, set by render()): 1 at rest, so it sits exactly on
-    // its label then.
+    // its label then. Hovered, the selected one grows too (--lg-pill-hover-scale), in the same transform, so about
+    // the same middle.
     activeRow.style.setProperty('--lg-pill-copy-scale', copyScale);
     activeRow.innerHTML = '';
     cells.forEach((el, i) => {
@@ -308,13 +322,13 @@ export function createPillDragCore({
         dup.style.left = '0';
         dup.style.width = '100%';
         dup.style.height = 'max-content';
-        dup.style.transform = 'translateY(-50%) scale(calc(1 + (var(--lg-pill-copy-scale, 1) - 1) * var(--lg-lift, 0)))';
+        dup.style.transform = 'translateY(-50%) scale(calc((1 + (var(--lg-pill-copy-scale, 1) - 1) * var(--lg-lift, 0)) * var(--lg-pill-hover-scale, 1)))';
       } else {
         dup.style.left = center;
         dup.style.top = '0';
         dup.style.height = '100%';
         dup.style.width = 'max-content';
-        dup.style.transform = 'translateX(-50%) scale(calc(1 + (var(--lg-pill-copy-scale, 1) - 1) * var(--lg-lift, 0)))';
+        dup.style.transform = 'translateX(-50%) scale(calc((1 + (var(--lg-pill-copy-scale, 1) - 1) * var(--lg-lift, 0)) * var(--lg-pill-hover-scale, 1)))';
       }
       activeRow.appendChild(dup);
     });
@@ -418,16 +432,20 @@ export function createPillDragCore({
     // Hovered (at rest), it grows by HOVER.selScale and leans and stretches toward the pointer.
     const hs = 1 + (HOVER.selScale - 1) * sh;
     const scMain = pillMain.value ? liftMain * hs + (dMain + selExtra.value * sh) / pillMain.value : liftMain * hs;
-    const scCross = crossSize ? liftCross * hs + dCross / crossSize : liftCross * hs;
+    // Across, it grows only into half the track's padding on either side, so a narrow track (a column) keeps it.
+    const hsCross = crossSize ? Math.min(hs, Math.max(1, 1 + Math.min(padCross[0], padCross[1]) / crossSize)) : hs;
+    const scCross = crossSize ? liftCross * hsCross + dCross / crossSize : liftCross * hsCross;
     // Squashed against a wall, the lens keeps its outer edge on it: its middle moves out by what it lost.
     let pos = pillPos.value + wallSide * (STRETCH.length * q) / 2 + selLean.value * sh;
     // Grown by the hover at an end cell, it's kept off the track's rounded end: into half its padding at most.
     if (sh > 0.001) {
       const half = pillMain.value * scMain / 2, mid = pos + pillMain.value / 2;
-      const lo = half - trackPad[0] / 2, hi = (vertical ? itemsH : itemsW) + trackPad[1] / 2 - half;
+      const lo = half - padMain[0] / 2, hi = (vertical ? itemsH : itemsW) + padMain[1] / 2 - half;
       if (lo <= hi) pos += (Math.min(hi, Math.max(lo, mid)) - mid) * Math.min(1, sh);
     }
-    crossNow = crossOff.value + selLeanCross.value * sh;
+    // Its lean across takes only what room that leaves.
+    const roomCross = (Math.min(padCross[0], padCross[1]) - crossSize * (hsCross - 1)) / 2;
+    crossNow = crossOff.value + clamp(selLeanCross.value, Math.max(0, roomCross)) * sh;
 
     const sizeProp = vertical ? 'height' : 'width';
     pill.style[sizeProp] = pillMain.value + 'px';
@@ -483,8 +501,11 @@ export function createPillDragCore({
     // The labels: the hovered cell's grows (HOVER.label), and the selected cell's copy with its lens (HOVER.selLabel).
     for (const [el, sp] of labelGrow) el.style.scale = sp.value > 0.001 ? String(1 + (HOVER.label - 1) * sp.value) : '';
     const copy = index >= 0 ? activeRow.children[index] : null;
-    if (grownCopy && grownCopy !== copy) grownCopy.style.scale = '';
-    if (copy) copy.style.scale = sh > 0.001 ? String(1 + (HOVER.selLabel - 1) * sh) : '';
+    if (grownCopy && grownCopy !== copy) grownCopy.style.removeProperty('--lg-pill-hover-scale');
+    if (copy) {
+      if (sh > 0.001) copy.style.setProperty('--lg-pill-hover-scale', String(1 + (HOVER.selLabel - 1) * sh));
+      else copy.style.removeProperty('--lg-pill-hover-scale');
+    }
     grownCopy = copy;
     // Handed over: it stays under the lens while it comes down onto it, fading out as the lens's own flat fill
     // fades in (the same fill, so the two read as one), and is gone once the lens has landed.
@@ -496,14 +517,14 @@ export function createPillDragCore({
     const len = hovMain.value + hovExtra.value;
     const mid = hovPos.value + hovMain.value / 2 + hovLean.value;
     const a0 = Math.max(0, mid - len / 2), a1 = Math.min(total, mid + len / 2);
-    const c0 = hovLeanCross.value;
+    // Its lean across stays within half the track's padding, off the track's edge.
+    const c0 = clamp(hovLeanCross.value, Math.min(padCross[0], padCross[1]) / 2);
     hover.style.width = (vertical ? crossSize : a1 - a0) + 'px';
     hover.style.height = (vertical ? a1 - a0 : crossSize) + 'px';
     hover.style.transform = vertical ? `translate(${c0}px, ${a0}px)` : `translate(${a0}px, ${c0}px)`;
     hover.style.opacity = vis.toFixed(3);
   }
 
-  const clamp = (v, m) => Math.max(-m, Math.min(m, v));
   // Grows the label of cell `i` (or none, -1) and lets the rest shrink back.
   function growLabel(i) {
     const el = cells[i];
@@ -511,24 +532,55 @@ export function createPillDragCore({
     for (const [c, sp] of labelGrow) sp.to(c === el ? 1 : 0, HOVER.fade);
   }
 
+  // An element's box in the pointer's units (see rectK; until it's settled, the units current engines use).
+  function rectOf(el) {
+    const q = el.getBoundingClientRect(), k = rectK ?? 1;
+    return { left: q.left * k, top: q.top * k, right: q.right * k, bottom: q.bottom * k, width: q.width * k, height: q.height * k };
+  }
+  // The pointer along the rail in the cells' own px, with rects scaled by k.
+  function mainAt(e, k) {
+    const q = items.getBoundingClientRect();
+    const s = ((vertical ? q.height / items.offsetHeight : q.width / items.offsetWidth) || 1) * k;
+    return ((vertical ? e.clientY - q.top * k : e.clientX - q.left * k)) / s;
+  }
+  // Settles rectK from a pointer the browser found over cell i.
+  function calibrate(e, i) {
+    if (rectK != null || i < 0 || !anchors[i]) return;
+    const a = anchors[i];
+    const fits = [1, zoom].filter((k) => { const m = mainAt(e, k); return m >= a.pos - 1 && m <= a.pos + a.size + 1; });
+    if (fits.length === 1) rectK = fits[0];
+  }
+
   // The pointer (a mouse or pen, not a finger) over the cells. Over the selected one its lens grows toward it;
   // over another, the hover pill goes there.
   function hoverAt(e) {
     if (!hover || !anchors.length || e.pointerType === 'touch') return;
     if (dragging && grabbed) return hoverOff();
-    const r = items.getBoundingClientRect();
-    const s = (vertical ? r.height / items.offsetHeight : r.width / items.offsetWidth) || 1;
-    const main = (vertical ? e.clientY - r.top : e.clientX - r.left) / s;
-    const cross = (vertical ? e.clientX - r.left : e.clientY - r.top) / s;
-    // The cell whose middle is nearest (neighbours may overlap).
-    let i = 0, best = Infinity;
-    anchors.forEach((a, j) => {
-      const d = Math.abs(main - (a.pos + a.size / 2));
-      if (d < best) { best = d; i = j; }
-    });
-    const a = anchors[i];
+    // The cell is the one the browser finds under the pointer (the lens's grab target lies over the selected one),
+    // not one worked out from coordinates: some hosts (VS Code's preview) report boxes under CSS zoom in other
+    // units than the pointer, which put that a cell or more off.
+    const middle = (q) => [(q.left + q.right) / 2, (q.top + q.bottom) / 2];
+    const under = cells.indexOf(e.target.closest?.(cellSelector));
+    calibrate(e, under);
+    let i = hit.contains(e.target) ? index : under;
+    if (i < 0) {
+      // Over the track's padding, between cells: the nearest one.
+      let best = Infinity;
+      cells.forEach((c, j) => {
+        const [x, y] = middle(rectOf(c));
+        const d = Math.abs(vertical ? e.clientY - y : e.clientX - x);
+        if (d < best) { best = d; i = j; }
+      });
+    }
+    // Where on that cell the pointer is, from its middle, in its own px (its box, less the label growth on it).
+    const box = rectOf(cells[i]);
+    const k = ((vertical ? box.height : box.width) / (parseFloat(cells[i].style.scale) || 1)) / anchors[i].size || 1;
+    const [mx, my] = middle(box);
+    // The pointer is on this cell, so never further from its middle than half of it.
     const crossSize = vertical ? itemsW : itemsH;
-    const off = main - (a.pos + a.size / 2), offCross = cross - crossSize / 2;
+    const off = clamp((vertical ? e.clientY - my : e.clientX - mx) / k, anchors[i].size / 2);
+    const offCross = clamp((vertical ? e.clientX - mx : e.clientY - my) / k, crossSize / 2);
+    const a = anchors[i];
     const leanCross = clamp(offCross * HOVER.leanCross, HOVER.leanCrossMax);
     ptr = { i, off, offCross };
     if (i === index) {
@@ -682,11 +734,7 @@ export function createPillDragCore({
 
   // The pointer in the items' own layout px, measured now: the control grows and leans while it's dragged, so a
   // mapping taken at grab time would let the lens drift off the finger.
-  const layoutAt = (e) => {
-    const r = items.getBoundingClientRect();
-    const s = (vertical ? r.height / items.offsetHeight : r.width / items.offsetWidth) || 1;
-    return (vertical ? e.clientY - r.top : e.clientX - r.left) / s;
-  };
+  const layoutAt = (e) => mainAt(e, rectK ?? 1);
   // Where the pointer puts the lens: under it (a cell held down), or moved by the drag (the lens grabbed).
   const dragRaw = (e) => absoluteDrag ? layoutAt(e) - pillMain.value / 2 : dragOriginPos + layoutAt(e) - grabAt;
 
@@ -718,8 +766,9 @@ export function createPillDragCore({
     grabbed = false;
     absoluteDrag = !onHit;
     startX = e.clientX; startY = e.clientY;
+    calibrate(e, onHit ? -1 : cells.indexOf(captureEl));
     const r = items.getBoundingClientRect();
-    ptrScale = (vertical ? r.height / items.offsetHeight : r.width / items.offsetWidth) || 1;
+    ptrScale = ((vertical ? r.height / items.offsetHeight : r.width / items.offsetWidth) || 1) * (rectK ?? 1);
     grantTime = performance.now();
     samples = [{ x: mainPos(e), t: grantTime }];
     // Pressed, the hovered cell's pill stops leaning, back on its cell.
@@ -815,9 +864,12 @@ export function createPillDragCore({
     // Where it comes to rest: thrown, where the lens would coast to on its own (THROW.coast of its speed), else
     // a little ahead of the finger.
     // A flick hands the lens the finger's speed, if the lens hasn't caught up with it yet.
+    // Only a moving finger throws: one that has stopped (no move in the last 100ms) lets go where it is, even if the
+    // lens is still gliding over to it (a cell held down), and that glide's speed is no throw.
     const a = samples[0], b = samples[samples.length - 1];
-    const v = b.t > a.t ? (b.x - a.x) / (b.t - a.t) : 0;
-    let v0 = pillPos.resting ? 0 : pillPos.v;
+    const stopped = performance.now() - b.t > 100;
+    const v = !stopped && b.t > a.t ? (b.x - a.x) / (b.t - a.t) : 0;
+    let v0 = pillPos.resting || Math.abs(v * 1000) < THROW.minSpeed ? 0 : pillPos.v;
     if (Math.sign(v) === Math.sign(v0 || v) && Math.abs(v * 1000) > Math.abs(v0)) {
       v0 = pillPos.v = Math.sign(v) * Math.min(Math.abs(v * 1000), THROW.maxSpeed);
     }

@@ -12,7 +12,7 @@ import { fitSegmented } from './fit.js';
 // Every playground also gets a Style option (see setGlassStyle), set on the stage so whatever renders inside
 // inherits it. `inherit` leaves the page's own style in force, which is how a page-wide style is meant to work. `glassTargets()` lists the elements outside the stage that need it too
 // (a popup that mounts on <body>), and is read after each change. `glassStyle: false` leaves the option out.
-const STYLE_OPTION = { key: 'glassStyle', label: 'Style', type: 'choice', choices: ['inherit', 'frost', 'transparent'], default: 'inherit' };
+const STYLE_OPTION = { key: 'glassStyle', label: 'Style', type: 'choice', choices: ['inherit', 'frost', 'transparent', 'curated'], default: 'inherit' };
 
 export function createPlayground({ options: ownOptions, render, patch, code, lang = 'js', stageClass = '', glassTargets, glassStyle = true }) {
   const options = glassStyle ? [...ownOptions, STYLE_OPTION] : ownOptions;

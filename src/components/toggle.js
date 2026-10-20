@@ -63,15 +63,19 @@ const TOGGLE_LENS = {
   hoverLens: { selScale: 1, selLean: 0.06, leanMax: 3, selStretch: 0.08, selStretchMax: 2, leanCross: 0, leanCrossMax: 0 },
 };
 
+// `refract: false` keeps the lifted lens plain where refraction runs (initRefraction(), Chromium): glass as the
+// glass style makes it, with no bend (`.lg-no-refract` on the root). setRefract() changes it later.
+//
 // `color` is the track's on-color: any CSS color, or 'accent' to follow the
 // system accent (--lg-accent, so it updates when the accent does). Omit it for
 // the default (--lg-toggle-on). setColor() changes it later; null restores the default.
 //
-// Returns { el, set, setColor, setDisabled, refresh, destroy, on, disabled }. User changes call `onChange(isOn)`;
+// Returns { el, set, setColor, setDisabled, setRefract, refresh, destroy, on, disabled }. User changes call `onChange(isOn)`;
 // set(isOn) is programmatic (silent) and animates by default.
-export function createToggle({ value = false, onChange, label, color, disabled = false } = {}) {
+export function createToggle({ value = false, onChange, label, color, disabled = false, refract = true } = {}) {
   const root = el('button', 'lg-toggle' + (value ? ' on' : ''), { type: 'button', role: 'switch' });
   root.setAttribute('aria-checked', String(value));
+  root.classList.toggle('lg-no-refract', !refract);
   if (label) root.setAttribute('aria-label', label);
 
   // Two fixed cells pinned to the thumb's off/on positions give the core its anchors.
@@ -102,6 +106,7 @@ export function createToggle({ value = false, onChange, label, color, disabled =
     get disabled() { return root.disabled; },
     // A disabled toggle is dimmed and takes no input (toggle.css); set() still moves it.
     setDisabled(v) { root.disabled = !!v; },
+    setRefract(on) { root.classList.toggle('lg-no-refract', !on); },
     refresh({ snap = false } = {}) { core.refresh({ snap }); },
     destroy() { ro.disconnect(); core.destroy(); },
   };

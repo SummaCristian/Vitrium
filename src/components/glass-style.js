@@ -1,6 +1,7 @@
 // Glass style: how the glass blurs, refracting or not.
-//   'frost'        the material's own blur and fills (the default)
+//   'frost'        the material's own blur and fills (the default), the lifted lens included
 //   'transparent'  a light frost instead (--lg-blur-transparent)
+//   'curated'      the two mixed across a control, part by part: frost surfaces and rails, transparent lenses
 // It is the [data-glass-style] attribute, which cascades: on <html> it sets the
 // page, on any element it sets what's inside, and the nearest one wins.
 //
@@ -13,7 +14,7 @@
 // The larger surfaces (sheet, alert, popover, morphing panels) start on `frost`
 // whatever the page says; see initGlassStyle() and their `glassStyle` option.
 
-const STYLES = ['frost', 'transparent'];
+const STYLES = ['frost', 'transparent', 'curated'];
 
 // A change in style plays over this long (ms); the refraction follows it, see core/refraction.js.
 export const GLASS_STYLE_MS = 320;
@@ -49,7 +50,7 @@ export function setGlassStyle(elOrStyle, maybeStyle) {
   const el = global ? document.documentElement : elOrStyle;
   const style = global ? elOrStyle : maybeStyle;
   if (style != null && !STYLES.includes(style)) {
-    console.warn(`vitrium: glass style must be 'frost' or 'transparent', got '${style}'; ignoring it.`);
+    console.warn(`vitrium: glass style must be 'frost', 'transparent' or 'curated', got '${style}'; ignoring it.`);
     return undefined;
   }
   if ((style ?? null) !== (el.dataset.glassStyle ?? null)) write(el, style);

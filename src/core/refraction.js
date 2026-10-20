@@ -24,8 +24,10 @@
 // The filter goes after the surface's own backdrop filter, blur and saturation
 // as its CSS and its glass style (data-glass-style) leave them: frost keeps the
 // material's blur under the bend, transparent only a light frost. Refraction
-// doesn't pick the blur; the style does. Only a surface that sets
-// --lg-refraction-blur (the pill's lens, clear glass) swaps it for that.
+// doesn't pick the blur; the style does. A surface that sets
+// --lg-refraction-blur swaps its own blur for that: the pill's lens names none (its
+// frost layer, under the labels it bends, carries the style's blur instead), and the
+// toggle's names the style's lens blur (--lg-pill-blur).
 //
 // Refraction rides on the blur gate (core/blur-capability.js): it's on only
 // while [data-blur="on"], since a device too slow for blur is too slow for this.
@@ -47,12 +49,10 @@ const SVGNS = 'http://www.w3.org/2000/svg';
 // a backdrop when it floats; the sliding pill's lens only while it's lifted
 // (styles/refraction.css keeps it flat at rest, so it isn't rebuilt per lift).
 export const GLASS_SURFACES = '.lg-glass, .lg-morph, .lg-tabbar__bar, .lg-seg--blur .lg-seg__track, .lg-pill-inner';
-// The lens refracts wherever it is: it costs nothing at rest, where the CSS
-// leaves it flat, and only draws the filter while lifted.
-const ALWAYS = '.lg-pill-inner';
-// Every glass surface unless it, or something around it, says .lg-no-refract. The lens
-// refracts even then: it has no rest state to spare.
-const DEFAULT_ON = `:is(${GLASS_SURFACES}):not(.lg-no-refract, .lg-no-refract *), ${ALWAYS}`;
+// Every glass surface unless it, or something around it, says .lg-no-refract: the
+// lenses too (a control's `refract: false`). A lens costs nothing at rest, where the
+// CSS leaves it flat, and only draws the filter while lifted.
+const DEFAULT_ON = `:is(${GLASS_SURFACES}):not(.lg-no-refract, .lg-no-refract *)`;
 let selector = DEFAULT_ON;
 
 // Measured off iOS 26 (a 50pt tab bar and a 133pt rounded rectangle, each

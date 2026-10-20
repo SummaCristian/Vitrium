@@ -19,7 +19,7 @@
 //
 // `maxHeight: 'normal'` (default, 420px), `'page'` (up to the page's height less the safe areas and 20px) or px: past it the list scrolls.
 //
-// `glassStyle` is the list's glass style: `'frost'` (default, whatever the page's style is), `'transparent'`, or `'inherit'` (the page's).
+// `glassStyle` is the list's glass style: `'frost'` (default, whatever the page's style is), `'transparent'`, `'curated'`, or `'inherit'` (the page's).
 //
 // `glass: 'regular'` (default) or `'clear'` sets the material of the chip and its list; setGlass() changes it later.
 //

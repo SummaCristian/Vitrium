@@ -73,8 +73,8 @@ On phones, add `viewport-fit=cover` to the viewport meta tag so the tab bar and 
 - **Glass:** `.lg-glass` is the material, `--clear` the lighter variant, `--circle` for true circles, and `setGlassTint()` colors one surface. `.liquid-glass` adds the press and stretch.
 - **Tokens and theming:** the `--lg-*` custom properties, the accent, and light and dark. Pin a theme with `<html data-theme="light|dark">`.
 - **Blur:** the benchmark, the override (`auto`, `on`, `off`) and the cached verdict.
-- **Refraction:** glass that bends what's behind it at the rim, on top of whatever blur its glass style gives it: `initRefraction()` turns it on for all glass, `setRefraction(false)` turns it off, and `lg-no-refract` keeps one surface or region plain. Chromium only; elsewhere the glass stays blurred.
-- **Glass style:** how glass looks where it doesn't refract: `setGlassStyle('frost' | 'transparent')` for the page, `setGlassStyle(el, style)` for one element and what's in it.
+- **Refraction:** glass that bends what's behind it at the rim, on top of whatever blur its glass style gives it: `initRefraction()` turns it on for all glass, `setRefraction(false)` turns it off, and `lg-no-refract` (or a control's `refract: false`) keeps one surface or region plain. Chromium only; elsewhere the glass stays blurred.
+- **Glass style:** how glass blurs, refracting or not: `setGlassStyle('frost' | 'transparent' | 'curated')` for the page, `setGlassStyle(el, style)` for one element and what's in it. `curated` mixes the two across each control, part by part: frosted surfaces and rails, transparent lenses.
 - **Motion:** the springs, the press physics, the easing tokens, and reduced motion.
 - **Core:** the exported building blocks, for making your own controls: `attachLiquidGlass`, `createMorphPopup`, `createPillDragCore`, the FLIP helpers, `sheetPhysics` and the value math.
 

@@ -250,7 +250,7 @@ modal.deactivate();   // everything back as it was`),
           ['dismissible', 'boolean', 'Whether Escape and the scrim dismiss it. Default: whether there is a cancel action.'],
           ['transition', "'pop' | 'morph'", 'How it comes and goes. Default: `"pop"`.'],
           ['zIndex', 'number', 'Stacking order.'],
-          ['glassStyle', "'frost' | 'transparent' | 'inherit'", 'The alert starts on frost whatever the page\'s glass style is, so the UI in it stays legible. `"transparent"` forces the light frost; `"inherit"` follows the page. `setGlassStyle(el, …)` changes it later. Default: `"frost"`.'],
+          ['glassStyle', "'frost' | 'transparent' | 'curated' | 'inherit'", 'The alert starts on frost whatever the page\'s glass style is, so the UI in it stays legible. `"transparent"` forces the light frost; `"inherit"` follows the page. `setGlassStyle(el, …)` changes it later. Default: `"frost"`.'],
         ].map((r) => [h('code', {}, r[0]), h('code', {}, r[1]), r[2]])),
         h('h3', { class: 'sub-label' }, 'Action'),
         table(['Field', 'Type', 'Description'], [

@@ -199,7 +199,7 @@ body {
           ['placement', '{ row?, rail?, railAlign? }', 'Which edge each layout uses.'],
           ['compact', 'boolean', 'One bar at the top instead of the rail. Default: `false`.'],
           ['glass', "'regular' | 'clear'", 'Clear is the lighter glass: less tint, shallower blur. Default: `"regular"`.'],
-          ['refract', 'boolean', 'Where refraction runs (`initRefraction()`, Chromium), the bar and its circles bend what is behind them at the rim. The pill\'s lens refracts either way. Default: `true`.'],
+          ['refract', 'boolean', 'Where refraction runs (`initRefraction()`, Chromium), the bar, its circles and the pill\'s lens while it is lifted bend what is behind them at the rim. `false` keeps them all plain. Default: `true`.'],
           ['transition', 'boolean', 'Fade in the arriving tab\'s panel. Default: `false`.'],
           ['action', '{ label, icon, onClick }', 'A round button beside the bar.'],
           ['label', 'string', 'Accessible name of the tablist.'],

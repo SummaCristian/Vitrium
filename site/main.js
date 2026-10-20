@@ -17,7 +17,7 @@ initTheme();
 initLiquidGlass();
 initBlurCapability();
 initRefraction();
-setGlassStyle('transparent');   // this page's choice: clear glass; the library's own default is frost
+setGlassStyle('curated');   // this page's choice: frosted surfaces, transparent lenses; the library's own default is frost
 
 const routes = { home, start, foundation, components: componentsPage };
 const tabs = [

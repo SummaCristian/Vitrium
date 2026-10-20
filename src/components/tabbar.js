@@ -118,8 +118,8 @@
 //   circle. tabs.setGlass(mode) changes it later; tabs.glass reads it back.
 //   refract: true (default) | false
 //   Where refraction runs (initRefraction(), Chromium), the bar and its circles
-//   bend what's behind them at the rim (false puts `.lg-no-refract` on the root). The pill's
-//   lens refracts either way, while it's lifted.
+//   bend what's behind them at the rim, and so does the pill's lens while it's lifted
+//   (false puts `.lg-no-refract` on the root, which keeps them all plain).
 //
 // `icon` is a Node or trusted SVG/HTML string; `label` is set as text.
 import { createPillDragCore } from '../core/pill-drag-core.js';

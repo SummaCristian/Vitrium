@@ -34,7 +34,7 @@
 //   label          accessible name
 //   deform         liquid-glass press/drag deform on the surface (default true)
 //   glass          'regular' (default) | 'clear'. Clear lets more of the page through, at some cost to legibility
-//   glassStyle     'frost' (default, whatever the page's style is) | 'transparent' | 'inherit' (the page's)
+//   glassStyle     'frost' (default, whatever the page's style is) | 'transparent' | 'curated' | 'inherit' (the page's)
 //   onShow / onHide
 //
 // Returns { el, show(target?), hide(), toggle(), update(), setPlacement(), setContent(), setGlass(), glass, isOpen, destroy() }.

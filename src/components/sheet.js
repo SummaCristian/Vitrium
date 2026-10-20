@@ -41,7 +41,7 @@
 //                    px (>1), 'full' or 'content' (see resolveDetents). Each detent
 //                    carries the glass the sheet wears while it rests there:
 //                      material    'regular' | 'clear'
-//                      glassStyle  'frost' | 'transparent' | 'inherit' (the page's)
+//                      glassStyle  'frost' | 'transparent' | 'curated' | 'inherit' (the page's)
 //                    A field left out takes the sheet-level `material` / `glassStyle`.
 //                    Default: DEFAULT_SHEET_DETENTS (peek / half / full), which is
 //                    clear and following the page while small, regular and frost at
@@ -146,7 +146,7 @@ export const DEFAULT_SHEET_DETENTS = [
   { id: 'full', size: 0.85, material: 'regular', glassStyle: 'frost' },
 ];
 const MATERIALS = ['regular', 'clear'];
-const GLASS_STYLES = ['frost', 'transparent', 'inherit'];
+const GLASS_STYLES = ['frost', 'transparent', 'curated', 'inherit'];
 const HANDLE_CLEARANCE = 32;   // px the grabber occupies at the top when there's no header
 // The default corner radius: rounder while collapsed, easing to 28 as the sheet opens.
 const DEFAULT_RADIUS = [38.7, 28];
@@ -437,7 +437,7 @@ export function createSheet({
     const wanted = point?.material ?? material;
     const style = point?.glassStyle ?? glassStyle;
     if (!MATERIALS.includes(wanted)) console.warn(`vitrium: sheet material must be 'regular' or 'clear', got '${wanted}'.`);
-    if (!GLASS_STYLES.includes(style)) console.warn(`vitrium: sheet glassStyle must be 'frost', 'transparent' or 'inherit', got '${style}'.`);
+    if (!GLASS_STYLES.includes(style)) console.warn(`vitrium: sheet glassStyle must be 'frost', 'transparent', 'curated' or 'inherit', got '${style}'.`);
     glass.classList.toggle('is-clear', wanted === 'clear');
     setGlassStyle(sheet, style === 'inherit' ? null : GLASS_STYLES.includes(style) ? style : 'frost');
   }

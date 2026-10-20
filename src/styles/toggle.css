@@ -61,7 +61,8 @@
    a third of the way up the lens is still most of the way white and blurred about 1pt; back down, the white
    and the blur come back the same way. It follows the glass (--lg-glass, pill-drag-core.js), blurring 3pt on
    screen per unit of white (here 1.9px, before the lift's 1.6 scale). Painted over the lens's refraction (its
-   layer, refraction.css) and under its rim. */
+   layer, refraction.css) and under its rim. Where the lens doesn't refract, the frost goes into the lens's own
+   blur instead (below): a backdrop filter there cuts this layer off from what's behind. */
 .lg-toggle .lg-pill-inner {
   background: transparent;
   box-shadow: none;
@@ -76,24 +77,25 @@
   background: rgb(255 255 255 / calc(1 - var(--lg-glass, 0)));
 }
 
-.lg-toggle .lg-pill--lifted .lg-pill-inner::before {
+:root[data-refraction="on"] .lg-toggle .lg-pill--lifted .lg-pill-inner.lg-refracting::before {
   -webkit-backdrop-filter: blur(calc((1 - var(--lg-glass, 0)) * 1.9px));
   backdrop-filter: blur(calc((1 - var(--lg-glass, 0)) * 1.9px));
 }
 
 /* The thumb is too small to lift as far as other glass: the full ring offset
-   left its shadow looking detached. Its glass is clear, as iOS's is: where refraction is off (Safari, Firefox)
-   the lifted lens shows the track through it unbent, rather than through the pill's usual blur and gray fill,
-   which smeared the green under it. No backdrop filter at all, not even a zero blur: that would cut the frost
-   (::before, above) off from what's behind the lens. */
+   left its shadow looking detached. */
 .lg-toggle .lg-pill {
   --lg-ring-offset: 5px;
 }
 
+/* Lifted, the lens takes the glass style's lens blur (--lg-pill-blur: frost blurs it a little, transparent, and
+   curated, which gives lenses transparent's, less), refracting or not, and no fill: the thumb's white is its own layer, above. Refracting, the
+   blur goes under the bend (refraction.css); here it's the plain lens's (no refraction, or `refract: false`),
+   with the frost of the turn added on. */
 .lg-toggle .lg-pill.lg-pill--lifted .lg-pill-inner {
   background: transparent;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
+  -webkit-backdrop-filter: blur(calc(var(--lg-pill-blur, 2px) + (1 - var(--lg-glass, 0)) * 1.9px));
+  backdrop-filter: blur(calc(var(--lg-pill-blur, 2px) + (1 - var(--lg-glass, 0)) * 1.9px));
 }
 
 /* The rim's stroke comes and goes with the glass rather than at once with the lifted class: the glass outlasts

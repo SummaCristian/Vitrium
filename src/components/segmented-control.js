@@ -21,6 +21,9 @@
 // segmented control usually sits on a surface of its own that already blurs; turn it on for one that floats
 // straight over content. setBlur() changes it later. It follows the site's blur setting like every other surface.
 //
+// `refract: false` keeps it plain where refraction runs (initRefraction(), Chromium): the floating track's rim and
+// the lifted lens both stay unbent (`.lg-no-refract` on the root). setRefract() changes it later.
+//
 // `glass: 'clear'` gives the track the lighter clear glass (less tint, a shallower blur, a fainter rim). setGlass()
 // changes it later; `glass` reads it back.
 //
@@ -35,9 +38,10 @@ import { createPillParts, el, toNode } from './dom.js';
 import { setGlass } from './glass-mode.js';
 
 // onSelect(value, { silent }) fires when a different item becomes selected.
-export function createSegmentedControl(root, { items: itemDefs, value, onSelect, orientation = 'horizontal', selectedColor, blur = false, glass = 'regular' } = {}) {
+export function createSegmentedControl(root, { items: itemDefs, value, onSelect, orientation = 'horizontal', selectedColor, blur = false, glass = 'regular', refract = true } = {}) {
   root.classList.add('lg-seg');
   root.classList.toggle('lg-seg--blur', !!blur);
+  root.classList.toggle('lg-no-refract', !refract);
   const setSelectedColor = (c) => {
     if (c == null) root.style.removeProperty('--lg-seg-active-color');
     else root.style.setProperty('--lg-seg-active-color', c === 'accent' ? 'var(--lg-accent)' : c);
@@ -247,6 +251,7 @@ export function createSegmentedControl(root, { items: itemDefs, value, onSelect,
     get glass() { return glassMode; },
     setGlass(mode) { glassMode = setGlass(track, mode) ?? glassMode; },
     setBlur(on) { root.classList.toggle('lg-seg--blur', !!on); },
+    setRefract(on) { root.classList.toggle('lg-no-refract', !on); },
     destroy() { cancelMorph?.(); clearLeaving(); ro.disconnect(); core.destroy(); },
     get value() { return cellsOf()[core.index]?.dataset.value; },
   };

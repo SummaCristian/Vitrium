@@ -40,7 +40,7 @@ export default {
     let host, control, log;
     const build = (s) => {
       control = createSegmentedControl(host, {
-        items: itemsFor(s.content), value: 'grid', orientation: s.orientation, selectedColor: colorOf(s.colorMode, s.color), blur: s.blur, glass: s.glass,
+        items: itemsFor(s.content), value: 'grid', orientation: s.orientation, selectedColor: colorOf(s.colorMode, s.color), blur: s.blur, glass: s.glass, refract: s.refract,
         onSelect: (v, { silent }) => { log.textContent = `onSelect('${v}', { silent: ${silent} })`; },
       });
     };
@@ -51,6 +51,7 @@ export default {
         { key: 'content', label: 'Content', type: 'choice', choices: CONTENT, default: 'labels' },
         { key: 'glass', label: 'Glass', type: 'choice', choices: ['regular', 'clear'], default: 'regular' },
         { key: 'blur', label: 'Blur', type: 'bool', default: false },
+        { key: 'refract', label: 'Refraction', type: 'bool', default: true },
         { key: 'colorMode', label: 'Selected text', type: 'choice', choices: ['default', 'accent', 'custom'], default: 'default' },
         { key: 'color', label: 'Custom color', type: 'color', default: '#ff375f', when: (s) => s.colorMode === 'custom' },
       ],
@@ -66,6 +67,7 @@ export default {
         if (key === 'orientation') control.setOrientation(s.orientation);
         else if (key === 'content') control.setItems(changesFor(s.content));
         else if (key === 'blur') control.setBlur(s.blur);
+        else if (key === 'refract') control.setRefract(s.refract);
         else if (key === 'glass') control.setGlass(s.glass);
         else control.setSelectedColor(colorOf(s.colorMode, s.color));
       },
@@ -74,7 +76,7 @@ export default {
         return `import { createSegmentedControl } from 'vitrium';
 
 const control = createSegmentedControl(container, {
-${lines('  ', `items: [\n    ${items.join(',\n    ')},\n  ],`, `value: 'grid',`, s.orientation !== 'horizontal' && `orientation: '${s.orientation}',`, s.blur && 'blur: true,', s.glass === 'clear' && `glass: 'clear',`, s.colorMode !== 'default' && `selectedColor: ${s.colorMode === 'custom' ? `'${s.color}'` : `'accent'`},`, 'onSelect(value) {},')}
+${lines('  ', `items: [\n    ${items.join(',\n    ')},\n  ],`, `value: 'grid',`, s.orientation !== 'horizontal' && `orientation: '${s.orientation}',`, s.blur && 'blur: true,', !s.refract && 'refract: false,', s.glass === 'clear' && `glass: 'clear',`, s.colorMode !== 'default' && `selectedColor: ${s.colorMode === 'custom' ? `'${s.color}'` : `'accent'`},`, 'onSelect(value) {},')}
 });`;
       },
     });
@@ -240,6 +242,7 @@ control.setBlur(false);`)),
           ['selectedColor', "CSS color | 'accent'", 'Color of the selected label. Default: the normal text color.'],
           ['blur', 'boolean', 'Blur what is behind the track, for a control that floats over content. Default: `false`.'],
           ['glass', "'regular' | 'clear'", 'The track\'s glass. Clear is lighter: less tint and a fainter rim. Default: `"regular"`.'],
+          ['refract', 'boolean', 'Where refraction runs (`initRefraction()`, Chromium), the floating track\'s rim and the lifted lens bend what is behind them. `false` keeps both plain. Default: `true`.'],
           ['onSelect', '(value, { silent }) => void', 'Called when a different segment becomes selected. `silent` is true for `select()` calls.'],
         ].map((r) => [h('code', {}, r[0]), h('code', {}, r[1]), r[2]])),
         h('h3', { class: 'sub-label' }, 'Returned object'),
@@ -252,6 +255,7 @@ control.setBlur(false);`)),
           ['setSelectedColor(color)', 'Change the selected label color. `null` restores the default.'],
           ['setGlass(mode)', 'Switch the track between `"regular"` and `"clear"` glass. `glass` reads it back.'],
           ['setBlur(on)', 'Turn the track\'s backdrop blur on or off.'],
+          ['setRefract(on)', 'Turn its refraction on or off.'],
           ['refresh({ snap })', 'Re-measure and re-place the pill.'],
           ['destroy()', 'Remove its listeners, observers and springs. Call it when removing the control.'],
         ].map((r) => [h('code', {}, r[0]), r[1]]))),

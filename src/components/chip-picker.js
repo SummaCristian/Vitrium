@@ -22,7 +22,7 @@
 //   maxHeight            'normal' (default, 420px) | 'page' (the page's height less the safe areas and 20px) | px;
 //                        past it the panel's body scrolls
 //   glass                'regular' (default) | 'clear': the material of the chip and its panel
-//   glassStyle           the panel's glass style: 'frost' (default, whatever the page's style is) | 'transparent' | 'inherit'
+//   glassStyle           the panel's glass style: 'frost' (default, whatever the page's style is) | 'transparent' | 'curated' | 'inherit'
 //                        (the page's). The chip itself follows the page.
 //   onOpen / onAfterOpen / onClose   see createMorphPopup
 //

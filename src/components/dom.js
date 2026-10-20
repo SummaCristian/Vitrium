@@ -24,6 +24,8 @@ export function el(tag, className, attrs) {
 // With `fade` (the default) the flat resting fill is a layer of its own, and the
 // lens crossfades between it and the glass (the inner layer) as the core's
 // --lg-glass goes from 0 to 1; without it the inner layer is both, swapped at once.
+// The frost layer carries the glass style's blur of a refracting lens, under the
+// copies, so it blurs what's behind the lens and not the labels it bends.
 export function createPillParts({ fade = true } = {}) {
   const pill = el('div', fade ? 'lg-pill lg-pill--fade' : 'lg-pill');
   const inner = el('div', 'lg-pill-inner');
@@ -31,7 +33,7 @@ export function createPillParts({ fade = true } = {}) {
   const activeRow = el('div', 'lg-pill-active-row');
   lens.appendChild(activeRow);
   if (fade) pill.append(el('div', 'lg-pill-fill'));
-  pill.append(inner, lens);
+  pill.append(el('div', 'lg-pill-frost'), inner, lens);
   const hit = el('div', 'lg-pill-hit');
   // The hover pill (pill-drag-core.js): the consumer puts it in the track, right before the items.
   const hover = el('div', 'lg-pill-hover');

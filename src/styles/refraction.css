@@ -25,13 +25,16 @@
   backdrop-filter: var(--_lg-refraction-base, none);
 }
 
-/* The sliding pill's lens (pill.css), lifted mid tap or drag: a drop of clear
-   glass over the labels. It leaves them as they are until the last few pixels,
+/* The sliding pill's lens (pill.css), lifted mid tap or drag: a drop of glass
+   over the labels, as frosted as the glass style makes a lens (--lg-pill-blur:
+   frost blurs it a little, transparent, and curated, which gives lenses transparent's, barely), with the
+   labels it bends kept sharp: the blur is its frost layer's, below them (further down). It leaves
+   them as they are until the last few pixels,
    where a thin rim bends them, its outer edge smearing what's just inside into
    streaks, with the colors split apart like a prism's. Measured off the iOS 26
    tab bar's lens: a 10pt bezel whose rim shows what's 10pt in, on a gentler
    curve (t^1.5) than plain glass. The lens is lifted by a scale
-   (pill-drag-core.js, tapScale 1.45) and the map scales with it, so these are
+   (pill-drag-core.js, tapScale 1.45 by default) and the map scales with it, so these are
    the on-screen sizes divided by that. Set these on .lg-pill-inner itself to
    tune it. */
 .lg-pill-inner {
@@ -50,7 +53,14 @@
    pixel, across five frames: outward 5.2pt at the rim fading linearly over 23.5pt, smoothed over 6.3pt;
    inward 10pt at the rim over a 6.3pt bezel, on a t^1.9 curve; no color split. Divided by the toggle's lift
    scale (1.6, components/toggle.js), as above. */
+/* It has no labels to keep sharp, and its frost has to reach as far as its bend does: the glass style's blur goes
+   in its own filter instead of a frost layer. */
+.lg-toggle .lg-pill-frost {
+  display: none;
+}
+
 .lg-toggle .lg-pill-inner {
+  --lg-refraction-blur: var(--lg-pill-blur, 2px);
   --lg-refraction-lens-depth: 3.27px;
   --lg-refraction-lens-bezel: 14.7px;
   --lg-refraction-lens-smooth: 3.93px;
@@ -103,7 +113,24 @@
   z-index: -1;
 }
 
-/* Lifted, the refracting lens is clear glass: the flat gray fill it has at
+/* Lifted, the refracting lens's blur (the glass style's, --lg-pill-blur) is its frost layer's (components/dom.js),
+   between what's behind it and the copies of the labels: its own filter only bends, so the copies, which it takes
+   in too, stay sharp, as they do over a lens that doesn't refract. It comes in with the glass. */
+.lg-pill-frost {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+:root[data-refraction="on"] .lg-pill--lifted:has(> .lg-pill-inner.lg-refracting) > .lg-pill-frost {
+  z-index: -1;
+  -webkit-backdrop-filter: blur(var(--lg-pill-blur, 2px));
+  backdrop-filter: blur(var(--lg-pill-blur, 2px));
+  opacity: var(--lg-glass, 1);
+}
+
+/* Lifted, the refracting lens is glass with no fill of its own: the flat gray fill it has at
    rest (--lg-pill-bg, pill.css) goes, so it takes the brightness of whatever
    is behind it and reads the same over a white page as over a tinted card. */
 :root[data-refraction="on"] .lg-pill--lifted .lg-pill-inner.lg-refracting {
@@ -142,14 +169,14 @@
   -webkit-backdrop-filter: var(--_lg-refraction);
   backdrop-filter: var(--_lg-refraction);
 }
-/* Glass style (components/glass-style.js), for glass that isn't refracting:
-   [data-glass-style] on <html> sets it for the whole page, and on any element
-   for what's inside it; the nearest one wins. `frost` is the material's own
-   blur and fills (also what it is with no attribute). `transparent` gives it
-   a light frost (--lg-blur-transparent) and lets the lifted pill lens go
-   clear. It is about the glass, not about refraction: refracting glass takes the
-   same blur under its bend. The tokens are inherited, so the attribute is only
-   ever a switch for them. */
+/* Glass style (components/glass-style.js): [data-glass-style] on <html> sets it for the whole page, and on any
+   element for what's inside it; the nearest one wins. `frost` is the material's own blur and fills, the lifted
+   lens included (also what it is with no attribute). `transparent` gives it all a light frost
+   (--lg-blur-transparent) and drops the lifted lens's fill. `curated` is no third material but the two mixed
+   across a control, part by part, as Vitrium picks: frost for its surfaces and rails (a tab bar's bar, a track),
+   where what's on them has to stay readable, and transparent for its lenses.
+   It is about the glass, not about refraction: refracting glass takes the same blur under its bend. The tokens are
+   inherited, so the attribute is only ever a switch for them. */
 [data-glass-style="frost"] {
   --lg-blur-sm: var(--lg-blur-sm-frost);
   --lg-blur-md: var(--lg-blur-md-frost);
@@ -163,6 +190,16 @@
   --lg-blur-md: var(--lg-blur-transparent);
   --lg-blur-lg: var(--lg-blur-transparent);
   --lg-blur-clear: var(--lg-blur-transparent);
+  --lg-pill-blur: var(--lg-blur-transparent);
+  --lg-pill-lifted-bg: transparent;
+}
+/* curated: frost's surfaces... */
+[data-glass-style="curated"] {
+  --lg-blur-sm: var(--lg-blur-sm-frost);
+  --lg-blur-md: var(--lg-blur-md-frost);
+  --lg-blur-lg: var(--lg-blur-lg-frost);
+  --lg-blur-clear: var(--lg-blur-clear-frost);
+  /* ...and transparent's lenses. */
   --lg-pill-blur: var(--lg-blur-transparent);
   --lg-pill-lifted-bg: transparent;
 }

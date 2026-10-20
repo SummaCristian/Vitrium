@@ -20,11 +20,12 @@ export default {
         { key: 'colorMode', label: 'On color', type: 'choice', choices: COLOR_MODES, default: 'default' },
         { key: 'color', label: 'Custom color', type: 'color', default: '#ff375f', when: (s) => s.colorMode === 'custom' },
         { key: 'disabled', label: 'Disabled', type: 'bool', default: false },
+        { key: 'refract', label: 'Refraction', type: 'bool', default: true },
       ],
       render(s, stage) {
         log = readout('Tap, press Space, or drag the thumb');
         toggle = createToggle({
-          value: s.value, color: colorOf(s.colorMode, s.color), label: 'Demo', disabled: s.disabled,
+          value: s.value, color: colorOf(s.colorMode, s.color), label: 'Demo', disabled: s.disabled, refract: s.refract,
           onChange: (on) => { log.textContent = `onChange(${on})`; },
         });
         stage.append(h('div', { class: 'demo-stack' }, h('div', { class: 'demo-zoom' }, toggle.el), log));
@@ -33,12 +34,13 @@ export default {
       patch(s, stage, key) {
         if (key === 'value') toggle.set(s.value);
         else if (key === 'disabled') toggle.setDisabled(s.disabled);
+        else if (key === 'refract') toggle.setRefract(s.refract);
         else toggle.setColor(colorOf(s.colorMode, s.color));
       },
       code: (s) => `import { createToggle } from 'vitrium';
 
 const toggle = createToggle({
-${lines('  ', `value: ${s.value},`, s.colorMode !== 'default' && `color: ${s.colorMode === 'custom' ? `'${s.color}'` : `'accent'`},`, s.disabled && 'disabled: true,', `label: 'Notifications',`, 'onChange(on) {},')}
+${lines('  ', `value: ${s.value},`, s.colorMode !== 'default' && `color: ${s.colorMode === 'custom' ? `'${s.color}'` : `'accent'`},`, s.disabled && 'disabled: true,', !s.refract && 'refract: false,', `label: 'Notifications',`, 'onChange(on) {},')}
 });
 document.body.append(toggle.el);`,
     });
@@ -140,7 +142,7 @@ const row = (name, value) => {
           ['`--lg-toggle-off`', 'The track when off: a translucent gray, so it reads on any background (darker in the dark theme).'],
           ['`--lg-accent`', 'The focus ring, and the on-color when `color: "accent"`.'],
         ]),
-        h('p', {}, 'The thumb is white in both themes, as on iOS. Lifted, its lens is clear glass that bends the track under it; where refraction is off (Safari, Firefox), it is clear without the bend.'),
+        h('p', {}, 'The thumb is white in both themes, as on iOS. Lifted, its lens bends the track under it, and takes the page\'s glass style: `frost` (the default) blurs it lightly, while `transparent`, and `curated` (frost on the rest, transparent on lenses), leave it nearly clear, close to how iOS draws it. Set it with `setGlassStyle`, for the page or around one toggle. With `refract: false`, or where refraction doesn\'t run (Safari, Firefox), it is the same glass without the bend.'),
         codeBlock(`
 :root { --lg-toggle-on: #30b0c7; }         /* every toggle */
 .danger-zone { --lg-toggle-on: #ff453a; }  /* toggles inside one element */`, 'text')),
@@ -152,6 +154,7 @@ const row = (name, value) => {
           ['label', 'string', 'Accessible name.'],
           ['color', "CSS color | 'accent'", "On-color of the track. Default: `--lg-toggle-on`."],
           ['disabled', 'boolean', 'Dimmed, and takes no input. Default: `false`.'],
+          ['refract', 'boolean', 'Where refraction runs (`initRefraction()`, Chromium), the lifted lens bends what is behind it. `false` keeps it plain. Default: `true`.'],
           ['onChange', '(on: boolean) => void', 'Called when the user changes it. Not called by `set()`.'],
         ].map((r) => [h('code', {}, r[0]), h('code', {}, r[1]), r[2]])),
         h('h3', { class: 'sub-label' }, 'Returned object'),
@@ -160,6 +163,7 @@ const row = (name, value) => {
           ['on', 'The current value (read-only).'],
           ['set(value, { animate })', 'Set it from code. Silent, and animates unless `animate` is `false`. Setting the value it already has does nothing.'],
           ['setDisabled(disabled), disabled', 'Disable it or enable it again, and read which it is. A disabled toggle can still be `set()`.'],
+          ['setRefract(on)', 'Turn the lens\'s refraction on or off.'],
           ['setColor(color)', 'Change the on-color. `null` restores the default.'],
           ['refresh({ snap })', 'Re-measure and re-place the thumb. Called for you when the toggle is resized; call it yourself after moving it between containers.'],
           ['destroy()', 'Remove its listeners and observers.'],

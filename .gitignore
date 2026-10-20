@@ -5,3 +5,4 @@ graphify-out
 test-results
 playwright-report
 site-dist
+/types

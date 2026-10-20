@@ -88,14 +88,14 @@
   --lg-ring-offset: 5px;
 }
 
-/* Lifted, the lens takes the glass style's lens blur (--lg-pill-blur: frost blurs it a little, transparent, and
+/* Lifted, the lens takes the glass style's lens blur (--lg-material-blur: frost blurs it a little, transparent, and
    curated, which gives lenses transparent's, less), refracting or not, and no fill: the thumb's white is its own layer, above. Refracting, the
    blur goes under the bend (refraction.css); here it's the plain lens's (no refraction, or `refract: false`),
    with the frost of the turn added on. */
 .lg-toggle .lg-pill.lg-pill--lifted .lg-pill-inner {
   background: transparent;
-  -webkit-backdrop-filter: blur(calc(var(--lg-pill-blur, 2px) + (1 - var(--lg-glass, 0)) * 1.9px));
-  backdrop-filter: blur(calc(var(--lg-pill-blur, 2px) + (1 - var(--lg-glass, 0)) * 1.9px));
+  -webkit-backdrop-filter: blur(calc(var(--lg-material-blur, 2px) + (1 - var(--lg-glass, 0)) * 1.9px));
+  backdrop-filter: blur(calc(var(--lg-material-blur, 2px) + (1 - var(--lg-glass, 0)) * 1.9px));
 }
 
 /* The rim's stroke comes and goes with the glass rather than at once with the lifted class: the glass outlasts

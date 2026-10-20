@@ -205,6 +205,10 @@ function splitTabs(tabs, unified = false) {
 
 let tabbarUid = 0;
 
+/**
+ * @param {HTMLElement} root
+ * @param {Record<string, any>} [options]
+ */
 export function createTabBar(root, { tabs: initialTabs, value, onSelect, action, orientation = 'auto', breakpoint = 600, placement, label, compact = false, transition = false, glass = 'regular', refract = true } = {}) {
   root.classList.add('lg-tabbar');
   root.classList.toggle('lg-no-refract', !refract);

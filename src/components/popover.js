@@ -65,6 +65,9 @@ const FOCUSABLE = [
   'select:not([disabled])', 'textarea:not([disabled])', '[tabindex]:not([tabindex="-1"])',
 ].join(',');
 
+/**
+ * @param {Record<string, any>} [options]
+ */
 export function createPopover({
   trigger, content, placement = 'bottom', offset: gap = 8, shiftPadding = 8, boundary, dismissable = true,
   arrow = true, role = 'dialog', label, deform = true, glass = 'regular', glassStyle, onShow, onHide,

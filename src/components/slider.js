@@ -42,6 +42,9 @@ const SETTLE_POS = { stiffness: 400, damping: 35, mass: 0.8 };
 const LIFT = { stiffness: 500, damping: 25, mass: 0.5 };
 const DROP = { stiffness: 350, damping: 30, mass: 0.8 };
 
+/**
+ * @param {Record<string, any>} [options]
+ */
 export function createSlider({
   value = 0, min = 0, max = 100, step = 1, minGap = 0,
   label, labels = ['Minimum', 'Maximum'], format, disabled = false,

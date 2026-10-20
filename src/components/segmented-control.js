@@ -38,6 +38,10 @@ import { createPillParts, el, toNode } from './dom.js';
 import { setGlass } from './glass-mode.js';
 
 // onSelect(value, { silent }) fires when a different item becomes selected.
+/**
+ * @param {HTMLElement} root
+ * @param {Record<string, any>} [options]
+ */
 export function createSegmentedControl(root, { items: itemDefs, value, onSelect, orientation = 'horizontal', selectedColor, blur = false, glass = 'regular', refract = true } = {}) {
   root.classList.add('lg-seg');
   root.classList.toggle('lg-seg--blur', !!blur);

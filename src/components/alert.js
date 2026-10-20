@@ -54,6 +54,9 @@ const reduceMotion = typeof matchMedia === 'function'
 
 let alertUid = 0;
 
+/**
+ * @param {Record<string, any>} [options]
+ */
 export function createAlert({
   title, message, content, actions = [{ id: 'ok', label: 'OK', role: 'default' }],
   dismissible, transition: initialTransition = 'pop', zIndex, glassStyle,
@@ -292,6 +295,9 @@ export function createAlert({
     if (e.touches.length > 1 || !canTake(e.target, x0 - t.clientX, y0 - t.clientY)) e.preventDefault();
   }, { passive: false });
 
+  /**
+   * @param {{ from?: Element }} [options]
+   */
   function present({ from } = {}) {
     if (open) return promise;
     layer.style.transition = '';

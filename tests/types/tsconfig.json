@@ -1,0 +1,14 @@
+{
+  // Checks tests/types against the built types (types/, npm run build:types), strictly and with the library's own
+  // declarations checked too, as a strict project using Vitrium would.
+  "compilerOptions": {
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": false,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  "include": ["./*.ts"]
+}

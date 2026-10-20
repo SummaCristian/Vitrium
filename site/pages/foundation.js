@@ -1,5 +1,6 @@
 import { h, breadcrumbs } from '../dom.js';
 import glass from '../foundation/glass.js';
+import glassStyles from '../foundation/glass-styles.js';
 import tokens from '../foundation/tokens.js';
 import accent from '../foundation/accent.js';
 import theme from '../foundation/theme.js';
@@ -10,7 +11,7 @@ import core from '../foundation/core.js';
 // One file per page in site/foundation/. Each exports { id, title, abstract, sections() }, where
 // sections() returns the page's `section(...)` blocks (they feed "On this page").
 // Add a page by creating a file there and listing it here, in the order it should appear.
-export const foundationPages = [glass, tokens, accent, theme, blur, motion, core];
+export const foundationPages = [glass, glassStyles, tokens, accent, theme, blur, motion, core];
 
 export const foundationById = (id) => foundationPages.find((p) => p.id === id);
 

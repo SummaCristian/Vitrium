@@ -21,6 +21,9 @@ import { icons } from './icons.js';
 import { el, toNode } from './dom.js';
 import { setGlass } from './glass-mode.js';
 
+/**
+ * @param {Record<string, any>} [options]
+ */
 export function createTextField({
   value = '', placeholder = '', type = 'text', name, label, variant = 'default', icon,
   clearable = variant === 'search', multiline = false, rows = 3, disabled = false,

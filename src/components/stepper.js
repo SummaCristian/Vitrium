@@ -22,6 +22,9 @@ import { setGlass } from './glass-mode.js';
 const HOLD_DELAY_MS = 400;
 const REPEAT_MS = 90;
 
+/**
+ * @param {Record<string, any>} [options]
+ */
 export function createStepper({
   value = 0, min = -Infinity, max = Infinity, step = 1,
   label, labels = ['Decrease', 'Increase'], format, onChange, glass = 'regular',

@@ -29,8 +29,8 @@
    With blur switched off the token is 0px and the site-wide rule removes the filter, so it needs no rule of its own.
    The -webkit- prefix comes first, on purpose: see glass.css. */
 .lg-seg--blur .lg-seg__track {
-  -webkit-backdrop-filter: blur(var(--lg-blur-md));
-  backdrop-filter: blur(var(--lg-blur-md));
+  -webkit-backdrop-filter: blur(var(--lg-material-blur-md));
+  backdrop-filter: blur(var(--lg-material-blur-md));
 }
 
 /* Clear glass (the `glass: 'clear'` option). The shared class brings the lighter rim; the tint is set here because the
@@ -43,8 +43,8 @@
 }
 
 .lg-seg--blur .lg-seg__track.lg-glass--clear {
-  -webkit-backdrop-filter: blur(var(--lg-blur-clear));
-  backdrop-filter: blur(var(--lg-blur-clear));
+  -webkit-backdrop-filter: blur(var(--lg-material-blur-clear));
+  backdrop-filter: blur(var(--lg-material-blur-clear));
 }
 
 .lg-seg__track::after {

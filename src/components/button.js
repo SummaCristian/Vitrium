@@ -18,6 +18,9 @@ import { setGlass } from './glass-mode.js';
 //   claimTouch  the button sits on a layer above the content (a fixed header):
 //           a drag on it never scrolls the page. Off, a touch on it also drives
 //           the scroll of the content it's in. See liquid-glass.js.
+/**
+ * @param {Record<string, any>} [options]
+ */
 export function createButton({ icon, text, label, onClick, className = '', tint, glass = 'regular', claimTouch = false } = {}) {
   const btn = document.createElement('button');
   btn.type = 'button';
@@ -79,6 +82,9 @@ export function createToolbar(items = []) {
   return bar;
 }
 
+/**
+ * @param {Record<string, any>} [options]
+ */
 export function createBackButton({ label = 'Back', onClick, claimTouch } = {}) {
   return createButton({ icon: icons.chevronLeft, label, onClick, className: 'lg-back-button', claimTouch });
 }

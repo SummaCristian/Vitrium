@@ -41,8 +41,8 @@
   user-select: none;
 
   background: var(--lg-tint);
-  -webkit-backdrop-filter: blur(var(--lg-blur-md));
-  backdrop-filter: blur(var(--lg-blur-md));
+  -webkit-backdrop-filter: blur(var(--lg-material-blur-md));
+  backdrop-filter: blur(var(--lg-material-blur-md));
   color: var(--lg-text);
   box-shadow:
     0 0 0 0.1px var(--lg-outline),
@@ -68,8 +68,8 @@
    class (see glass.css). */
 .lg-morph.lg-glass--clear {
   background: var(--lg-tint-clear);
-  -webkit-backdrop-filter: blur(var(--lg-blur-clear));
-  backdrop-filter: blur(var(--lg-blur-clear));
+  -webkit-backdrop-filter: blur(var(--lg-material-blur-clear));
+  backdrop-filter: blur(var(--lg-material-blur-clear));
 }
 
 /* Snap down fast on touch, track 1:1 while dragging (mirrors liquid-glass.css). */

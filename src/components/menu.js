@@ -41,6 +41,9 @@ import { setGlass } from './glass-mode.js';
 const TYPEAHEAD_RESET_MS = 500;
 let menuUid = 0;
 
+/**
+ * @param {Record<string, any>} [options]
+ */
 export function createMenu({
   trigger, items = [], label, title, width = 220, maxHeight, glass = 'regular', glassStyle, onOpen, onClose,
 } = {}) {

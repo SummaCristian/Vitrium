@@ -8,28 +8,41 @@
     "*.css"
   ],
   "files": [
-    "src"
+    "src",
+    "types"
   ],
   "main": "./src/index.js",
+  "types": "./types/index.d.ts",
   "exports": {
-    ".": "./src/index.js",
+    ".": {
+      "types": "./types/index.d.ts",
+      "default": "./src/index.js"
+    },
     "./styles": "./src/styles/index.css",
     "./styles/*": "./src/styles/*",
-    "./core/*": "./src/core/*"
+    "./core/*": {
+      "types": "./types/core/*",
+      "default": "./src/core/*"
+    }
   },
   "scripts": {
     "dev": "vite site",
     "dev:test": "vite tests/fixture",
     "build:site": "vite build site --outDir ../site-dist --emptyOutDir",
     "preview:site": "vite preview site --outDir ../site-dist",
-    "test": "npm run test:unit && npm run test:e2e",
+    "test": "npm run test:unit && npm run test:types && npm run test:e2e",
     "test:unit": "vitest run",
-    "test:e2e": "playwright test"
+    "test:types": "npm run build:types && tsc -p tests/types/tsconfig.json",
+    "test:e2e": "playwright test",
+    "build:types": "tsc -p tsconfig.types.json",
+    "build:glass-roles": "node scripts/build-glass-roles.mjs",
+    "prepack": "npm run build:types"
   },
   "devDependencies": {
     "@fontsource-variable/nunito": "^5.3.0",
     "@hugeicons/core-free-icons": "^4.3.4",
     "@playwright/test": "^1.63.0",
+    "typescript": "^5.9.3",
     "vite": "^8.3.0",
     "vitest": "^5.0.1"
   },

@@ -26,7 +26,7 @@
 }
 
 /* The sliding pill's lens (pill.css), lifted mid tap or drag: a drop of glass
-   over the labels, as frosted as the glass style makes a lens (--lg-pill-blur:
+   over the labels, as frosted as the glass style makes a lens (the lens role's blur, --lg-material-blur:
    frost blurs it a little, transparent, and curated, which gives lenses transparent's, barely), with the
    labels it bends kept sharp: the blur is its frost layer's, below them (further down). It leaves
    them as they are until the last few pixels,
@@ -60,7 +60,7 @@
 }
 
 .lg-toggle .lg-pill-inner {
-  --lg-refraction-blur: var(--lg-pill-blur, 2px);
+  --lg-refraction-blur: var(--lg-material-blur, 2px);
   --lg-refraction-lens-depth: 3.27px;
   --lg-refraction-lens-bezel: 14.7px;
   --lg-refraction-lens-smooth: 3.93px;
@@ -113,7 +113,7 @@
   z-index: -1;
 }
 
-/* Lifted, the refracting lens's blur (the glass style's, --lg-pill-blur) is its frost layer's (components/dom.js),
+/* Lifted, the refracting lens's blur (its role's in the glass style, --lg-material-blur) is its frost layer's (components/dom.js),
    between what's behind it and the copies of the labels: its own filter only bends, so the copies, which it takes
    in too, stay sharp, as they do over a lens that doesn't refract. It comes in with the glass. */
 .lg-pill-frost {
@@ -125,8 +125,8 @@
 
 :root[data-refraction="on"] .lg-pill--lifted:has(> .lg-pill-inner.lg-refracting) > .lg-pill-frost {
   z-index: -1;
-  -webkit-backdrop-filter: blur(var(--lg-pill-blur, 2px));
-  backdrop-filter: blur(var(--lg-pill-blur, 2px));
+  -webkit-backdrop-filter: blur(var(--lg-material-blur, 2px));
+  backdrop-filter: blur(var(--lg-material-blur, 2px));
   opacity: var(--lg-glass, 1);
 }
 
@@ -169,37 +169,6 @@
   -webkit-backdrop-filter: var(--_lg-refraction);
   backdrop-filter: var(--_lg-refraction);
 }
-/* Glass style (components/glass-style.js): [data-glass-style] on <html> sets it for the whole page, and on any
-   element for what's inside it; the nearest one wins. `frost` is the material's own blur and fills, the lifted
-   lens included (also what it is with no attribute). `transparent` gives it all a light frost
-   (--lg-blur-transparent) and drops the lifted lens's fill. `curated` is no third material but the two mixed
-   across a control, part by part, as Vitrium picks: frost for its surfaces and rails (a tab bar's bar, a track),
-   where what's on them has to stay readable, and transparent for its lenses.
-   It is about the glass, not about refraction: refracting glass takes the same blur under its bend. The tokens are
-   inherited, so the attribute is only ever a switch for them. */
-[data-glass-style="frost"] {
-  --lg-blur-sm: var(--lg-blur-sm-frost);
-  --lg-blur-md: var(--lg-blur-md-frost);
-  --lg-blur-lg: var(--lg-blur-lg-frost);
-  --lg-blur-clear: var(--lg-blur-clear-frost);
-  --lg-pill-blur: 2px;
-  --lg-pill-lifted-bg: var(--lg-pill-bg);
-}
-[data-glass-style="transparent"] {
-  --lg-blur-sm: var(--lg-blur-transparent);
-  --lg-blur-md: var(--lg-blur-transparent);
-  --lg-blur-lg: var(--lg-blur-transparent);
-  --lg-blur-clear: var(--lg-blur-transparent);
-  --lg-pill-blur: var(--lg-blur-transparent);
-  --lg-pill-lifted-bg: transparent;
-}
-/* curated: frost's surfaces... */
-[data-glass-style="curated"] {
-  --lg-blur-sm: var(--lg-blur-sm-frost);
-  --lg-blur-md: var(--lg-blur-md-frost);
-  --lg-blur-lg: var(--lg-blur-lg-frost);
-  --lg-blur-clear: var(--lg-blur-clear-frost);
-  /* ...and transparent's lenses. */
-  --lg-pill-blur: var(--lg-blur-transparent);
-  --lg-pill-lifted-bg: transparent;
-}
+/* Glass style (components/glass-style.js) and glass roles (components/glass-roles.js): what each kind of glass
+   looks like in each style is the roles' (styles/glass-roles.css, generated from them). Refraction doesn't pick
+   the blur; the style does: refracting glass takes the same blur under its bend. */

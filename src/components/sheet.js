@@ -157,6 +157,9 @@ const clamp01 = (v) => Math.max(0, Math.min(1, v));
 
 const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+/**
+ * @param {Record<string, any>} [options]
+ */
 export function createSheet({
   header, content, footer,
   detents: initialDetents = DEFAULT_SHEET_DETENTS, detent: initialDetent,
@@ -379,6 +382,7 @@ export function createSheet({
   }
   if (modal || dismissible) document.addEventListener('keydown', onDocKeydown);
 
+  /** @param {{ detent?: string, from?: Element }} [options] */
   function present({ detent: id, from } = {}) {
     if (presented && presence.target === 1) return;
     const fresh = !presented;

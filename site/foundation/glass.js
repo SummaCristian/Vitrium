@@ -311,14 +311,8 @@ window.addEventListener(REFRACTION_STATE_EVENT, (e) => e.detail.active);
         ])),
 
       section('Glass style', {},
-        h('p', {}, 'How the glass blurs is its style, and it has nothing to do with whether it refracts: refracting glass takes the same blur under its bend. `frost` is the material\'s own blur and fills, the lifted lens of a pill included. `transparent` is a light frost (`--lg-blur-transparent`, 1px) on everything, so the glass reads as clear. `curated` is not a third material but the two mixed across a control, part by part, as Vitrium picks: `frost` for its surfaces and rails, where what is on them has to stay readable, and `transparent` for its lenses. A tab bar under `curated` has a frosted bar and a nearly clear lens. It is the style to reach for when you would rather leave those choices to the library, and as more parts get a say, they will follow it too. Set it for the page with `setGlassStyle(\'curated\')`, and override it on any element with `setGlassStyle(el, \'frost\')`: it is the `data-glass-style` attribute, and the nearest one wins. `setGlassStyle(el, null)` returns an element to whatever surrounds it. Every playground on this site has a Style option that does exactly that, with `inherit` as its default.'),
-        h('p', {}, 'The larger surfaces with UI inside, the sheet, the alert, the popover and the panels that morph out of a chip or a button (menus and pickers), do not follow the page: they start on `frost` so their text stays readable over anything. Small controls (buttons, toggles, the tab bar, the segmented control, text fields) follow the page. The sheet follows the page while it is small and goes frost only at its largest detent (`glassStyle: \'auto\'`). Each large surface takes a `glassStyle` option to override that: `\'transparent\'` to force the light frost, or `\'inherit\'` to follow the page after all. `setGlassStyle(el, …)` on the surface does the same later. A change of style is eased: the blur tokens are registered custom properties, and `setGlassStyle` plays them from one style\'s value to the other\'s over about a third of a second (refracting glass follows along, and reduced motion snaps).'),
-        codeBlock(`
-import { setGlassStyle } from 'vitrium';
-
-setGlassStyle('transparent');        // the page
-setGlassStyle(card, 'frost');        // this card and what's in it
-setGlassStyle(card, null);           // back to the page's`, 'js')),
+        h('p', {}, 'How much the glass blurs is its style: `frost` (the material\'s own blur, the default), `transparent` (a light frost, so it reads as clear) or `curated` (the two mixed across each control: frost surfaces and rails, transparent lenses). It is set for the page or any region with `setGlassStyle`, and what it does to a piece of glass depends on that glass\'s role. It has nothing to do with refraction: refracting glass takes the same blur under its bend.'),
+        h('p', {}, h('a', { href: '#/foundation/glass-styles' }, 'Glass styles'), ' covers it all: what each style does, part by part, how to set it and remember a visitor\'s choice, how to change the curated mix, and how to make your own components follow the styles.')),
 
       section('Classes', {},
         table(['Class', 'What it does'], [

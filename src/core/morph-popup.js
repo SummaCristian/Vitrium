@@ -87,6 +87,9 @@ function div(className, attrs) {
 // onOpen()          as soon as opening starts
 // onAfterOpen()     once the morph has landed (focus a control, highlight a row)
 // onClose()         as soon as closing starts
+/**
+ * @param {Record<string, any>} [options]
+ */
 export function createMorphPopup({
   trigger, role = 'dialog', label, title, width, radius = 16, maxHeight = 'normal',
   glassStyle = 'frost', onOpen, onAfterOpen, onClose,

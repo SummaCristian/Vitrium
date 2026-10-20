@@ -26,6 +26,9 @@ function svgEl(tag, attrs) {
   return node;
 }
 
+/**
+ * @param {Record<string, any>} [options]
+ */
 export function createProgress({ value = null, max = 1, variant = 'linear', size, label, format } = {}) {
   const circular = variant === 'circular';
   const root = el('div', `lg-progress lg-progress--${circular ? 'circular' : 'linear'}`, { role: 'progressbar' });

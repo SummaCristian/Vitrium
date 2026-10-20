@@ -111,8 +111,8 @@
      round than a circular arc at the same radius, but only Chromium has it, so
      nothing here compensates: other engines just get the circular corner. */
   corner-shape: superellipse;
-  -webkit-backdrop-filter: blur(var(--lg-blur-lg));
-  backdrop-filter: blur(var(--lg-blur-lg));
+  -webkit-backdrop-filter: blur(var(--lg-material-blur-lg));
+  backdrop-filter: blur(var(--lg-material-blur-lg));
   /* The squash/stretch is written here per frame (no transition: the spring
      already smooths it), anchored to the bottom edge where the sheet is pinned,
      so it reads as the free top edge overshooting. */
@@ -144,8 +144,8 @@
    behind more visible except when the sheet fills the view. */
 .lg-sheet__glass.is-clear {
   background: var(--lg-tint-clear);
-  -webkit-backdrop-filter: blur(var(--lg-blur-clear));
-  backdrop-filter: blur(var(--lg-blur-clear));
+  -webkit-backdrop-filter: blur(var(--lg-material-blur-clear));
+  backdrop-filter: blur(var(--lg-material-blur-clear));
 }
 
 /* The real clip. The glass layer can't have `overflow: hidden` (that would cut

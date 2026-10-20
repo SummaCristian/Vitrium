@@ -31,6 +31,9 @@ import { el, toNode } from './dom.js';
 const TYPEAHEAD_RESET_MS = 500;
 let listUid = 0;
 
+/**
+ * @param {Record<string, any>} [options]
+ */
 export function createListPicker({
   label = '', icon, sections, options, value, name, onChange, title, width, maxHeight, glass, glassStyle,
 } = {}) {

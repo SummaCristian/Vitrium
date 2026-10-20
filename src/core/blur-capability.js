@@ -63,6 +63,9 @@ function supportsBackdropFilter() {
 // while it's composited, so the sample reflects real compositing cost.
 //
 // `onFrame({ index, elapsed, gap, warmup, jank })` is called on every frame, so a UI can draw the run live.
+/**
+ * @param {{ onFrame?: (frame: any) => void }} [options]
+ */
 export function runBlurBenchmark({ onFrame } = {}) {
   return new Promise(resolve => {
     if (!supportsBackdropFilter()) return resolve(false);

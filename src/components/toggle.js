@@ -72,6 +72,9 @@ const TOGGLE_LENS = {
 //
 // Returns { el, set, setColor, setDisabled, setRefract, refresh, destroy, on, disabled }. User changes call `onChange(isOn)`;
 // set(isOn) is programmatic (silent) and animates by default.
+/**
+ * @param {Record<string, any>} [options]
+ */
 export function createToggle({ value = false, onChange, label, color, disabled = false, refract = true } = {}) {
   const root = el('button', 'lg-toggle' + (value ? ' on' : ''), { type: 'button', role: 'switch' });
   root.setAttribute('aria-checked', String(value));

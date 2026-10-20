@@ -141,15 +141,13 @@
   --lg-rim-clear: 0.6;
   --lg-stroke-clear: 0.75;
 
-  /* The material's own blur, as the `frost` glass style (see styles/refraction.css). The
-     tokens below are what surfaces use; the style attribute decides what they point at. */
+  /* The material's own blur, as the `frost` glass style gives it to surfaces and rails (their roles,
+     components/glass-roles.js, and styles/glass-roles.css, where the style decides what each kind of glass
+     points at; --lg-blur-sm/md/lg/clear stay there as aliases of the surface's). */
   --lg-blur-sm-frost: 4px;
   --lg-blur-md-frost: 8px;
   --lg-blur-lg-frost: 18px;
   --lg-blur-clear-frost: 8px;
-  --lg-blur-sm: var(--lg-blur-sm-frost);
-  --lg-blur-md: var(--lg-blur-md-frost);
-  --lg-blur-lg: var(--lg-blur-lg-frost);
 
   /* "Clear" variant: lighter tint, shallower blur, for surfaces that should
      stay glassy but get out of the way of what's behind them. */
@@ -159,8 +157,7 @@
   --lg-tint-strength: 60%;
   --lg-tint-strength-clear: 40%;
   --lg-tint-saturate-clear: 1.8;
-  --lg-blur-clear: var(--lg-blur-clear-frost);
-  /* The blur of the `transparent` glass style (data-glass-style, styles/refraction.css): a light
+  /* The blur of the `transparent` glass style (data-glass-style, styles/glass-roles.css): a light
      frost instead of the material's own. 0px is glass that blurs nothing. */
   --lg-blur-transparent: 1px;
 
@@ -171,7 +168,7 @@
      folded over like the curved edge of real glass. It stops at the middle of
      the surface, and a surface smaller than two bezels bends across its whole
      width. The blur under the bend is not set here: it is the glass style's
-     (--lg-blur-*, below). The lens of the sliding pill sets its own
+     (the roles', styles/glass-roles.css). The lens of the sliding pill sets its own
      (refraction.css). */
   --lg-refraction-bezel: 16px;
   --lg-refraction-depth: 25px;
@@ -355,12 +352,9 @@
 /* Perf-gated blur (see core/blur-capability.js). With [data-blur="off"] every
    backdrop-filter is disabled and the tint becomes near-opaque so surfaces
    stay legible without the blur behind them. Must come after the theme blocks. */
+/* (The roles' blurs, and the aliases with them, are zeroed in styles/glass-roles.css.) */
 :root[data-blur="off"] {
   --lg-pill-rest-blur: 0px;
-  --lg-blur-sm: 0px;
-  --lg-blur-md: 0px;
-  --lg-blur-lg: 0px;
-  --lg-blur-clear: 0px;
   --lg-tint: rgba(250, 250, 250, 0.94);
   --lg-tint-clear: rgba(250, 250, 250, 0.9);
 }

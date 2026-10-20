@@ -64,9 +64,9 @@
 }
 
 .lg-pill.lg-pill--lifted .lg-pill-inner {
-  -webkit-backdrop-filter: blur(var(--lg-pill-blur, 2px));
-  backdrop-filter: blur(var(--lg-pill-blur, 2px));
-  background: var(--lg-pill-lifted-bg, var(--lg-pill-bg));
+  -webkit-backdrop-filter: blur(var(--lg-material-blur, 2px));
+  backdrop-filter: blur(var(--lg-material-blur, 2px));
+  background: var(--lg-material-fill, var(--lg-pill-bg));
   box-shadow:
     inset 0 1px 0 var(--lg-pill-highlight),
     inset 0 0 0 1px var(--lg-pill-border);

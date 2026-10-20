@@ -74,7 +74,7 @@ On phones, add `viewport-fit=cover` to the viewport meta tag so the tab bar and 
 - **Tokens and theming:** the `--lg-*` custom properties, the accent, and light and dark. Pin a theme with `<html data-theme="light|dark">`.
 - **Blur:** the benchmark, the override (`auto`, `on`, `off`) and the cached verdict.
 - **Refraction:** glass that bends what's behind it at the rim, on top of whatever blur its glass style gives it: `initRefraction()` turns it on for all glass, `setRefraction(false)` turns it off, and `lg-no-refract` (or a control's `refract: false`) keeps one surface or region plain. Chromium only; elsewhere the glass stays blurred.
-- **Glass style:** how glass blurs, refracting or not: `setGlassStyle('frost' | 'transparent' | 'curated')` for the page, `setGlassStyle(el, style)` for one element and what's in it. `curated` mixes the two across each control, part by part: frosted surfaces and rails, transparent lenses.
+- **Glass style:** how glass blurs, refracting or not: `setGlassStyle('frost' | 'transparent' | 'curated')` for the page, `setGlassStyle(el, style)` for one element and what's in it. `curated` mixes the two across each control, part by part: frosted surfaces and rails, transparent lenses. What a style does to a piece of glass is its role's (`surface`, `rail`, `lens`, or one you define with `defineGlassRole`), so your own components can follow the styles the way Vitrium's do.
 - **Motion:** the springs, the press physics, the easing tokens, and reduced motion.
 - **Core:** the exported building blocks, for making your own controls: `attachLiquidGlass`, `createMorphPopup`, `createPillDragCore`, the FLIP helpers, `sheetPhysics` and the value math.
 

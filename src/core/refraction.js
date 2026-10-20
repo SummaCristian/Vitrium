@@ -438,6 +438,10 @@ export function morphRefraction(el, { radius, duration, land = true }) {
 //   A morph started on the same element meanwhile takes over, and this release then does
 //   nothing. `el` needn't be a surface itself: everything refracting inside it is held.
 const HOLD_MAX_MS = 4000;
+/**
+ * @param {Element} el
+ * @param {{ radius?: number, max?: number }} [options]
+ */
 export function holdRefraction(el, { radius, max = HOLD_MAX_MS } = {}) {
   if (!el) return () => {};
   morphRefraction(el, { radius, duration: max, land: false });

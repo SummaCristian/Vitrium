@@ -24,7 +24,8 @@ export {
 export { icons } from './components/icons.js';
 export { setGlassTint } from './components/glass-tint.js';
 export { setGlass } from './components/glass-mode.js';
-export { setGlassStyle, getGlassStyle } from './components/glass-style.js';
+export { setGlassStyle, getGlassStyle, rememberGlassStyle, restoreGlassStyle } from './components/glass-style.js';
+export { defineGlassRole, setGlassRole, setCuratedRoles, getGlassRoles, GLASS_STYLES } from './components/glass-roles.js';
 export { createButton, createToolbar, createBackButton } from './components/button.js';
 export { createSegmentedControl } from './components/segmented-control.js';
 export { createToggle } from './components/toggle.js';

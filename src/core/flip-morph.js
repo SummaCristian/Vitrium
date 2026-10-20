@@ -31,6 +31,12 @@ export function snapGeometry(el, rect, borderRadius) {
 // Morphs `el` from `fromRect`/`fromRadius` to `toRect`/`toRadius`.
 // The element's CSS must declare `transition: transform ..., border-radius ..., box-shadow ...`
 // (not top/left/width/height) for this to run off the compositor thread.
+/**
+ * @param {HTMLElement} el
+ * @param {any} fromRect
+ * @param {any} toRect
+ * @param {Record<string, any>} [options]
+ */
 export function morphGeometry(el, fromRect, toRect, { fromRadius, toRadius, onSettle, sync = false } = {}) {
   const from = toRectLike(fromRect);
   const to = toRectLike(toRect);

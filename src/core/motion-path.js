@@ -20,6 +20,22 @@
 // (run `s` from 1 to 0) whatever drives it. Reversing in time instead would
 // put the bulge at the wrong end, since the spring is front-loaded both ways.
 
+/**
+ * A box in viewport px: a DOMRect will do.
+ * @typedef {object} Rect
+ * @property {number} left
+ * @property {number} top
+ * @property {number} width
+ * @property {number} height
+ */
+/**
+ * @typedef {object} Size
+ * @property {number} width
+ * @property {number} height
+ */
+/** @typedef {string | ((t: number) => number)} Easing  A CSS easing (cubic-bezier(), linear() or a keyword), or a function of time 0..1. */
+/** @typedef {[number, number]} Vec2  [x, y], in px, or [x, y] factors. */
+
 const OMEGA = 6.5;
 const LEAD = 1.35;   // the horizontal runs on the spring's clock sped up by this
 const DRAG = 1.5;    // the vertical follows the spring to this power
@@ -29,11 +45,19 @@ const END = raw(1);
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 
 // The glide spring's progress at time t (0..1 of the duration).
+/**
+ * @param {number} t
+ * @returns {number}
+ */
 export const glide = (t) => raw(clamp01(t)) / END;
 
 // How long a glide takes, from how far the box goes (px): a longer trip takes
 // longer, but by the square root of the distance, so a hop stays snappy and a
 // trip across a desktop screen doesn't crawl. 0.4s at 400px.
+/**
+ * @param {number} distance  px
+ * @returns {number}  ms
+ */
 export function glideDuration(distance) {
   return Math.max(280, Math.min(550, 250 + 7.5 * Math.sqrt(Math.max(0, distance))));
 }
@@ -41,6 +65,11 @@ export function glideDuration(distance) {
 // How far a box travels between two rects: the farthest any of its corners
 // goes, so a box that mostly grows in place counts its growth, not just the
 // small move of its centre.
+/**
+ * @param {Rect} a
+ * @param {Rect} b
+ * @returns {number}  px
+ */
 export function travelDistance(a, b) {
   const corner = (x, y) => Math.hypot(x, y);
   return Math.max(
@@ -66,6 +95,10 @@ export function fitDuration(el, durVar, distance) {
 
 // The glide as a Spring (spring.js) config, for a trip of `distance` px:
 // critically damped, omega 6.5 over glideDuration(distance).
+/**
+ * @param {number} distance  px
+ * @returns {Required<import('./spring.js').SpringConfig>}
+ */
 export function glideSpring(distance) {
   const w = OMEGA / (glideDuration(distance) / 1000);
   return { stiffness: w * w, damping: 2 * w, mass: 1 };
@@ -82,6 +115,12 @@ export function glideSpring(distance) {
 // and its speed at the end: pinning only the position would leave it moving, and a curve that
 // stops dead while still moving reads as a snap, not a spring settling.
 const SETTLE = 0.005;
+/**
+ * @param {number} bounce  0 (none) to 1; 0.15 is `.snappy`, 0.3 `.bouncy`.
+ * @param {number} [speed]  Default: 1.
+ * @param {number} [settle]  The share of its travel left ringing at the end. Default: 0.005.
+ * @returns {(u: number) => number}  Progress at u, 0..1 of the trip.
+ */
 export function appleSpring(bounce, speed = 1, settle = SETTLE) {
   const zeta = Math.min(1, Math.max(0.05, 1 - bounce));
   const omega = speed * -Math.log(settle) / zeta;   // rad per trip
@@ -100,6 +139,12 @@ export function appleSpring(bounce, speed = 1, settle = SETTLE) {
 }
 
 // A spring curve (appleSpring) as a CSS `linear()` easing, for a transition to run it.
+/**
+ * @param {number} bounce
+ * @param {number} [speed]  Default: 1.
+ * @param {number} [samples]  Default: 40.
+ * @returns {string}  A CSS `linear()` easing.
+ */
 export function springEasing(bounce, speed = 1, samples = 40) {
   const f = appleSpring(bounce, speed);
   const v = [];
@@ -109,6 +154,12 @@ export function springEasing(bounce, speed = 1, samples = 40) {
 
 // appleSpring as a Spring (spring.js) config, for a trip of `distance` px: fitted to settle
 // over `stretch` times the glide's duration for that distance (a bounce needs a little longer).
+/**
+ * @param {number} bounce
+ * @param {number} distance  px
+ * @param {number} [stretch]  Default: 1.25.
+ * @returns {Required<import('./spring.js').SpringConfig>}
+ */
 export function appleSpringConfig(bounce, distance, stretch = 1.25) {
   const zeta = Math.min(1, Math.max(0.05, 1 - bounce));
   const w = -Math.log(SETTLE) / zeta / (stretch * glideDuration(distance) / 1000);
@@ -123,6 +174,10 @@ export const glideAhead = (t) => glide(LEAD * t);
 export const glideBehind = (t) => glide(t) ** DRAG;
 
 // The time at which the glide spring reaches progress s.
+/**
+ * @param {number} s  Progress, 0..1.
+ * @returns {number}  Time, 0..1 of the duration.
+ */
 export function glideTime(s) {
   let lo = 0, hi = 1;
   for (let i = 0; i < 30; i++) {
@@ -135,6 +190,12 @@ export function glideTime(s) {
 // The bow's offset (px) off the straight line, for a travel of (dx, dy) px
 // (source -> destination) at progress `s` along it. Past either end (a spring's
 // overshoot) it stays straight.
+/**
+ * @param {number} dx
+ * @param {number} dy
+ * @param {number} s
+ * @returns {Vec2}
+ */
 export function arcOffset(dx, dy, s) {
   s = clamp01(s);
   if (s === 0 || s === 1) return [0, 0];
@@ -200,6 +261,14 @@ const FRAMES = 32;
 // An end already closer to the edge than the margin (a trigger tucked into a corner)
 // is allowed to be: the room only ever widens to take in the rects it's travelling between.
 
+/**
+ * A trip, for keeping its path clear of the screen's edge.
+ * @typedef {object} EdgeFit
+ * @property {Rect} start  The box at the source, viewport px.
+ * @property {Rect} end  The box at the destination.
+ * @property {number} [margin]  px kept clear of the viewport edge. Default: 8.
+ */
+
 export const EDGE_MARGIN = 8;
 
 const lerpRect = (a, b, s) => ({
@@ -217,6 +286,14 @@ function pull(pos, size, lo, hi) {
 
 // The nudge (px) at progress `s` along the trip, for the box sitting `arc` off its
 // straight line, to stay within the viewport's margins.
+/**
+ * @param {EdgeFit} fit
+ * @param {number} s
+ * @param {Vec2} arc
+ * @param {number} [vw]  Default: innerWidth.
+ * @param {number} [vh]  Default: innerHeight.
+ * @returns {Vec2}
+ */
 export function edgeShift(fit, s, arc, vw = innerWidth, vh = innerHeight) {
   const { start, end, margin = EDGE_MARGIN } = fit;
   const r = lerpRect(start, end, clamp01(s));
@@ -235,6 +312,19 @@ export function edgeShift(fit, s, arc, vw = innerWidth, vh = innerHeight) {
 // start); without, only the bow, for adding on top of a move that runs the
 // straight line itself. `reverse` is the trip back: the same path, destination
 // to source. With `fit` (see edgeShift) the path is kept clear of the screen's edge.
+/**
+ * @typedef {object} ArcOptions
+ * @property {Easing} [easing]  Default: glide.
+ * @property {boolean} [reverse]  The trip back. Default: false.
+ * @property {boolean} [travel]  Carry the element along the whole path, not only the bow. Default: false.
+ * @property {EdgeFit | null} [fit]  Keep the path clear of the screen's edge.
+ */
+/**
+ * @param {number} dx
+ * @param {number} dy
+ * @param {ArcOptions} [options]
+ * @returns {{ offset: number, translate: string }[]}
+ */
 export function arcKeyframes(dx, dy, { easing = glide, reverse = false, travel = false, fit = null } = {}) {
   const ease = typeof easing === 'function' ? easing : easingFunction(easing);
   const frames = [];
@@ -253,6 +343,20 @@ export function arcKeyframes(dx, dy, { easing = glide, reverse = false, travel =
 // of (dx, dy): started in the same frame as the transition, with its duration
 // and easing. Added on top of the element's own translate (a glass press), so
 // it never fights it. Returns the Animation, or null when there's no move.
+/**
+ * @typedef {object} PlayArcOptions
+ * @property {number} duration  ms; 0 plays nothing.
+ * @property {Easing} [easing]  Default: glide.
+ * @property {boolean} [reverse]  Default: false.
+ * @property {EdgeFit | null} [fit]
+ */
+/**
+ * @param {Element} el
+ * @param {number} dx
+ * @param {number} dy
+ * @param {PlayArcOptions} options
+ * @returns {Animation | null}
+ */
 export function playArc(el, dx, dy, { duration, easing, reverse = false, fit = null }) {
   if (!el.animate || !duration || Math.hypot(dx, dy) < 1) return null;
   return el.animate(arcKeyframes(dx, dy, { easing, reverse, fit }), { duration, easing: 'linear', composite: 'add' });
@@ -353,6 +457,20 @@ function throughDroplet(a, d, b, s) {
 // The droplet's size and corner radius (px), for a morph between `start` and `end` (rects,
 // only their sizes matter) whose corners are r0 and r1: `x` and `y` are how far along the
 // curve each axis is (0 at the source, 1 at the destination, past 1 while a spring overshoots).
+/**
+ * @typedef {object} DropletShape
+ * @property {number} width
+ * @property {number} height
+ * @property {number} radius
+ */
+/**
+ * @param {Size} start
+ * @param {Size} end
+ * @param {number} r0
+ * @param {number} r1
+ * @param {{ x: number, y?: number }} along  How far along the curve each axis is; `y` defaults to `x`.
+ * @returns {DropletShape}
+ */
 export function dropletShape(start, end, r0, r1, { x, y = x }) {
   const d = dropletSize(start, end);
   const width = throughDroplet(start.width, d.width, end.width, x);
@@ -370,6 +488,14 @@ export function dropletShape(start, end, r0, r1, { x, y = x }) {
 // The same, from how far along its trip a box driven by a spring is (`m`: 0 at the source,
 // 1 at the destination, past it while the spring overshoots): the spring that carries the
 // box runs the curve too, so its own overshoot is the bounce.
+/**
+ * @param {Size} start
+ * @param {Size} end
+ * @param {number} r0
+ * @param {number} r1
+ * @param {number} m
+ * @returns {DropletShape}
+ */
 export function dropletAlong(start, end, r0, r1, m) {
   return dropletShape(start, end, r0, r1, { x: m });
 }
@@ -405,6 +531,13 @@ const easeSide = (u) => Math.sin(Math.PI / 2 * clamp01(u)) ** 2;
 // its plain shape it is drawn at `surge` (0 at rest, 1 at the fastest, windowed by the caller), on a trip of `dist` px
 // whose direction has squared components `ux2` and `uy2` (they sum to 1). Drawn out along the way it goes and narrower
 // across it, STRETCH and SQUEEZE (see above), less on a short trip. Returns [x, y] factors.
+/**
+ * @param {number} surge
+ * @param {number} dist
+ * @param {number} ux2
+ * @param {number} uy2
+ * @returns {Vec2}
+ */
 export function stretchScale(surge, dist, ux2, uy2) {
   const reach = Math.min(1, dist / STRETCH_DIST);
   const along = 1 + STRETCH * reach * surge;
@@ -413,8 +546,33 @@ export function stretchScale(surge, dist, ux2, uy2) {
 }
 
 // The window of a trip (u, 0 at the source, 1 at the end, by whatever clock the caller keeps) the stretch is held for.
+/**
+ * @param {number} u
+ * @returns {number}
+ */
 export const stretchWindow = (u) => easeSide(u / STRETCH_IN) * easeSide((STRETCH_END - u) / (STRETCH_END - STRETCH_HOLD));
 
+/**
+ * @typedef {object} LiquidOptions
+ * @property {Easing} [easing]  Default: glide.
+ * @property {Easing | null} [mirror]  For the way back: the easing the way out ran on.
+ */
+/**
+ * The droplet's three channels of keyframes.
+ * @typedef {object} LiquidKeyframes
+ * @property {{ offset: number, scale: string }[]} scale
+ * @property {{ offset: number, translate: string }[]} translate
+ * @property {{ offset: number, borderRadius: string }[]} radius
+ */
+/**
+ * @param {Rect} box
+ * @param {Rect} start
+ * @param {Rect} end
+ * @param {number} r0
+ * @param {number} r1
+ * @param {LiquidOptions} [options]
+ * @returns {LiquidKeyframes}
+ */
 export function liquidKeyframes(box, start, end, r0, r1, { easing = glide, mirror = null } = {}) {
   const ease = typeof easing === 'function' ? easing : easingFunction(easing);
   // The way back is the way out: for a trip whose source is the destination of the one `mirror` describes (the
@@ -468,6 +626,16 @@ export function liquidKeyframes(box, start, end, r0, r1, { easing = glide, mirro
 // Plays liquidKeyframes on `el`, beside the transform transition and the bow. Returns the
 // animations (cancel them all to stop). The radius holds its last frame until cancelled,
 // like playRadius, so the hand-over at the end can't flash the box's own radius.
+/**
+ * @param {Element} el
+ * @param {Rect} box
+ * @param {Rect} start
+ * @param {Rect} end
+ * @param {number} r0
+ * @param {number} r1
+ * @param {LiquidOptions & { duration: number }} options  `duration` in ms; 0 plays nothing.
+ * @returns {Animation[]}
+ */
 export function playLiquid(el, box, start, end, r0, r1, { duration, easing, mirror = null }) {
   if (!el.animate || !duration) return [];
   const k = liquidKeyframes(box, start, end, r0, r1, { easing, mirror });

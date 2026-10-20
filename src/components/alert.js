@@ -55,7 +55,46 @@ const reduceMotion = typeof matchMedia === 'function'
 let alertUid = 0;
 
 /**
- * @param {Record<string, any>} [options]
+ * @typedef {object} AlertAction
+ * @property {string} label  The button's text.
+ * @property {string} [id]  What present() resolves with. Default: the label.
+ * @property {'default' | 'cancel' | 'destructive'} [role]  'default' is filled with the accent and takes focus first;
+ *   'cancel' is what Escape and the scrim pick.
+ * @property {() => void} [onClick]  Runs when it's pressed, before the alert closes.
+ * @property {boolean} [dismiss]  false keeps the alert open after the click. Default: true.
+ */
+/**
+ * @typedef {object} AlertOptions
+ * @property {string} [title]  The heading. It names the dialog.
+ * @property {string} [message]  The detail under it. It describes the dialog.
+ * @property {Node | string} [content]  Between the message and the actions: a node, or trusted HTML.
+ * @property {AlertAction[]} [actions]  The choices. Default: a single OK.
+ * @property {boolean} [dismissible]  Whether Escape and the scrim dismiss it. Default: whether there's a cancel
+ *   action.
+ * @property {'pop' | 'morph'} [transition]  How it comes and goes. Default: 'pop'.
+ * @property {number} [zIndex]  Its stacking order.
+ * @property {import('./glass-roles.js').GlassStyleName | 'inherit'} [glassStyle]  Its glass style; 'inherit'
+ *   follows the page. Default: 'frost'.
+ */
+/**
+ * @typedef {object} AlertPresentOptions
+ * @property {HTMLElement} [from]  The element a morph grows from. Default: the focused element.
+ */
+/**
+ * What createAlert returns.
+ * @typedef {object} Alert
+ * @property {HTMLDivElement} el  The dialog box.
+ * @property {(options?: AlertPresentOptions) => Promise<string | null>} present  Shows it. Resolves with the chosen
+ *   action's id (its label if it has none), or null when it's dismissed without a choice. Called while it's open,
+ *   returns the same promise.
+ * @property {() => void} dismiss  Closes it, resolving with null.
+ * @property {(mode: 'pop' | 'morph') => void} setTransition
+ * @property {boolean} isOpen  Whether it's showing (read-only).
+ * @property {() => void} destroy  Closes it and removes it from the document.
+ */
+/**
+ * @param {AlertOptions} [options]
+ * @returns {Alert}
  */
 export function createAlert({
   title, message, content, actions = [{ id: 'ok', label: 'OK', role: 'default' }],
@@ -296,7 +335,7 @@ export function createAlert({
   }, { passive: false });
 
   /**
-   * @param {{ from?: Element }} [options]
+   * @param {AlertPresentOptions} [options]
    */
   function present({ from } = {}) {
     if (open) return promise;

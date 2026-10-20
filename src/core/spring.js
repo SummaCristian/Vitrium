@@ -23,7 +23,16 @@ function wake() {
   if (rafId == null) { lastT = performance.now(); rafId = requestAnimationFrame(loop); }
 }
 
+/**
+ * A spring's stiffness, damping and mass. Each one left out takes its default: 300, 30 and 1.
+ * @typedef {object} SpringConfig
+ * @property {number} [stiffness]
+ * @property {number} [damping]
+ * @property {number} [mass]
+ */
+
 export class Spring {
+  /** @param {number} [value]  Where it starts, at rest. Default: 0. */
   constructor(value = 0) {
     this.value = value; this.v = 0; this.target = value;
     this.k = 300; this.c = 30; this.m = 1; this.resting = true;
@@ -34,14 +43,32 @@ export class Spring {
     this.maxV = Infinity;
     springs.add(this);
   }
+  /**
+   * Springs toward `target` (under reduced motion it jumps there).
+   * @param {number} target
+   * @param {SpringConfig} [config]
+   * @returns {void}
+   */
   to(target, { stiffness = 300, damping = 30, mass = 1 } = {}) {
     if (reducedMotionQuery?.matches) return this.set(target);
     this.target = target; this.k = stiffness; this.c = damping; this.m = mass;
     this.resting = false; wake();
   }
+  /**
+   * Jumps to `value`, at rest.
+   * @param {number} value
+   * @returns {void}
+   */
   set(value) { this.value = value; this.target = value; this.v = 0; this.resting = true; wake(); }
+  /** Takes it off the shared frame loop. */
   dispose() { springs.delete(this); }
+  /** Stops it where it is. */
   stop() { this.target = this.value; this.v = 0; this.resting = true; }
+  /**
+   * Advances it by `dt` seconds (the frame loop does this). Returns whether it's still moving.
+   * @param {number} dt
+   * @returns {boolean}
+   */
   step(dt) {
     if (this.resting) return false;
     const n = Math.max(1, Math.ceil(dt / 0.004));
@@ -62,9 +89,14 @@ export class Spring {
 // Registers a per-frame render callback, run alongside every spring's step()
 // while any spring in the whole module is active (there's one shared RAF
 // loop, not one per consumer).
+/**
+ * @param {() => void} fn
+ * @returns {() => void}  Unregisters it.
+ */
 export function onSpringFrame(fn) {
   renderers.add(fn);
   return () => renderers.delete(fn);
 }
 
+/** Starts the frame loop if it's stopped. */
 export function wakeSprings() { wake(); }

@@ -24,9 +24,21 @@ export const DEFAULTS = {
 };
 
 // Asymptotic rubber band (approaches ±give, never past it).
+/**
+ * @param {number} x
+ * @param {number} give
+ * @returns {number}
+ */
 export const rubber = (x, give) => (x * give) / (give + Math.abs(x));
 
 // `raw` limited to [min, max], with elastic give past either end.
+/**
+ * @param {number} raw
+ * @param {number} min
+ * @param {number} max
+ * @param {number} [give]  Default: DEFAULTS.give.
+ * @returns {number}
+ */
 export function withGive(raw, min, max, give = DEFAULTS.give) {
   if (raw < min) return min + rubber(raw - min, give);
   if (raw > max) return max + rubber(raw - max, give);
@@ -43,6 +55,25 @@ export function withGive(raw, min, max, give = DEFAULTS.give) {
 // Any other fields on a def (a detent's material, say) ride along untouched.
 // Returns [{ id, px, ...rest }] ascending, each within [0, available]; detents
 // that land on the same height collapse into the first.
+/**
+ * A detent as resolveDetents takes it: any other fields ride along.
+ * @typedef {object} DetentDef
+ * @property {string} id
+ * @property {number | 'full' | 'content'} size  A fraction (0..1] of the available height, px (> 1), all of it, or
+ *   the content's natural height.
+ */
+/**
+ * A detent resolved to its height. Points are passed around as these.
+ * @typedef {object} DetentPoint
+ * @property {string} id
+ * @property {number} px
+ */
+/**
+ * @template {DetentDef} D
+ * @param {D[]} defs
+ * @param {{ available: number, content?: number }} space  The available height and the content's natural one, px.
+ * @returns {(Omit<D, 'size'> & { px: number })[]}  Ascending.
+ */
 export function resolveDetents(defs, { available, content = 0 }) {
   const points = defs.map(({ size, ...rest }) => {
     let px;
@@ -56,12 +87,25 @@ export function resolveDetents(defs, { available, content = 0 }) {
   return points.filter((p, i) => i === 0 || p.px - points[i - 1].px > 0.5);
 }
 
+/**
+ * @template {DetentPoint} P
+ * @param {P[]} points
+ * @param {number} value
+ * @returns {P}
+ */
 export function nearestDetent(points, value) {
   return points.reduce((best, p) => (Math.abs(p.px - value) < Math.abs(best.px - value) ? p : best));
 }
 
 // The next detent from `value` in a direction (+1 larger, -1 smaller): a fast
 // flick commits one step at a time rather than skipping to an end.
+/**
+ * @template {DetentPoint} P
+ * @param {P[]} points
+ * @param {number} value
+ * @param {number} dir  +1 larger, -1 smaller.
+ * @returns {P}
+ */
 export function nextDetent(points, value, dir) {
   if (dir > 0) return points.find(p => p.px > value + 0.5) ?? points[points.length - 1];
   return [...points].reverse().find(p => p.px < value - 0.5) ?? points[0];
@@ -69,6 +113,15 @@ export function nextDetent(points, value, dir) {
 
 // Where a fast release lands: the adjacent detent for an ordinary flick, the end
 // detent for a hard enough one.
+/**
+ * @template {DetentPoint} P
+ * @param {P[]} points
+ * @param {number} value
+ * @param {number} dir  +1 larger, -1 smaller.
+ * @param {number} speed  px/ms.
+ * @param {number} [hardFling]  px/ms. Default: DEFAULTS.hardFlingVelocity.
+ * @returns {P}
+ */
 export function flungDetent(points, value, dir, speed, hardFling = DEFAULTS.hardFlingVelocity) {
   if (speed > hardFling) return dir > 0 ? points[points.length - 1] : points[0];
   return nextDetent(points, value, dir);
@@ -90,6 +143,30 @@ export function flungDetent(points, value, dir, speed, hardFling = DEFAULTS.hard
 // Below the largest detent a drag anywhere resizes. At the largest detent it
 // picks a side on first movement: pulling down while the content is at its top
 // collapses the sheet; anything else is left to scroll natively.
+/**
+ * @typedef {object} DragArbiterOptions
+ * @property {number} [deadZone]  px of movement before a drag on content picks a side. Default: DEFAULTS.deadZone.
+ * @property {() => number} [now]  The clock, ms. Default: performance.now().
+ */
+/**
+ * @typedef {object} DragMove
+ * @property {'pending' | 'resize' | 'native'} mode
+ * @property {number} [raw]  With 'resize': the size the drag asks for, before rubber-banding.
+ * @property {boolean} preventDefault  The drag has claimed the gesture.
+ */
+/**
+ * What createDragArbiter returns.
+ * @typedef {object} DragArbiter
+ * @property {(start: { y: number, size: number, zone?: 'handle' | 'content', atLargest?: boolean }) => void} start
+ * @property {(move: { y: number, size: number, scrollTop?: number }) => DragMove} move
+ * @property {() => { mode: 'resize' | 'native' | null, velocity: number }} end  `velocity` in px/ms, + = moving down.
+ * @property {'resize' | 'native' | null} mode  null while undecided (read-only).
+ * @property {number} velocity  px/ms (read-only).
+ */
+/**
+ * @param {DragArbiterOptions} [options]
+ * @returns {DragArbiter}
+ */
 export function createDragArbiter({ deadZone = DEFAULTS.deadZone, now = () => performance.now() } = {}) {
   let mode = null;
   let startY = 0;
@@ -169,6 +246,44 @@ export function createDragArbiter({ deadZone = DEFAULTS.deadZone, now = () => pe
 //        consume  a leftover momentum tick after a commit: preventDefault, do nothing
 //   arbiter.idle()    -> true if the burst was an uncommitted resize (snap to nearest)
 //   arbiter.settled()    call once a committed fling's spring has come to rest
+/**
+ * @typedef {object} WheelArbiterOptions
+ * @property {number} [flingVelocity]  px/ms: a burst faster than this commits. Default: DEFAULTS.flingVelocity.
+ * @property {() => number} [now]  The clock, ms. Default: performance.now().
+ */
+/**
+ * One wheel tick, as the sheet sees it.
+ * @typedef {object} WheelTickInput
+ * @property {number} deltaY
+ * @property {number} size  The sheet's size now, px.
+ * @property {number} [min]  Not read.
+ * @property {number} max  The largest detent, px.
+ * @property {boolean} atLargest
+ * @property {number} scrollTop
+ * @property {boolean} scrollable  Whether the content has anything to scroll.
+ */
+/**
+ * @typedef {object} WheelTick
+ * @property {'native' | 'resize' | 'commit' | 'consume'} action
+ * @property {number} [raw]  With 'resize': the size to set (with give).
+ * @property {1 | -1} [dir]  With 'commit': which way to settle.
+ * @property {number} [velocity]  With 'commit': px/ms, + = growing.
+ * @property {boolean} [handoff]  With 'resize': growing past the largest detent spills into scrolling.
+ */
+/**
+ * What createWheelArbiter returns.
+ * @typedef {object} WheelArbiter
+ * @property {(tick: WheelTickInput) => WheelTick} tick
+ * @property {() => boolean} idle  The burst went quiet: true if it was an uncommitted resize (snap to the nearest).
+ * @property {() => void} settled  Call once a committed fling's spring has come to rest.
+ * @property {'resize' | 'native' | null} mode  null with no burst (read-only).
+ * @property {boolean} committed  Whether the burst has committed to a fling (read-only).
+ * @property {number} velocity  Smoothed px/ms (read-only).
+ */
+/**
+ * @param {WheelArbiterOptions} [options]
+ * @returns {WheelArbiter}
+ */
 export function createWheelArbiter({ flingVelocity = DEFAULTS.flingVelocity, now = () => performance.now() } = {}) {
   let mode = null;          // null (no burst) | 'resize' | 'native'
   let committed = false;
@@ -243,6 +358,10 @@ export function createWheelArbiter({ flingVelocity = DEFAULTS.flingVelocity, now
 // `height` the smallest detent's height, `velocity` the release velocity (px/ms,
 // + = moving down). A long enough pull dismisses; so does any quick downward flick
 // that had started to leave; a short, slow pull springs back.
+/**
+ * @param {{ pulled: number, height: number, velocity: number, flingVelocity?: number }} release
+ * @returns {boolean}
+ */
 export function shouldDismiss({ pulled, height, velocity, flingVelocity = DEFAULTS.flingVelocity }) {
   if (pulled <= 1) return false;
   if (velocity < -flingVelocity) return false;               // flicked back up

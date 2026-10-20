@@ -206,8 +206,72 @@ function splitTabs(tabs, unified = false) {
 let tabbarUid = 0;
 
 /**
+ * A tab.
+ * @typedef {object} TabBarTab
+ * @property {string} id
+ * @property {string} label  Set as text (the accessible name where only the icon shows).
+ * @property {string | Node} [icon]  A node, or trusted SVG/HTML markup.
+ * @property {string} [panel]  The id of the element it controls (aria-controls, and the page transition's target).
+ * @property {boolean | { label?: boolean }} [prominent]  Detaches the last of at least 3 tabs into its own glass
+ *   circle; `{ label: true }` also shows its label under the icon.
+ * @property {boolean} [press]  With `prominent` (or in the compact bar): a button that never selects, and calls
+ *   onPress instead.
+ * @property {(el: HTMLElement, event?: MouseEvent) => void} [onPress]  Called when a `press` tab is pressed, with its
+ *   element (and the click, from the circle).
+ */
+/**
+ * Which edge each layout uses. Every key may be omitted.
+ * @typedef {object} TabBarPlacement
+ * @property {'bottom' | 'top'} [row]  Default: 'bottom'.
+ * @property {'start' | 'end'} [rail]  Default: 'start'.
+ * @property {'top' | 'center' | 'bottom'} [railAlign]  Where the rail sits along its side. Default: 'top'.
+ */
+/**
+ * @typedef {object} TabBarOptions
+ * @property {TabBarTab[]} tabs  The tabs (at least one).
+ * @property {string} [value]  The initially selected tab id. Default: the first.
+ * @property {(id: string, info: { silent: boolean }) => void} [onSelect]  Called when the selection changes;
+ *   `silent` is true for select() calls.
+ * @property {{ label?: string, icon?: string | Node, onClick?: (event: MouseEvent) => void }} [action]  A round
+ *   button beside the bar, not a tab.
+ * @property {'auto' | 'horizontal' | 'vertical'} [orientation]  Default: 'auto'.
+ * @property {number} [breakpoint]  The viewport width (px) from which 'auto' is a rail. Default: 600.
+ * @property {TabBarPlacement} [placement]
+ * @property {string} [label]  The tablist's accessible name.
+ * @property {boolean} [compact]  One bar at the top instead of the rail. Default: false.
+ * @property {boolean} [transition]  Fades in the arriving tab's panel. Default: false.
+ * @property {'regular' | 'clear'} [glass]  The bar's and its circles' glass. Default: 'regular'.
+ * @property {boolean} [refract]  Where refraction runs, the bar, its circles and the lifted lens bend what's behind
+ *   them; false keeps them all plain. Default: true.
+ */
+/**
+ * What createTabBar returns.
+ * @typedef {object} TabBar
+ * @property {string} value  The selected tab id (read-only).
+ * @property {(id: string, opts?: { animate?: boolean, silent?: boolean }) => void} select  Selects a tab from code.
+ *   Defaults: animate true, silent true.
+ * @property {HTMLButtonElement | null} prominentEl  The prominent circle, or null (read-only). It's rebuilt on layout
+ *   changes, so look it up when you need it.
+ * @property {(id: string, label: string) => void} setLabel  Renames one tab.
+ * @property {(tabs: TabBarTab[], opts?: { value?: string }) => void} setTabs  Replaces the tabs, animated; `value`
+ *   selects one of the new tabs (otherwise the selected one stays if it's still there).
+ * @property {(mode: 'auto' | 'horizontal' | 'vertical', opts?: { animate?: boolean }) => void} setOrientation
+ * @property {(on: boolean, opts?: { animate?: boolean }) => void} setCompact
+ * @property {boolean} compact  Whether the compact layout is on (read-only).
+ * @property {(mode: 'regular' | 'clear') => void} setGlass
+ * @property {'regular' | 'clear'} glass  The current glass (read-only).
+ * @property {(placement: TabBarPlacement, opts?: { animate?: boolean }) => void} setPlacement  Changes some of the
+ *   placement.
+ * @property {Required<TabBarPlacement>} placement  The placement asked for (read-only).
+ * @property {'horizontal' | 'vertical'} orientation  The current axis (read-only).
+ * @property {(opts?: { snap?: boolean }) => void} refresh  Re-measures the bar and republishes the reserved space.
+ * @property {() => void} destroy  Removes the bar and its variables from <html>.
+ * @property {HTMLButtonElement | null} action  The action button, or null.
+ */
+/**
  * @param {HTMLElement} root
- * @param {Record<string, any>} [options]
+ * @param {TabBarOptions} options
+ * @returns {TabBar}
  */
 export function createTabBar(root, { tabs: initialTabs, value, onSelect, action, orientation = 'auto', breakpoint = 600, placement, label, compact = false, transition = false, glass = 'regular', refract = true } = {}) {
   root.classList.add('lg-tabbar');

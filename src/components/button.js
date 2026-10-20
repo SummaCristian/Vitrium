@@ -19,7 +19,21 @@ import { setGlass } from './glass-mode.js';
 //           a drag on it never scrolls the page. Off, a touch on it also drives
 //           the scroll of the content it's in. See liquid-glass.js.
 /**
- * @param {Record<string, any>} [options]
+ * @typedef {object} ButtonOptions
+ * @property {string | Node} [icon]  A node, or trusted SVG/HTML markup (see icons.js).
+ * @property {string} [text]  The visible text. Icon only: a circle. Text only or icon + text: a pill.
+ * @property {string} [label]  The accessible name. Required for an icon-only button; otherwise the visible text is
+ *   the name, and `label` overrides it if given.
+ * @property {(event: MouseEvent) => void} [onClick]
+ * @property {string} [className]  Extra classes.
+ * @property {string} [tint]  Any CSS color, for tinted glass.
+ * @property {'regular' | 'clear'} [glass]  Default: 'regular'. Change it later with setGlass(button, mode).
+ * @property {boolean} [claimTouch]  The button sits on a layer above the content (a fixed header): a drag on it
+ *   never scrolls the page. Default: false.
+ */
+/**
+ * @param {ButtonOptions} [options]
+ * @returns {HTMLButtonElement}
  */
 export function createButton({ icon, text, label, onClick, className = '', tint, glass = 'regular', claimTouch = false } = {}) {
   const btn = document.createElement('button');
@@ -73,6 +87,10 @@ function watchContent(btn) {
 }
 
 // A row of buttons. `items` are createButton() option objects or ready-made elements.
+/**
+ * @param {(ButtonOptions | Element)[]} [items]
+ * @returns {HTMLDivElement}
+ */
 export function createToolbar(items = []) {
   const bar = document.createElement('div');
   bar.className = 'lg-toolbar';
@@ -83,7 +101,15 @@ export function createToolbar(items = []) {
 }
 
 /**
- * @param {Record<string, any>} [options]
+ * @typedef {object} BackButtonOptions
+ * @property {string} [label]  The accessible name. Default: 'Back'.
+ * @property {(event: MouseEvent) => void} [onClick]
+ * @property {boolean} [claimTouch]  As for createButton. A back button usually sits in a fixed header, so it
+ *   usually wants true. Default: false.
+ */
+/**
+ * @param {BackButtonOptions} [options]
+ * @returns {HTMLButtonElement}
  */
 export function createBackButton({ label = 'Back', onClick, claimTouch } = {}) {
   return createButton({ icon: icons.chevronLeft, label, onClick, className: 'lg-back-button', claimTouch });

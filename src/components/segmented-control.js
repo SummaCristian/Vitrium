@@ -39,8 +39,60 @@ import { setGlass } from './glass-mode.js';
 
 // onSelect(value, { silent }) fires when a different item becomes selected.
 /**
+ * A segment to build. Its value is kept as a string (data-value), which is what onSelect and `value` give back.
+ * @typedef {object} SegmentedItem
+ * @property {string | number} value
+ * @property {string} [label]  Set as text.
+ * @property {string | Node} [icon]  A node, or trusted SVG/HTML markup.
+ * @property {string} [ariaLabel]  Names an icon-only segment.
+ */
+/**
+ * A change to a segment (setItem / setItems): a key that is present is applied, and null removes that part.
+ * @typedef {object} SegmentedItemChange
+ * @property {string | number} value  Which segment.
+ * @property {string | null} [label]
+ * @property {string | Node | null} [icon]
+ * @property {string | null} [ariaLabel]
+ */
+/**
+ * @typedef {object} SegmentedControlOptions
+ * @property {SegmentedItem[]} [items]  The segments. Leave it out to adopt the root's `.lg-seg__item[data-value]`
+ *   children.
+ * @property {string | number} [value]  The initially selected value.
+ * @property {(value: string, info: { silent: boolean }) => void} [onSelect]  Called when a different segment
+ *   becomes selected; `silent` is true for select() calls.
+ * @property {'horizontal' | 'vertical'} [orientation]  Default: 'horizontal'.
+ * @property {'accent' | (string & {})} [selectedColor]  Colored text for the selected item: any CSS color, or
+ *   'accent' for the system accent. Default: the normal text color.
+ * @property {boolean} [blur]  Blurs what's behind the track, for a control that floats over content. Default: false.
+ * @property {'regular' | 'clear'} [glass]  The track's glass. Default: 'regular'.
+ * @property {boolean} [refract]  Where refraction runs, the track's rim and the lifted lens bend what's behind them;
+ *   false keeps both plain. Default: true.
+ */
+/**
+ * What createSegmentedControl returns.
+ * @typedef {object} SegmentedControl
+ * @property {string | undefined} value  The selected value (read-only).
+ * @property {(value: string | number, opts?: { animate?: boolean, silent?: boolean }) => void} select  Selects from
+ *   code. Defaults: animate false, silent true. An unknown value does nothing.
+ * @property {(opts?: { snap?: boolean }) => void} refresh  Re-measures and re-places the pill.
+ * @property {(orientation: 'horizontal' | 'vertical', opts?: { animate?: boolean }) => void} setOrientation
+ *   Switches layout, animated by default.
+ * @property {(value: string | number, changes: Omit<SegmentedItemChange, 'value'>, opts?: { animate?: boolean }) => void} setItem
+ *   Changes one segment's label, icon or ariaLabel, animated by default.
+ * @property {(changes: SegmentedItemChange[], opts?: { animate?: boolean }) => void} setItems  The same for several
+ *   segments, in one motion.
+ * @property {(color: 'accent' | (string & {}) | null) => void} setSelectedColor  null restores the default.
+ * @property {'regular' | 'clear'} glass  The track's glass (read-only).
+ * @property {(mode: 'regular' | 'clear') => void} setGlass
+ * @property {(on: boolean) => void} setBlur  Turns the track's backdrop blur on or off.
+ * @property {(on: boolean) => void} setRefract  Turns its refraction on or off.
+ * @property {() => void} destroy  Removes its listeners, observers and springs.
+ */
+/**
  * @param {HTMLElement} root
- * @param {Record<string, any>} [options]
+ * @param {SegmentedControlOptions} [options]
+ * @returns {SegmentedControl}
  */
 export function createSegmentedControl(root, { items: itemDefs, value, onSelect, orientation = 'horizontal', selectedColor, blur = false, glass = 'regular', refract = true } = {}) {
   root.classList.add('lg-seg');

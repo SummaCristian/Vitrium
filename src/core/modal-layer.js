@@ -14,6 +14,17 @@ export const FOCUSABLE = [
 
 const NEVER_INERT = /^(SCRIPT|STYLE|LINK|HEAD|TEMPLATE)$/;
 
+/**
+ * What createModalLayer returns.
+ * @typedef {object} ModalLayer
+ * @property {() => void} activate  Makes everything else inert and traps Tab inside the layer.
+ * @property {() => void} deactivate  Puts back what activate() changed.
+ * @property {boolean} active  Whether it's active (read-only).
+ */
+/**
+ * @param {HTMLElement} layer
+ * @returns {ModalLayer}
+ */
 export function createModalLayer(layer) {
   let inerted = [];
   let active = false;

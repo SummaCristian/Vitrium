@@ -170,6 +170,135 @@ const clamp = (x, m) => Math.max(-m, Math.min(m, x));
 //                      soon as the cell is pressed, lifting and moving together.
 //   flipUnlessCrossed  a grab of the lens itself that never took it past halfway to the next cell counts as a
 //                      tap on it (onPillTap) when let go, however far it was moved (the toggle: iOS flips it).
+/** @typedef {import('./spring.js').SpringConfig} SpringConfig */
+/**
+ * The lens's height over time (LIFT): every key is optional, over the tab bar's.
+ * @typedef {object} PillLift
+ * @property {SpringConfig} [up]  The spring it rises on.
+ * @property {SpringConfig} [down]  The spring of the small dip once it lands.
+ * @property {number} [press]  The height a press raises it to at once, still flat (0..1). Default: 0.3.
+ * @property {number} [pressMs]  How long after the press it lifts all the way. Default: 60.
+ * @property {'parabola' | 'linear'} [fall]  How it falls once let go: like a dropped thing, or at a steady rate.
+ *   Default: 'parabola'.
+ * @property {number} [fallS]  How long the fall takes from full height, in s. Default: 0.3.
+ * @property {number} [landKeep]  The share of its landing speed it keeps for the dip. Default: 0.3.
+ * @property {[number, number]} [glass]  The stretch of its height over which it turns from the flat fill to glass on
+ *   the way up. Default: [0.3, 0.7].
+ * @property {[number, number] | null} [glassDown]  The same on the way down. Default: null, the same as `glass`.
+ * @property {number} [glassLag]  How far the glass trails its height on the way down, in s. Default: 0.
+ * @property {SpringConfig} [tapSlide]  The spring a tap (or select()) slides it over on.
+ * @property {number} [tapSlideMs]  How long after a tap lifts it the slide starts. Default: 50.
+ * @property {number} [tapHoldMs]  How long after a tap lifts it it falls. Default: 80.
+ */
+/**
+ * How far past an end the lens goes and how it squashes against the wall there (WALL): every key optional.
+ * @typedef {object} PillWalls
+ * @property {number} [travel]  Elastic px it slides past the end anchor. Default: 5.
+ * @property {number} [squash]  The most it squashes along the rail. Default: 0.07.
+ * @property {number} [half]  How many px past the wall it reaches half of that. Default: 40.
+ * @property {number} [cross]  How much the cross axis grows per px of squash. Default: 1.55.
+ */
+/**
+ * How the lens deforms as it moves (STRETCH): every key optional. Ratios are that many times `length`.
+ * @typedef {object} PillStretch
+ * @property {number} [length]  px per unit of stretch. Default: 104.6.
+ * @property {number} [speed]  The most stretch from speed alone. Default: 0.18.
+ * @property {number} [speedHalf]  The speed (px/s) at which it has half of that. Default: 1000.
+ * @property {SpringConfig} [speedLag]  The spring it follows the speed on.
+ * @property {number} [accel]  Target ratio per px/s² of acceleration along the travel. Default: 7e-5.
+ * @property {number} [stiffness]  The acceleration part's spring. Default: 80.
+ * @property {number} [damping]  Default: 12.5.
+ * @property {number} [crossStretch]  px the cross axis thins per px of stretch. Default: 0.915.
+ * @property {number} [crossSquash]  px it grows per px of squash. Default: 0.6.
+ * @property {number} [min]  Default: -0.22.
+ * @property {number} [max]  Default: 0.13.
+ */
+/**
+ * How hover moves things (HOVER): every key optional.
+ * @typedef {object} PillHover
+ * @property {number} [lean]  The share of the pointer's offset the pill's middle moves, along the rail. Default: 0.17.
+ * @property {number} [leanCross]  The same across it. Default: 0.17.
+ * @property {number} [leanMax]  px. Default: 12.
+ * @property {number} [leanCrossMax]  px. Default: 6.
+ * @property {number} [stretch]  The share of the offset it grows longer by, toward the pointer. Default: 0.05.
+ * @property {number} [label]  How much the hovered cell's label grows. Default: 1.05.
+ * @property {number} [selScale]  How much the selected cell's lens grows hovered. Default: 1.14.
+ * @property {number} [selLean]  The share of the offset it leans by. Default: 0.12.
+ * @property {number} [selStretch]  How much it stretches toward the pointer. Default: 0.15.
+ * @property {number} [selStretchMax]  px. Default: 30.
+ * @property {number} [selLabel]  How much its label grows. Default: 1.1.
+ * @property {SpringConfig} [fade]  The pill fading in and out.
+ * @property {SpringConfig} [glide]  From cell to cell, and its lean.
+ * @property {SpringConfig} [grow]  The selected lens growing.
+ * @property {SpringConfig} [shrink]  ...and shrinking back when the pointer leaves it.
+ * @property {SpringConfig} [press]  Pressed, the pill stops leaning.
+ */
+/**
+ * How the whole control follows a drag (TRAIL).
+ * @typedef {object} PillTrail
+ * @property {number} follow  The fraction of the drag the control leans by. TRAIL's: 0.013.
+ * @property {number} give  px cap along the rail. TRAIL's: 60.
+ * @property {number} giveCross  px cap across it. TRAIL's: 4.
+ * @property {number} [grow]  How much it grows per px of lean. TRAIL's: 0.0023.
+ * @property {{ follow: number, give: number, stretch: number }} [wall]  Pushed past an end, the control is pulled
+ *   along by a rubber-banded share (`follow`, up to `give` px) of how far the finger went past it, and stretched that
+ *   way by `stretch` per px of pull.
+ */
+/**
+ * @typedef {object} PillDragCoreOptions
+ * @property {HTMLElement} root  Gets the trail transform while dragging.
+ * @property {HTMLElement} items  The cells' row; gets the clip-path hole.
+ * @property {HTMLElement} pill  The lens, translated, scaled and resized by the core.
+ * @property {HTMLElement} hit  The invisible grab target laid over the pill.
+ * @property {HTMLElement} activeRow  Inside the pill: holds a copy of every cell.
+ * @property {string} cellSelector  What a cell is, inside `items`.
+ * @property {HTMLElement | null} [hover]  An element for the hover pill; without it, nothing shows on hover.
+ * @property {boolean | PillHover | null} [hoverLens]  Hover without the pill: the selected lens leans and stretches
+ *   toward the pointer wherever it is on the control. true, or HOVER's keys to tune it with.
+ * @property {string} [activeCellClass]  The copies' class. Default: 'lg-pill-active-cell'.
+ * @property {string} [liftedClass]  The pill's class while any glass shows. Default: 'lg-pill--lifted'.
+ * @property {number} [tapScale]  How much the lens grows when grabbed (a uniform scale). Default: 1.45.
+ * @property {number | null} [liftOutset]  Instead, how many px it grows by on every side.
+ * @property {number} [liftScale]  How much the whole control grows while the lens is lifted. Default: 1.
+ * @property {PillLift | null} [lift]  The lens's height over time: LIFT's keys, over it.
+ * @property {PillWalls | null} [walls]  WALL's keys, over it.
+ * @property {PillStretch | null} [stretch]  STRETCH's keys, over it.
+ * @property {SpringConfig | null} [follow]  The spring the lens follows a drag on, over FOLLOW.
+ * @property {number} [copyScale]  How much the highlighted copies grow at full lift. Default: 1.2.
+ * @property {PillTrail} [trail]  How far the whole control follows a drag, in place of TRAIL (not over it: give all
+ *   three of follow, give and giveCross). setTrail() changes it later. Default: TRAIL.
+ * @property {'x' | 'y'} [axis]  'x', cells in a row, or 'y', in a column. Default: 'x'.
+ * @property {boolean} [keyboard]  The arrow keys cycle the cells. Default: true.
+ * @property {(index: number) => boolean} [canSelect]  false: that cell can't be chosen.
+ * @property {(index: number) => void} [onReject]  A tap on a cell canSelect refused.
+ * @property {(frame: { pos: number }) => void} [onRender]  After every frame's transforms are written.
+ * @property {(index: number) => void} [onAim]  During a drag, the cell under the lens changed.
+ * @property {boolean} [flipUnlessCrossed]  A grab of the lens that never crossed halfway to the next cell is a tap
+ *   on it (onPillTap) when let go. Default: false.
+ * @property {number} [holdMs]  How long a cell must be held before the lens comes to the finger; 0 sends it at once.
+ *   Default: 130.
+ * @property {() => void} [onPillTap]  A grab of the pill itself that barely moved.
+ * @property {(index: number, info: { silent: boolean }) => void} [onChange]  A different cell became the selected
+ *   one. `silent` only for select(..., { silent: true }).
+ */
+/**
+ * What createPillDragCore returns.
+ * @typedef {object} PillDragCore
+ * @property {(axis: 'x' | 'y') => void} setAxis  Switches between a row and a column: re-lay the cells out first.
+ * @property {(next: Partial<PillTrail> | null) => void} setTrail  TRAIL with `next`'s keys over it; null for TRAIL.
+ * @property {() => void} destroy  Stops its timers and unhooks its springs.
+ * @property {(opts?: { snap?: boolean }) => void} refresh  Re-measures; `snap` places the pill without springing.
+ * @property {(index: number, opts?: { animate?: boolean, silent?: boolean }) => void} select  Lifts, slides and
+ *   settles on cell `index`; `silent` skips onChange.
+ * @property {() => void} deselect  Clears the selection (the pill fades out), without onChange.
+ * @property {number} index  The selected cell, or -1 (read-only).
+ * @property {HTMLElement[]} cells  The laid-out cells (read-only).
+ * @property {(el: Element) => number} indexOf  A cell's index, or -1.
+ */
+/**
+ * @param {PillDragCoreOptions} options
+ * @returns {PillDragCore}
+ */
 export function createPillDragCore({
   root, items, pill, hit, activeRow,
   hover = null,

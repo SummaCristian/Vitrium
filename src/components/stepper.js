@@ -23,7 +23,33 @@ const HOLD_DELAY_MS = 400;
 const REPEAT_MS = 90;
 
 /**
- * @param {Record<string, any>} [options]
+ * @typedef {object} StepperOptions
+ * @property {number} [value]  The initial value. Default: 0.
+ * @property {number} [min]  Default: unbounded.
+ * @property {number} [max]  Default: unbounded.
+ * @property {number} [step]  How much a press changes it. Default: 1.
+ * @property {string} [label]  The group's accessible name.
+ * @property {[string, string]} [labels]  The names of the decrease and increase buttons. Default: Decrease and
+ *   Increase.
+ * @property {(value: number) => string} [format]  What a screen reader hears when the value changes.
+ * @property {(value: number, info: { silent: boolean }) => void} [onChange]  Called on every press, and by set()
+ *   when it isn't silent.
+ * @property {'regular' | 'clear'} [glass]  The capsule's glass. Default: 'regular'.
+ */
+/**
+ * What createStepper returns.
+ * @typedef {object} Stepper
+ * @property {HTMLDivElement} el  The capsule.
+ * @property {number} value  The current value (read-only).
+ * @property {'regular' | 'clear'} glass  The current glass (read-only).
+ * @property {(mode: 'regular' | 'clear') => void} setGlass
+ * @property {(value: number, opts?: { silent?: boolean }) => void} set  Changes it from code; silent by default.
+ * @property {(disabled: boolean) => void} setDisabled
+ * @property {() => void} destroy  Removes it and stops a hold in progress.
+ */
+/**
+ * @param {StepperOptions} [options]
+ * @returns {Stepper}
  */
 export function createStepper({
   value = 0, min = -Infinity, max = Infinity, step = 1,

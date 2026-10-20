@@ -249,6 +249,19 @@ const INNER_CONTROL = 'a, button, input, select, textarea, [role="button"]';
 //   the controls must act on pointerdown / keyboard clicks, not on pointer clicks.
 // The light-DOM delegated path reads `from` / `exclude` as `data-lg-from` /
 // `data-lg-exclude` attributes.
+/**
+ * @typedef {object} LiquidGlassOptions
+ * @property {string} [from]  A selector: only a press inside a matching descendant starts the deform.
+ * @property {string} [exclude]  A selector: a press inside a matching descendant is ignored.
+ * @property {boolean} [controls]  A press on a control inside the surface deforms it too. Default: false.
+ * @property {boolean} [claimTouch]  A drag on it is the glass's alone and never scrolls the page beneath.
+ *   Default: false.
+ */
+/**
+ * @param {HTMLElement} el
+ * @param {LiquidGlassOptions} [opts]
+ * @returns {void}
+ */
 export function attachLiquidGlass(el, opts = {}) {
   if (!el || el._liquidGlassBound) return;
   el._liquidGlassBound = true;
@@ -290,6 +303,7 @@ let delegated = false;
 // One delegated pointerdown for every light-DOM `.liquid-glass` element,
 // present or future. A press that starts on an interactive child (a link in a
 // popover) is left to that child.
+/** @returns {void} */
 export function initLiquidGlass() {
   if (delegated) return;
   delegated = true;

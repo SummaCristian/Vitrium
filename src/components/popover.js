@@ -65,8 +65,48 @@ const FOCUSABLE = [
   'select:not([disabled])', 'textarea:not([disabled])', '[tabindex]:not([tabindex="-1"])',
 ].join(',');
 
+/** @typedef {import('@floating-ui/dom').Placement} PopoverPlacement  A side, optionally with -start or -end. */
 /**
- * @param {Record<string, any>} [options]
+ * @typedef {object} PopoverOptions
+ * @property {HTMLElement} [trigger]  Toggles it on click. Leave it out to drive it with show() and hide().
+ * @property {Node | string} [content]  A node, or trusted HTML.
+ * @property {PopoverPlacement} [placement]  Default: 'bottom'.
+ * @property {number} [offset]  The gap to the anchor, in px. Default: 8.
+ * @property {number} [shiftPadding]  px kept clear of the boundary's edge. Default: 8.
+ * @property {import('@floating-ui/dom').Boundary} [boundary]  What it stays inside when it flips and shifts.
+ *   Default: the viewport.
+ * @property {boolean} [dismissable]  A press outside it, or Escape, closes it. Default: true.
+ * @property {boolean} [arrow]  Shows the pointer arrow. Default: true.
+ * @property {'dialog' | 'tooltip' | (string & {})} [role]  Default: 'dialog' (non-modal).
+ * @property {string} [label]  The accessible name.
+ * @property {boolean} [deform]  The press-and-stretch on the surface. Default: true.
+ * @property {'regular' | 'clear'} [glass]  The material. Default: 'regular'.
+ * @property {import('./glass-roles.js').GlassStyleName | 'inherit'} [glassStyle]  Its glass style; 'inherit'
+ *   follows the page. Default: 'frost'.
+ * @property {() => void} [onShow]
+ * @property {() => void} [onHide]
+ */
+/**
+ * What createPopover returns.
+ * @typedef {object} Popover
+ * @property {HTMLDivElement} el  The popover, on <body>.
+ * @property {(target?: import('@floating-ui/dom').ReferenceElement, opts?: { fromKeyboard?: boolean }) => void} show
+ *   Opens it anchored to `target` (default: the trigger), or re-anchors it if it's open. `fromKeyboard` moves focus
+ *   into it.
+ * @property {() => void} hide
+ * @property {(opts?: { fromKeyboard?: boolean }) => void} toggle  Opens or closes it, anchored to the trigger.
+ * @property {() => Promise<void>} update  Re-positions it now.
+ * @property {(placement: PopoverPlacement) => void} setPlacement  Changes where it wants to sit; while open it glides
+ *   there.
+ * @property {(content: Node | string) => void} setContent  A node, or trusted HTML.
+ * @property {'regular' | 'clear'} glass  Its glass (read-only).
+ * @property {(mode: 'regular' | 'clear') => void} setGlass
+ * @property {boolean} isOpen  Whether it's open (read-only).
+ * @property {() => void} destroy  Closes it and removes it from the document.
+ */
+/**
+ * @param {PopoverOptions} [options]
+ * @returns {Popover}
  */
 export function createPopover({
   trigger, content, placement = 'bottom', offset: gap = 8, shiftPadding = 8, boundary, dismissable = true,

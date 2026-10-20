@@ -32,7 +32,58 @@ const TYPEAHEAD_RESET_MS = 500;
 let listUid = 0;
 
 /**
- * @param {Record<string, any>} [options]
+ * A row of the list. Its value is kept as a string, which is what onChange and `value` give back.
+ * @typedef {object} ListPickerOption
+ * @property {string | number} value
+ * @property {string} label
+ * @property {string} [description]  A second line under the label.
+ */
+/**
+ * A group of rows, with an optional header.
+ * @typedef {object} ListPickerSection
+ * @property {string} [label]
+ * @property {ListPickerOption[]} options
+ */
+/**
+ * @typedef {object} ListPickerOptions
+ * @property {string} [label]  The chip's label, which also names the list. Default: ''.
+ * @property {string | Node} [icon]  The chip's icon: a node, or trusted SVG/HTML markup.
+ * @property {ListPickerSection[]} [sections]  Grouped rows. Wins over `options`.
+ * @property {ListPickerOption[]} [options]  Shorthand for one section without a header.
+ * @property {string | number} [value]  The initial choice. Default: the first option.
+ * @property {string} [name]  Adds a hidden <input> of this name that holds the value.
+ * @property {(value: string, info: { silent: boolean }) => void} [onChange]  Called when the user picks a different
+ *   option, and by setValue() when it isn't silent.
+ * @property {import('./chip-picker.js').PanelTitle | false} [title]  The heading at the top of the list. Default:
+ *   the icon and label. false for none.
+ * @property {number} [width]  The list's width in px. Default: 208.
+ * @property {'normal' | 'page' | number} [maxHeight]  How tall the list grows before it scrolls: 'normal' (420px),
+ *   'page' (the page's height less the safe areas and 20px), or px. Default: 'normal'.
+ * @property {'regular' | 'clear'} [glass]  The material of the chip and its list. Default: 'regular'.
+ * @property {import('./glass-roles.js').GlassStyleName | 'inherit'} [glassStyle]  The list's glass style; 'inherit'
+ *   follows the page. Default: 'frost'.
+ */
+/**
+ * What createListPicker returns.
+ * @typedef {object} ListPicker
+ * @property {HTMLSpanElement} el  The element to place in the page.
+ * @property {string} value  The current choice, '' with no options (read-only).
+ * @property {(value: string | number, opts?: { silent?: boolean }) => void} setValue  Chooses from code. Silent by
+ *   default. An unknown value does nothing.
+ * @property {(next: Pick<ListPickerOptions, 'sections' | 'options'>) => void} setOptions  Replaces the rows. Keeps
+ *   the choice if it still exists, else falls back (silently) to the first option.
+ * @property {'regular' | 'clear'} glass  The chip's and list's glass (read-only).
+ * @property {(mode: 'regular' | 'clear') => void} setGlass
+ * @property {(text: string) => void} setLabel
+ * @property {(on: boolean) => void} setLoading  Shows or hides a shimmering placeholder in place of the chip.
+ * @property {import('./chip-picker.js').ChipPickerPopup} popup  The morph popup the list is in.
+ * @property {() => void} open
+ * @property {() => void} close
+ * @property {() => void} destroy  Removes the chip and its list.
+ */
+/**
+ * @param {ListPickerOptions} [options]
+ * @returns {ListPicker}
  */
 export function createListPicker({
   label = '', icon, sections, options, value, name, onChange, title, width, maxHeight, glass, glassStyle,

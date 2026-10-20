@@ -1,5 +1,11 @@
 // Pure numeric helpers for the value controls (slider, stepper). No DOM.
 
+/**
+ * @param {number} v
+ * @param {number} min
+ * @param {number} max
+ * @returns {number}
+ */
 export const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
 // Decimal places of a step (0.25 → 2), so results don't carry float noise (0.1 + 0.2).
@@ -14,6 +20,11 @@ export function decimals(n) {
 // A `step` of 0 (or less) means continuous: only the clamp applies. When `max`
 // is off the step grid it still counts as a stop, so the end of a slider can be
 // reached (a native range input can't).
+/**
+ * @param {number} value
+ * @param {{ min: number, max: number, step: number }} range
+ * @returns {number}
+ */
 export function snapToStep(value, { min, max, step }) {
   if (!(step > 0)) return clamp(value, min, max);
   const snapped = min + Math.round((value - min) / step) * step;
@@ -23,6 +34,19 @@ export function snapToStep(value, { min, max, step }) {
 }
 
 // Position of `value` within [min, max] as 0..1 (0 when the range is empty).
+/**
+ * @param {number} value
+ * @param {number} min
+ * @param {number} max
+ * @returns {number}
+ */
 export const toFraction = (value, min, max) => (max === min ? 0 : clamp((value - min) / (max - min), 0, 1));
 
+/**
+ * The value at `fraction` (0..1, clamped) of the way from min to max.
+ * @param {number} fraction
+ * @param {number} min
+ * @param {number} max
+ * @returns {number}
+ */
 export const fromFraction = (fraction, min, max) => min + clamp(fraction, 0, 1) * (max - min);

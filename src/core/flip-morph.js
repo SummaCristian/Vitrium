@@ -14,6 +14,12 @@ function toRectLike({ left, top, width, height }) {
 // Pins the element's real box directly at `rect`, clears any in-flight
 // transform, and sets `borderRadius`. Instant — transition is disabled for
 // the write so a stale `transform` doesn't animate back to none.
+/**
+ * @param {HTMLElement} el
+ * @param {import('./motion-path.js').Rect} rect
+ * @param {string | null} [borderRadius]  Left as it is when null or left out.
+ * @returns {void}
+ */
 export function snapGeometry(el, rect, borderRadius) {
   const r = toRectLike(rect);
   const prevTransition = el.style.transition;
@@ -32,10 +38,19 @@ export function snapGeometry(el, rect, borderRadius) {
 // The element's CSS must declare `transition: transform ..., border-radius ..., box-shadow ...`
 // (not top/left/width/height) for this to run off the compositor thread.
 /**
+ * @typedef {object} MorphGeometryOptions
+ * @property {string} [fromRadius]  The border-radius it starts on. Default: toRadius.
+ * @property {string} [toRadius]  The border-radius it lands on.
+ * @property {() => void} [onSettle]  Called as it's released to animate: apply anything that must transition in
+ *   lockstep with it here.
+ * @property {boolean} [sync]  Release it in this same frame rather than the next. Default: false.
+ */
+/**
  * @param {HTMLElement} el
- * @param {any} fromRect
- * @param {any} toRect
- * @param {Record<string, any>} [options]
+ * @param {import('./motion-path.js').Rect} fromRect
+ * @param {import('./motion-path.js').Rect} toRect
+ * @param {MorphGeometryOptions} [options]
+ * @returns {void}
  */
 export function morphGeometry(el, fromRect, toRect, { fromRadius, toRadius, onSettle, sync = false } = {}) {
   const from = toRectLike(fromRect);
@@ -101,11 +116,19 @@ export function morphGeometry(el, fromRect, toRect, { fromRadius, toRadius, onSe
 //
 // Call `unhideInnerBox` once the shell is hidden again (so the next open's
 // fade-in isn't itself skipped).
+/**
+ * @param {HTMLElement} el
+ * @returns {void}
+ */
 export function hideInnerBoxInstantly(el) {
   el.style.transition = 'none';
   el.style.opacity = '0';
 }
 
+/**
+ * @param {HTMLElement} el
+ * @returns {void}
+ */
 export function unhideInnerBox(el) {
   el.style.transition = '';
   el.style.opacity = '';

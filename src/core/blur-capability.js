@@ -10,6 +10,18 @@
 // instantly and schedules the real benchmark for post-load idle time. It runs
 // at most once per device (cached afterwards).
 
+/** @typedef {'auto' | 'on' | 'off'} BlurMode */
+/**
+ * One frame of a benchmark run, for runBlurBenchmark's onFrame.
+ * @typedef {object} BlurBenchmarkFrame
+ * @property {number} index  The frame's number, from 1.
+ * @property {number} elapsed  ms since the run started.
+ * @property {number} gap  ms since the frame before.
+ * @property {boolean} warmup  One of the first frames, which don't count.
+ * @property {boolean} jank  Slower than the threshold: a dropped frame.
+ */
+/** @typedef {{ capable: boolean }} BlurStateDetail  BLUR_STATE_EVENT's detail. */
+
 export const BLUR_MODE_KEY = 'lg:blur-mode';            // 'auto' | 'on' | 'off'
 const BENCHMARK_CACHE_KEY = 'lg:blur-benchmark';
 // Bump when the benchmark logic or thresholds change so stale verdicts re-run.
@@ -28,10 +40,15 @@ const store = {
   set(key, value) { try { localStorage.setItem(key, value); } catch { /* private mode / quota */ } },
 };
 
+/** @returns {BlurMode} */
 export function getBlurMode() {
   return store.get(BLUR_MODE_KEY) ?? 'auto';
 }
 
+/**
+ * @param {BlurMode} mode
+ * @returns {void}
+ */
 export function setBlurMode(mode) {
   store.set(BLUR_MODE_KEY, mode);
 }
@@ -50,6 +67,7 @@ function writeCachedResult(capable) {
 }
 
 // The verdict from an earlier run on this device: true, false, or null if there isn't one.
+/** @type {() => boolean | null} */
 export const getCachedBlurVerdict = readCachedResult;
 
 // The numbers the benchmark judges against, for anything that wants to show them.
@@ -64,7 +82,8 @@ function supportsBackdropFilter() {
 //
 // `onFrame({ index, elapsed, gap, warmup, jank })` is called on every frame, so a UI can draw the run live.
 /**
- * @param {{ onFrame?: (frame: any) => void }} [options]
+ * @param {{ onFrame?: (frame: BlurBenchmarkFrame) => void }} [options]
+ * @returns {Promise<boolean>}  Whether the device is capable.
  */
 export function runBlurBenchmark({ onFrame } = {}) {
   return new Promise(resolve => {
@@ -104,6 +123,7 @@ export function runBlurBenchmark({ onFrame } = {}) {
 
 // What blur should do *right now*, honoring the manual override, without ever
 // running the benchmark. 'auto' with no cached verdict → the safe "off".
+/** @returns {boolean} */
 export function resolveBlurCapability() {
   const mode = getBlurMode();
   if (mode === 'on') return true;
@@ -114,12 +134,17 @@ export function resolveBlurCapability() {
 
 // Sets [data-blur] on <html> and fires BLUR_STATE_EVENT (for shadow-DOM
 // components that can't inherit :root custom properties).
+/**
+ * @param {boolean} capable
+ * @returns {void}
+ */
 export function applyBlurState(capable) {
   document.documentElement.dataset.blur = capable ? 'on' : 'off';
   window.dispatchEvent(new CustomEvent(BLUR_STATE_EVENT, { detail: { capable } }));
 }
 
 // One-time idle benchmark; no-op if a verdict is cached or the mode isn't 'auto'.
+/** @returns {void} */
 export function scheduleIdleBenchmark() {
   if (getBlurMode() !== 'auto' || readCachedResult() !== null) return;
 
@@ -140,6 +165,7 @@ export function scheduleIdleBenchmark() {
 }
 
 // Re-runs and re-caches the benchmark now (e.g. the user switched back to "Auto").
+/** @returns {Promise<boolean>} */
 export async function reevaluateBlurCapability() {
   const capable = await runBlurBenchmark();
   writeCachedResult(capable);
@@ -148,6 +174,7 @@ export async function reevaluateBlurCapability() {
 }
 
 // One-call setup: apply the instant verdict, then benchmark at idle time.
+/** @returns {void} */
 export function initBlurCapability() {
   applyBlurState(resolveBlurCapability());
   scheduleIdleBenchmark();

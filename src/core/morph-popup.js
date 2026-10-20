@@ -88,7 +88,44 @@ function div(className, attrs) {
 // onAfterOpen()     once the morph has landed (focus a control, highlight a row)
 // onClose()         as soon as closing starts
 /**
- * @param {Record<string, any>} [options]
+ * @typedef {object} MorphPopupOptions
+ * @property {HTMLElement} trigger  The element that opens it; gets aria-haspopup, aria-expanded and aria-controls.
+ * @property {'dialog' | 'listbox' | 'menu' | (string & {})} [role]  The panel's role. A dialog traps focus while
+ *   it's open. Default: 'dialog'.
+ * @property {string} [label]  The panel's accessible name.
+ * @property {import('../components/chip-picker.js').PanelTitle} [title]  The heading at the top of the panel, and
+ *   the handle for the press/drag deform.
+ * @property {number} [width]  The panel's width in px. Default: 208.
+ * @property {number} [radius]  The open panel's corner radius in px. Default: 16.
+ * @property {'normal' | 'page' | number} [maxHeight]  How tall the panel grows before its body scrolls: 'normal'
+ *   (420px), 'page' (the page's height less the safe areas and 20px), or px. Default: 'normal'.
+ * @property {import('../components/glass-roles.js').GlassStyleName | 'inherit'} [glassStyle]  The panel's glass
+ *   style; 'inherit' follows the page. Default: 'frost'.
+ * @property {() => void} [onOpen]  As soon as opening starts.
+ * @property {() => void} [onAfterOpen]  Once the morph has landed.
+ * @property {() => void} [onClose]  As soon as closing starts.
+ */
+/**
+ * What createMorphPopup returns.
+ * @typedef {object} MorphPopup
+ * @property {() => void} open
+ * @property {() => void} close
+ * @property {() => void} toggle
+ * @property {boolean} isOpen  Whether it's open (read-only).
+ * @property {HTMLDivElement} panel  The floating panel, on <body>.
+ * @property {HTMLDivElement} inner  The panel's scrollable body, where the content goes.
+ * @property {HTMLDivElement} overlay  The layer behind the panel while it's open.
+ * @property {() => void} destroy  Removes the panel and its listeners.
+ */
+/**
+ * The options are required: the popup needs its trigger.
+ * @overload
+ * @param {MorphPopupOptions} options
+ * @returns {MorphPopup}
+ */
+/**
+ * @param {MorphPopupOptions} options
+ * @returns {MorphPopup}
  */
 export function createMorphPopup({
   trigger, role = 'dialog', label, title, width, radius = 16, maxHeight = 'normal',

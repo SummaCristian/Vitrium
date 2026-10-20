@@ -140,6 +140,7 @@ const INTERACTIVE = 'a, button, input, select, textarea, [role="button"], [conte
 // The default detents are written the way a caller's would be: small, the sheet is clear and follows the page; at
 // the largest it holds the whole UI, so it goes regular and frost, whatever the page says.
 const SMALL_GLASS = { material: 'clear', glassStyle: 'inherit' };
+/** @type {SheetDetent[]} */
 export const DEFAULT_SHEET_DETENTS = [
   { id: 'peek', size: 192, ...SMALL_GLASS },
   { id: 'half', size: 0.5, ...SMALL_GLASS },
@@ -158,7 +159,112 @@ const clamp01 = (v) => Math.max(0, Math.min(1, v));
 const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /**
- * @param {Record<string, any>} [options]
+ * A resting height, and the glass the sheet wears while it rests there.
+ * @typedef {object} SheetDetent
+ * @property {string} id
+ * @property {number | 'full' | 'content'} size  A fraction (0..1] of the available height, px (> 1), all of it, or
+ *   the content's natural height.
+ * @property {'regular' | 'clear'} [material]  Default: the sheet's `material`.
+ * @property {import('./glass-roles.js').GlassStyleName | 'inherit'} [glassStyle]  Default: the sheet's `glassStyle`.
+ */
+/**
+ * px kept clear of the viewport; bottom also clears the safe area.
+ * @typedef {object} SheetMargin
+ * @property {number} [top]  Default: 20.
+ * @property {number} [bottom]  Default: 20.
+ * @property {number} [inline]  Default: 8.
+ */
+/**
+ * Overrides applied while the viewport is at least `minWidth` wide (the last match wins).
+ * @typedef {object} SheetBreakpoint
+ * @property {number} minWidth  px.
+ * @property {number | null} [width]  A fixed panel width in px; null (or 0) stretches it again.
+ * @property {SheetMargin} [margin]  Over the base margin.
+ */
+/** @typedef {'start' | 'center' | 'end'} SheetSide  Start and end follow the writing direction. */
+/** @typedef {'swipe' | 'scrim' | 'escape' | 'api'} SheetDismissReason */
+/**
+ * Whether the page behind stays usable: 'blocked' (scrim, inert, focus trap), 'enabled', or usable while the sheet is
+ * at or below the detent `upTo`.
+ * @typedef {'blocked' | 'enabled' | { upTo: string }} SheetBackgroundInteraction
+ */
+/**
+ * @typedef {object} SheetOptions
+ * @property {Node | string} [header]  Pinned at the top, and a drag handle: a node, or trusted HTML.
+ * @property {Node | string} [content]  A node, or trusted HTML.
+ * @property {Node | string} [footer]  Pinned at the bottom.
+ * @property {SheetDetent[]} [detents]  Default: DEFAULT_SHEET_DETENTS (peek / half / full).
+ * @property {string} [detent]  The initial detent's id. Default: the smallest.
+ * @property {SheetMargin} [margin]
+ * @property {number} [width]  A fixed panel width in px. Default: it stretches across the viewport.
+ * @property {SheetSide} [side]  Where a fixed-width panel sits. Default: 'end'.
+ * @property {SheetBreakpoint[]} [responsive]
+ * @property {boolean} [modal]  Start dismissed, and present over a scrim with an inert page behind. Default: false.
+ * @property {boolean} [open]  Whether it starts presented. Default: !modal.
+ * @property {boolean | ((reason: 'swipe' | 'scrim' | 'escape') => boolean)} [dismissible]  Whether the user can
+ *   dismiss it; a function is asked at the moment, to veto it. dismiss() always works. Default: `modal`.
+ * @property {SheetBackgroundInteraction} [backgroundInteraction]  Default: 'blocked' when modal, else 'enabled'.
+ * @property {'pop' | 'morph'} [transition]  How it comes and goes. Default: 'pop'.
+ * @property {boolean} [scrim]  Dim the page while blocking. Default: true.
+ * @property {number} [zIndex]  The stacking order of the sheet and its scrim.
+ * @property {() => void} [onPresent]
+ * @property {(reason: SheetDismissReason) => void} [onDismiss]
+ * @property {{ inset?: number | [number, number], radius?: number | [number, number] }} [geometry]  The extra side
+ *   inset and the corner radius, px, from the smallest detent to the largest. Default radius: [38.7, 28] stretched,
+ *   28 as a panel.
+ * @property {'regular' | 'clear'} [material]  For a detent that names none. Default: 'regular'.
+ * @property {import('./glass-roles.js').GlassStyleName | 'inherit'} [glassStyle]  For a detent that names none.
+ *   Default: 'frost'.
+ * @property {boolean} [handle]  Show the grabber. Default: true.
+ * @property {boolean | 'handle'} [deform]  Stretch with the resize speed; 'handle' only for a drag that starts on
+ *   the grabber or the header. Default: true.
+ * @property {boolean} [shield]  While a gesture is live, swallow wheel input so it can't leak behind. Default: true.
+ * @property {boolean} [expandOnFocus]  Keyboard focus moving into the content expands it. Default: true.
+ * @property {string} [label]  The accessible name.
+ * @property {Element} [container]  Where to mount. Default: document.body.
+ * @property {number} [give]  px of elastic overshoot past either end. Default: 40.
+ * @property {number} [flingVelocity]  px/ms: a faster release goes to the next detent. Default: 0.5.
+ * @property {number} [hardFlingVelocity]  px/ms: a faster one goes to the end. Default: 1.4.
+ * @property {(id: string) => void} [onDetentChange]
+ * @property {(px: number, info: { gesturing: boolean }) => void} [onResize]
+ */
+/**
+ * @typedef {object} SheetPresentOptions
+ * @property {string} [detent]  The detent to come in at. Default: the initial one.
+ * @property {HTMLElement} [from]  The element a morph grows from. Default: the focused element.
+ */
+/**
+ * What createSheet returns.
+ * @typedef {object} Sheet
+ * @property {HTMLDivElement} el  The sheet.
+ * @property {HTMLDivElement} contentEl
+ * @property {HTMLDivElement | null} headerEl  null without a header.
+ * @property {HTMLDivElement | null} footerEl  null without a footer.
+ * @property {(options?: SheetPresentOptions) => void} present  Brings it in.
+ * @property {(reason?: SheetDismissReason) => boolean} dismiss  Takes it out. Returns false if it wasn't presented,
+ *   or `dismissible` vetoed it (never for 'api', the default).
+ * @property {boolean} presented  Whether it's on screen (read-only).
+ * @property {(id: string, opts?: { animate?: boolean }) => void} setDetent
+ * @property {string} detent  The current detent's id (read-only).
+ * @property {(detents: SheetDetent[]) => void} setDetents  Keeps the current detent if its id is still there.
+ * @property {number} height  The current height in px (read-only).
+ * @property {(id: string) => number | undefined} detentHeight
+ * @property {boolean} isGesturing  Whether a drag or a wheel gesture is live (read-only).
+ * @property {SheetSide} side  Where a fixed-width panel sits (read-only).
+ * @property {(side: SheetSide, opts?: { animate?: boolean }) => void} setSide  A fixed-width panel glides there.
+ * @property {'pop' | 'morph'} transition  How it comes and goes (read-only).
+ * @property {(mode: 'pop' | 'morph') => void} setTransition
+ * @property {(mode: SheetBackgroundInteraction) => void} setBackgroundInteraction
+ * @property {(content: Node | string) => void} setContent  Replaces the content and re-measures.
+ * @property {number} scrollTop  The content's scroll position, readable and settable.
+ * @property {(hidden: boolean) => void} setHidden  Hides the whole sheet, keeping its state.
+ * @property {boolean} hidden  Whether setHidden() has hidden it (read-only).
+ * @property {() => void} refresh  Re-measures.
+ * @property {() => void} destroy  Removes it, its scrim and its listeners, and puts the page behind back.
+ */
+/**
+ * @param {SheetOptions} [options]
+ * @returns {Sheet}
  */
 export function createSheet({
   header, content, footer,
@@ -382,7 +488,7 @@ export function createSheet({
   }
   if (modal || dismissible) document.addEventListener('keydown', onDocKeydown);
 
-  /** @param {{ detent?: string, from?: Element }} [options] */
+  /** @param {SheetPresentOptions} [options] */
   function present({ detent: id, from } = {}) {
     if (presented && presence.target === 1) return;
     const fresh = !presented;

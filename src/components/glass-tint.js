@@ -13,6 +13,12 @@ function luminance(color) {
 // setGlassTint(el, color)
 //   color   any CSS color, or null to remove the tint. How strongly it shows
 //           is up to the glass material (regular vs clear).
+/**
+ * @template {HTMLElement} E
+ * @param {E} el
+ * @param {string | null} color
+ * @returns {E}
+ */
 export function setGlassTint(el, color) {
   el.classList.toggle('lg-glass--tinted', !!color);
   if (!color) {

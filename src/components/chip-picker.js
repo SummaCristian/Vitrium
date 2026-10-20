@@ -36,7 +36,48 @@ import { el, toNode } from './dom.js';
 import { setGlass } from './glass-mode.js';
 
 /**
- * @param {Record<string, any>} [options]
+ * The heading at the top of a panel.
+ * @typedef {object} PanelTitle
+ * @property {string | Node} [icon]  A node, or trusted SVG/HTML markup.
+ * @property {string} text
+ */
+/** @typedef {import('../core/morph-popup.js').MorphPopup} ChipPickerPopup  The morph popup a chip opens (createMorphPopup's). */
+/**
+ * @typedef {object} ChipPickerOptions
+ * @property {string | Node} [icon]  A node, or trusted SVG/HTML markup.
+ * @property {string} [label]  The small text above the value. Default: ''.
+ * @property {string | Node} [value]  Text, or a node / trusted HTML for a value with styled parts. Default: ''.
+ * @property {Node | ((popup: ChipPickerPopup) => Node)} [content]  What goes in the panel's body.
+ * @property {PanelTitle | false} [title]  Default: the icon and label. false for none.
+ * @property {'dialog' | 'listbox' | 'menu' | (string & {})} [role]  The panel's role. A dialog traps focus while
+ *   it's open. Default: 'dialog'.
+ * @property {string} [panelLabel]  The panel's accessible name. Default: the label.
+ * @property {number} [width]  The panel's width in px. Default: 208.
+ * @property {'normal' | 'page' | number} [maxHeight]  How tall the panel grows before its body scrolls: 'normal'
+ *   (420px), 'page' (the page's height less the safe areas and 20px), or px. Default: 'normal'.
+ * @property {'regular' | 'clear'} [glass]  The material of the chip and its panel. Default: 'regular'.
+ * @property {import('./glass-roles.js').GlassStyleName | 'inherit'} [glassStyle]  The panel's glass style; 'inherit'
+ *   follows the page. The chip itself follows the page. Default: 'frost'.
+ * @property {() => void} [onOpen]  As soon as opening starts.
+ * @property {() => void} [onAfterOpen]  Once the morph has landed.
+ * @property {() => void} [onClose]  As soon as closing starts.
+ */
+/**
+ * What createChipPicker returns.
+ * @typedef {object} ChipPicker
+ * @property {HTMLSpanElement} el  The element to place in the page.
+ * @property {HTMLButtonElement} trigger  The chip.
+ * @property {ChipPickerPopup} popup
+ * @property {'regular' | 'clear'} glass  The chip's and panel's glass (read-only).
+ * @property {(mode: 'regular' | 'clear') => void} setGlass
+ * @property {(value: string | Node) => void} setValue  Text, or a node / trusted HTML.
+ * @property {(text: string) => void} setLabel
+ * @property {(on: boolean) => void} setLoading  Shows or hides a shimmering placeholder in place of the chip.
+ * @property {() => void} destroy  Removes the chip and its panel.
+ */
+/**
+ * @param {ChipPickerOptions} [options]
+ * @returns {ChipPicker}
  */
 export function createChipPicker({
   icon, label = '', value = '', content, title, role = 'dialog', panelLabel, width, maxHeight, glass = 'regular', glassStyle,

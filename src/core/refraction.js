@@ -101,6 +101,7 @@ const CACHE_SIZE = 48;
 
 // Is url() in backdrop-filter rendered? Only Blink does it. WebKit parses it
 // (so CSS.supports can't tell) but draws nothing, and every iOS browser is WebKit.
+/** @returns {boolean} */
 export function supportsRefraction() {
   if (typeof navigator === 'undefined') return false;
   const brands = navigator.userAgentData?.brands;
@@ -111,6 +112,10 @@ export function supportsRefraction() {
 
 // The corner's superellipse exponent from computed corner-shape: 2 is a round
 // corner, 4 a squircle. superellipse(K) is an exponent of 2^K.
+/**
+ * @param {string | null | undefined} shape  A computed corner-shape.
+ * @returns {number}
+ */
 export function cornerExponent(shape) {
   if (!shape) return 2;
   if (shape.startsWith('squircle')) return 4;
@@ -124,6 +129,27 @@ export function cornerExponent(shape) {
 // corners of `radius` and exponent `n`, sampled at `res` pixels per CSS pixel.
 // Inside the bezel the offset points inward (so it never samples past the
 // edge, where the backdrop ends) and grows toward the rim as t ** curve.
+/**
+ * @typedef {object} DisplacementMapOptions
+ * @property {number} [radius]  The corner radius, px. Default: 0.
+ * @property {number} [bezel]  How far in from the rim the bend reaches, px. Default: 16.
+ * @property {number} [n]  The corner's superellipse exponent (cornerExponent). Default: 2.
+ * @property {number} [res]  Map pixels per CSS pixel. Default: 1.
+ * @property {number} [curve]  The offset grows across the bezel as t ** curve. Default: 2.5.
+ */
+/**
+ * A displacement map, as RGBA bytes.
+ * @typedef {object} RefractionMap
+ * @property {Uint8ClampedArray} data
+ * @property {number} width  In map pixels.
+ * @property {number} height
+ */
+/**
+ * @param {number} w
+ * @param {number} h
+ * @param {DisplacementMapOptions} [options]
+ * @returns {RefractionMap}
+ */
 export function displacementMap(w, h, { radius = 0, bezel = DEFAULT_BEZEL, n = 2, res = 1, curve = DEFAULT_CURVE } = {}) {
   const pw = Math.max(1, Math.round(w * res));
   const ph = Math.max(1, Math.round(h * res));
@@ -254,6 +280,13 @@ function gaussian(f, w, h, sigma) {
 // `depth` in px, or a string ending in % for a share of the bezel. A surface
 // smaller than two bezels is all lens: the bezel shrinks to fit. The shift
 // stops at the middle, past which the rim would show the far side.
+/**
+ * @param {number} w
+ * @param {number} h
+ * @param {{ bezel?: number, depth?: number | string }} [tokens]  `depth` in px, or a string ending in % for a share
+ *   of the bezel. Defaults: 16 and 25.
+ * @returns {{ bezel: number, shift: number }}
+ */
 export function fitBend(w, h, { bezel = DEFAULT_BEZEL, depth = DEFAULT_DEPTH } = {}) {
   const half = Math.min(w, h) / 2;
   const b = Math.max(1, Math.min(bezel, half));
@@ -420,6 +453,18 @@ let refractMorph = false;  // initRefraction({ refractMorph }): keep the bend (e
 //   its own box, and is gone once there): the bend stays flat the whole way. Does nothing
 //   for a surface that isn't refracting (or isn't yet: one that comes into view mid-morph
 //   picks it up).
+/**
+ * @typedef {object} MorphRefractionOptions
+ * @property {number} [radius]  The corner it lands on, px. Default: its computed one.
+ * @property {number} duration  ms.
+ * @property {boolean} [land]  false for a morph that ends away from the real box: the bend stays flat the whole way.
+ *   Default: true.
+ */
+/**
+ * @param {Element} el
+ * @param {MorphRefractionOptions} options
+ * @returns {void}
+ */
 export function morphRefraction(el, { radius, duration, land = true }) {
   if (!el) return;
   const h = { radius, land, t0: performance.now(), ms: Math.max(0, duration) };
@@ -441,6 +486,7 @@ const HOLD_MAX_MS = 4000;
 /**
  * @param {Element} el
  * @param {{ radius?: number, max?: number }} [options]
+ * @returns {() => void}  release()
  */
 export function holdRefraction(el, { radius, max = HOLD_MAX_MS } = {}) {
   if (!el) return () => {};
@@ -620,6 +666,10 @@ function onTransitionEnd(e) {
 //   Gives one element the refraction, for a surface the default selector can't reach (a
 //   hand-built one that isn't in GLASS_SURFACES). It stays until
 //   detachRefraction(el). Does nothing until [data-refraction="on"].
+/**
+ * @param {HTMLElement} el
+ * @returns {void}
+ */
 export function attachRefraction(el) {
   if (supported ??= supportsRefraction()) attach(el, true);
 }
@@ -690,6 +740,10 @@ function activate(els) {
 }
 
 // Let go of an element for good.
+/**
+ * @param {Element} el
+ * @returns {void}
+ */
 export function detachRefraction(el) {
   watched.delete(el);
   io?.unobserve(el);
@@ -818,6 +872,7 @@ function queueScan() {
 
 // Fired on window whenever refraction turns on or off: the page's switch, or blur
 // going on or off under it. detail: { active, supported }.
+/** @typedef {{ active: boolean, supported: boolean }} RefractionStateDetail  REFRACTION_STATE_EVENT's detail. */
 export const REFRACTION_STATE_EVENT = 'lg:refractionstatechange';
 let active = false;
 
@@ -846,6 +901,10 @@ function applyState() {
 
 // The page's global switch. On is the default; it still needs blur on and a
 // browser that can draw it. Works before or after initRefraction().
+/**
+ * @param {boolean} on
+ * @returns {void}
+ */
 export function setRefraction(on) {
   wanted = !!on;
   if (started && supportsRefraction()) applyState();
@@ -854,6 +913,7 @@ export function setRefraction(on) {
 // Is refraction being applied right now? True only when the browser can draw it
 // (supportsRefraction()), initRefraction() has run, the page hasn't turned it off
 // and blur is on. Listen for REFRACTION_STATE_EVENT to follow it.
+/** @returns {boolean} */
 export function getRefraction() {
   return active;
 }
@@ -867,6 +927,16 @@ export function getRefraction() {
 //              as it's costly to run on every frame of the motion. Default: false.
 //   selector   more surfaces to refract, as a CSS selector, for glass that
 //              isn't in GLASS_SURFACES.
+/**
+ * @typedef {object} RefractionOptions
+ * @property {boolean} [enabled]  false starts it off; setRefraction(true) turns it on. Default: true.
+ * @property {string} [selector]  More surfaces to refract, for glass that isn't in GLASS_SURFACES.
+ * @property {boolean} [refractMorph]  Keep the bend through a morph (held flat, eased in as it lands). Default: false.
+ */
+/**
+ * @param {RefractionOptions} [options]
+ * @returns {void}
+ */
 export function initRefraction({ enabled: on = true, selector: extra, refractMorph: morph = false } = {}) {
   if (started || typeof document === 'undefined') return;
   started = true;

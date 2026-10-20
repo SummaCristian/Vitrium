@@ -73,7 +73,34 @@ const TOGGLE_LENS = {
 // Returns { el, set, setColor, setDisabled, setRefract, refresh, destroy, on, disabled }. User changes call `onChange(isOn)`;
 // set(isOn) is programmatic (silent) and animates by default.
 /**
- * @param {Record<string, any>} [options]
+ * @typedef {object} ToggleOptions
+ * @property {boolean} [value]  The initial state. Default: false.
+ * @property {(on: boolean) => void} [onChange]  Called when the user changes it, not by set().
+ * @property {string} [label]  The accessible name.
+ * @property {'accent' | (string & {})} [color]  The track's on-color: any CSS color, or 'accent' for the system
+ *   accent. Default: --lg-toggle-on.
+ * @property {boolean} [disabled]  Dimmed, and takes no input. Default: false.
+ * @property {boolean} [refract]  Where refraction runs, the lifted lens bends what's behind it; false keeps it
+ *   plain. Default: true.
+ */
+/**
+ * What createToggle returns.
+ * @typedef {object} Toggle
+ * @property {HTMLButtonElement} el  The root <button>.
+ * @property {boolean} on  The current value (read-only).
+ * @property {(value: boolean, opts?: { animate?: boolean }) => void} set  Sets it from code: silent, and animated
+ *   unless `animate` is false. Setting the value it already has does nothing.
+ * @property {(color: 'accent' | (string & {}) | null) => void} setColor  Changes the on-color; null restores the
+ *   default.
+ * @property {boolean} disabled  Whether it's disabled (read-only).
+ * @property {(disabled: boolean) => void} setDisabled  Disables it or enables it again. set() still moves it.
+ * @property {(on: boolean) => void} setRefract  Turns the lens's refraction on or off.
+ * @property {(opts?: { snap?: boolean }) => void} refresh  Re-measures and re-places the thumb.
+ * @property {() => void} destroy  Removes its listeners and observers.
+ */
+/**
+ * @param {ToggleOptions} [options]
+ * @returns {Toggle}
  */
 export function createToggle({ value = false, onChange, label, color, disabled = false, refract = true } = {}) {
   const root = el('button', 'lg-toggle' + (value ? ' on' : ''), { type: 'button', role: 'switch' });

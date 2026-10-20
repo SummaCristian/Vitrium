@@ -42,7 +42,69 @@ const TYPEAHEAD_RESET_MS = 500;
 let menuUid = 0;
 
 /**
- * @param {Record<string, any>} [options]
+ * A row you can choose.
+ * @typedef {object} MenuItem
+ * @property {undefined} [type]  Leave it out: only separators and labels have a type.
+ * @property {string} [id]  Yours, to tell the items apart in onSelect.
+ * @property {string} label
+ * @property {string | Node} [icon]  A node, or trusted SVG/HTML markup, in a slot on the left.
+ * @property {string} [shortcut]  A hint on the right, such as '⌘E'. The menu doesn't bind the key.
+ * @property {boolean} [checked]  Either value makes the item a checkbox; the check takes the icon's slot.
+ * @property {boolean} [destructive]  Shows it in the danger color.
+ * @property {boolean} [disabled]  Dims it, and it can't be chosen.
+ * @property {boolean} [keepOpen]  Leaves the menu open after choosing it.
+ * @property {(item: MenuItem) => void} [onSelect]  Runs as the menu closes.
+ */
+/**
+ * A rule between groups.
+ * @typedef {object} MenuSeparator
+ * @property {'separator'} type
+ */
+/**
+ * A small heading. It isn't selectable.
+ * @typedef {object} MenuLabel
+ * @property {'label'} type
+ * @property {string} label
+ */
+/** @typedef {MenuItem | MenuSeparator | MenuLabel} MenuEntry */
+/**
+ * @typedef {object} MenuOptions
+ * @property {HTMLElement} trigger  The glass element that opens it (a pill or circle button): the panel starts from
+ *   its box.
+ * @property {MenuEntry[]} [items]  The rows, separators and headings.
+ * @property {string} [label]  The accessible name, and the panel's title unless `title` says otherwise.
+ * @property {import('./chip-picker.js').PanelTitle | false} [title]  false for none.
+ * @property {number} [width]  The panel's width in px. Default: 220.
+ * @property {'normal' | 'page' | number} [maxHeight]  How tall the panel grows before its list scrolls: 'normal'
+ *   (420px), 'page' (the page's height less the safe areas and 20px), or px. Default: 'normal'.
+ * @property {'regular' | 'clear'} [glass]  The panel's material. Default: 'regular'.
+ * @property {import('./glass-roles.js').GlassStyleName | 'inherit'} [glassStyle]  The panel's glass style; 'inherit'
+ *   follows the page. Default: 'frost'.
+ * @property {() => void} [onOpen]  As soon as opening starts.
+ * @property {() => void} [onClose]  As soon as closing starts.
+ */
+/**
+ * What createMenu returns.
+ * @typedef {object} Menu
+ * @property {HTMLDivElement} el  The panel, on <body>.
+ * @property {HTMLElement} trigger
+ * @property {() => void} open
+ * @property {() => void} close
+ * @property {boolean} isOpen  Whether it's open (read-only).
+ * @property {'regular' | 'clear'} glass  The panel's glass (read-only).
+ * @property {(mode: 'regular' | 'clear') => void} setGlass
+ * @property {(items: MenuEntry[]) => void} setItems  Replaces the rows: how checked, disabled or a label changes.
+ * @property {() => void} destroy  Removes the panel and its listeners.
+ */
+/**
+ * The options are required: the menu needs its trigger.
+ * @overload
+ * @param {MenuOptions} options
+ * @returns {Menu}
+ */
+/**
+ * @param {MenuOptions} options
+ * @returns {Menu}
  */
 export function createMenu({
   trigger, items = [], label, title, width = 220, maxHeight, glass = 'regular', glassStyle, onOpen, onClose,

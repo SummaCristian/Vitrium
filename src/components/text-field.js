@@ -22,7 +22,63 @@ import { el, toNode } from './dom.js';
 import { setGlass } from './glass-mode.js';
 
 /**
- * @param {Record<string, any>} [options]
+ * @typedef {object} TextFieldOptions
+ * @property {string} [value]  The initial text. Default: ''.
+ * @property {string} [placeholder]  Hint text when it's empty.
+ * @property {'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'date' | 'time' | 'datetime-local' | 'month' | 'week'} [type]
+ *   The input's type. A search field is always 'search', and a multiline one has none. Default: 'text'.
+ * @property {string} [name]  The form field name.
+ * @property {string} [label]  The accessible name.
+ * @property {'default' | 'search'} [variant]  Search adds a search icon and the clear button, Escape clears it, and
+ *   Enter calls onSubmit. Default: 'default'.
+ * @property {string | Node} [icon]  A leading icon: a node, or trusted SVG/HTML markup. Search has one by default.
+ * @property {boolean} [clearable]  Shows a clear button while there's text. Default: true for search.
+ * @property {boolean} [multiline]  Uses a <textarea>. Default: false.
+ * @property {number} [rows]  The rows of a multiline field. Default: 3.
+ * @property {boolean} [disabled]  Starts disabled. Default: false.
+ * @property {AutoFill} [autocomplete]  The `autocomplete` attribute.
+ * @property {(value: string) => void} [onInput]  Every keystroke, and when it's cleared.
+ * @property {(value: string) => void} [onChange]  When the value is committed (blur or Enter), and when it's cleared.
+ * @property {(value: string) => void} [onSubmit]  Enter, in a single-line field.
+ * @property {() => void} [onClear]  When the clear button or Escape empties it.
+ * @property {'regular' | 'clear'} [glass]  The capsule's glass. Default: 'regular'.
+ */
+/**
+ * What createTextField returns: typed over its control, an <input>, or a <textarea> when it's multiline.
+ * @template {HTMLInputElement | HTMLTextAreaElement} [I=HTMLInputElement | HTMLTextAreaElement]
+ * @typedef {object} TextField
+ * @property {HTMLDivElement} el  The capsule.
+ * @property {I} input  The native <input> or <textarea>, for listeners and attributes.
+ * @property {string} value  The current text (read-only).
+ * @property {'regular' | 'clear'} glass  The capsule's glass (read-only).
+ * @property {(mode: 'regular' | 'clear') => void} setGlass
+ * @property {(value: string | number | null, opts?: { silent?: boolean }) => void} set  Changes the text from code;
+ *   null empties it. Silent by default, and when it isn't, only onInput is called.
+ * @property {(opts?: { silent?: boolean }) => void} clear  Empties it and focuses it. Not silent by default: it
+ *   calls onInput, onChange and onClear.
+ * @property {() => void} focus  Focuses the control.
+ * @property {(disabled: boolean) => void} setDisabled
+ * @property {(invalid: boolean) => void} setInvalid  Shows the invalid state and sets aria-invalid.
+ * @property {() => void} destroy  Removes it.
+ */
+/**
+ * @overload
+ * @param {TextFieldOptions & { multiline: true }} options
+ * @returns {TextField<HTMLTextAreaElement>}
+ */
+/**
+ * @overload
+ * @param {TextFieldOptions & { multiline?: false }} [options]
+ * @returns {TextField<HTMLInputElement>}
+ */
+/**
+ * @overload
+ * @param {TextFieldOptions} [options]
+ * @returns {TextField}
+ */
+/**
+ * @param {TextFieldOptions} [options]
+ * @returns {TextField}
  */
 export function createTextField({
   value = '', placeholder = '', type = 'text', name, label, variant = 'default', icon,

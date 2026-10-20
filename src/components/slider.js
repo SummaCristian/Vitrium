@@ -42,8 +42,49 @@ const SETTLE_POS = { stiffness: 400, damping: 35, mass: 0.8 };
 const LIFT = { stiffness: 500, damping: 25, mass: 0.5 };
 const DROP = { stiffness: 350, damping: 30, mass: 0.8 };
 
+/** @typedef {number | [number, number]} SliderValue  A number for one thumb, a [low, high] pair for a range. */
 /**
- * @param {Record<string, any>} [options]
+ * The options, typed over the kind of value: a number, or a [low, high] pair for a range.
+ * @template {SliderValue} [V=SliderValue]
+ * @typedef {object} SliderOptions
+ * @property {V} [value]  The initial value. Default: 0.
+ * @property {number} [min]  Default: 0.
+ * @property {number} [max]  Default: 100.
+ * @property {number} [step]  The spacing of the values, from `min`; 0 is continuous. Default: 1.
+ * @property {number} [minGap]  For a range: the least distance between the thumbs, in value units. Default: 0.
+ * @property {string} [label]  The accessible name. For a range it prefixes each thumb's name.
+ * @property {[string, string]} [labels]  For a range: the names of the low and high thumbs. Default: Minimum and
+ *   Maximum.
+ * @property {(value: number) => string} [format]  The text a screen reader reads for a thumb's value.
+ * @property {boolean} [disabled]  Starts disabled. Default: false.
+ * @property {(value: V, info: { silent: boolean }) => void} [onChange]  Every change while dragging or using the
+ *   keys, and set() when it isn't silent.
+ * @property {(value: V) => void} [onCommit]  Once when a drag ends or a key is pressed.
+ */
+/**
+ * What createSlider returns: typed over its value, a number or a [low, high] pair.
+ * @template {SliderValue} [V=SliderValue]
+ * @typedef {object} Slider
+ * @property {HTMLDivElement} el  The slider element.
+ * @property {V} value  The current value (read-only).
+ * @property {(value: V, opts?: { silent?: boolean }) => void} set  Moves it from code: animated, and silent by
+ *   default.
+ * @property {(disabled: boolean) => void} setDisabled
+ * @property {() => void} destroy  Removes it and stops its springs.
+ */
+/**
+ * @overload
+ * @param {SliderOptions<[number, number]> & { value: [number, number] }} options
+ * @returns {Slider<[number, number]>}
+ */
+/**
+ * @overload
+ * @param {SliderOptions<number>} [options]
+ * @returns {Slider<number>}
+ */
+/**
+ * @param {SliderOptions} [options]
+ * @returns {Slider}
  */
 export function createSlider({
   value = 0, min = 0, max = 100, step = 1, minGap = 0,

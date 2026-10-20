@@ -27,7 +27,27 @@ function svgEl(tag, attrs) {
 }
 
 /**
- * @param {Record<string, any>} [options]
+ * @typedef {object} ProgressOptions
+ * @property {number | null} [value]  From 0 to `max`. Leave it out, or null, for the indeterminate state.
+ * @property {number} [max]  The value that means full. Default: 1.
+ * @property {'linear' | 'circular'} [variant]  A bar or a ring. Default: 'linear'.
+ * @property {number} [size]  A ring's diameter in px. Default: 28 (--lg-progress-size).
+ * @property {string} [label]  The accessible name.
+ * @property {(value: number) => string} [format]  The text a screen reader reads for a value. Default: the
+ *   percentage.
+ */
+/**
+ * What createProgress returns.
+ * @typedef {object} Progress
+ * @property {HTMLDivElement} el  The progress element.
+ * @property {number | null} value  The current value, or null when indeterminate (read-only).
+ * @property {(value: number | null) => void} set  Changes the value, animated, clamped to 0..max; null makes it
+ *   indeterminate.
+ * @property {() => void} destroy  Removes it.
+ */
+/**
+ * @param {ProgressOptions} [options]
+ * @returns {Progress}
  */
 export function createProgress({ value = null, max = 1, variant = 'linear', size, label, format } = {}) {
   const circular = variant === 'circular';

@@ -59,7 +59,8 @@ const STRETCH = {
 // starts it (to `press`, flat, then all the way `pressMs` later), how it falls once let go (a parabola, `fallS` long
 // from full height, keeping `landKeep` of its speed for a dip), and the stretch of its height over which it turns
 // from the flat fill to glass on the way up (`glass`) and on the way down (`glassDown`, the same by default), the
-// glass trailing its height by `glassLag` s going down. Measured off the iOS 27 tab bar.
+// glass trailing its height by `glassLag` s going down. A tap (or select()) lifts it, slides it over on `tapSlide`
+// `tapSlideMs` later, and lets it fall `tapHoldMs` after that. Measured off the iOS 27 tab bar.
 const LIFT = {
   up: { stiffness: 500, damping: 25, mass: 0.5 },
   down: { stiffness: 400, damping: 26, mass: 1 },
@@ -71,6 +72,9 @@ const LIFT = {
   glass: [0.3, 0.7],
   glassDown: null,
   glassLag: 0,
+  tapSlide: { stiffness: 400, damping: 35, mass: 0.8 },
+  tapSlideMs: 50,
+  tapHoldMs: 80,      // a tap lets the lens fall once it's (nearly) all the way up
 };
 
 const TRAIL = {
@@ -144,6 +148,8 @@ const clamp = (x, m) => Math.max(-m, Math.min(m, x));
 //   lift               the lens's height over time, for a control whose lens rises and falls unlike the tab bar's:
 //                      LIFT's keys, over it.
 //   walls              how far past an end the lens goes and how it squashes there: WALL's keys, over it.
+//   stretch            how the lens deforms as it moves: STRETCH's keys, over it.
+//   follow             the spring the lens follows a drag on, in place of FOLLOW.
 //   copyScale          how much the highlighted copies under it grow, each about its
 //                      own middle, at full lift (iOS draws them about 1.2× while
 //                      lifted). The lens's own scale doesn't reach them: it would
@@ -154,6 +160,13 @@ const clamp = (x, m) => Math.max(-m, Math.min(m, x));
 //   hover              an element for the hover pill (HOVER), placed in the track
 //                      before `items`; without it, nothing shows on hover.
 //   onRender({ pos })  after every frame's transforms are written.
+//   onAim(index)       during a drag, the cell under the lens changed (before it's let go, and again when it's let
+//                      go, back to the selected one if that's where it settles): for a control that shows where the
+//                      lens is as it goes, as the toggle's track does.
+//   holdMs             how long a cell must be held before the lens comes to the finger (HOLD_MS); 0 sends it as
+//                      soon as the cell is pressed, lifting and moving together.
+//   flipUnlessCrossed  a grab of the lens itself that never took it past halfway to the next cell counts as a
+//                      tap on it (onPillTap) when let go, however far it was moved (the toggle: iOS flips it).
 export function createPillDragCore({
   root, items, pill, hit, activeRow,
   hover = null,
@@ -165,6 +178,8 @@ export function createPillDragCore({
   liftScale = 1,
   lift: liftOptions = null,
   walls = null,
+  stretch = null,
+  follow = null,
   copyScale = 1.2,
   trail = TRAIL,
   axis: initialAxis = 'x',
@@ -172,6 +187,9 @@ export function createPillDragCore({
   canSelect,
   onReject,
   onRender,
+  onAim,
+  flipUnlessCrossed = false,
+  holdMs = HOLD_MS,
   onPillTap,
   onChange,
 }) {
@@ -255,13 +273,16 @@ export function createPillDragCore({
   const PRESS_GLASS_MS = lf.pressMs;
   const [GLASS_FROM, GLASS_TO] = lf.glass;
   const [GLASS_DOWN_FROM, GLASS_DOWN_TO] = lf.glassDown ?? lf.glass;
-  const TAP_HOLD_MS = 80;    // a tap lets the lens fall once it's (nearly) all the way up
+  const TAP_HOLD_MS = lf.tapHoldMs;
   // On the way down the glass may trail its height (lf.glassLag, s): a spring about that far behind.
   const glassLag = lf.glassLag > 0 ? { stiffness: (2.15 / lf.glassLag) ** 2, damping: 2 * 2.15 / lf.glassLag, mass: 1 } : null;
   const glassTrail = new Spring(0);
   glassTrail.eps = 0.002;
   // How far past an end the lens goes, and how it squashes there (`walls`, over WALL).
   const WALLS = { ...WALL, ...walls };
+  // How it deforms as it moves (`stretch`, over STRETCH) and how closely it follows a drag (`follow`, over FOLLOW).
+  const ST = { ...STRETCH, ...stretch };
+  const followSpring = { ...FOLLOW, ...follow };
 
   // While the lens is in play (pressed, lifted, or still moving after), its motion deforms it; once it's at rest
   // on the ground the deformation's targets drop to 0, and what's left of it eases out.
@@ -452,16 +473,16 @@ export function createPillDragCore({
     if (active && !lifted && pillPos.resting && lift.resting) active = false;
     syncSelected(L);
     const sh = selHov.value;
-    const bendTarget = active ? STRETCH.accel * acc * travelDir : 0;
-    if (Math.abs(bendTarget - bend.target) > 1e-4) bend.to(bendTarget, { stiffness: STRETCH.stiffness, damping: STRETCH.damping, mass: 1 });
+    const bendTarget = active ? ST.accel * acc * travelDir : 0;
+    if (Math.abs(bendTarget - bend.target) > 1e-4) bend.to(bendTarget, { stiffness: ST.stiffness, damping: ST.damping, mass: 1 });
     const speed = Math.abs(v);
-    const paceTarget = active ? STRETCH.speed * speed / (speed + STRETCH.speedHalf) : 0;
-    if (Math.abs(paceTarget - pace.target) > 1e-4) pace.to(paceTarget, STRETCH.speedLag);
-    const motion = Math.min(STRETCH.max, Math.max(STRETCH.min, pace.value + bend.value));
+    const paceTarget = active ? ST.speed * speed / (speed + ST.speedHalf) : 0;
+    if (Math.abs(paceTarget - pace.target) > 1e-4) pace.to(paceTarget, ST.speedLag);
+    const motion = Math.min(ST.max, Math.max(ST.min, pace.value + bend.value));
     const q = wall.value;
     // In px, added to the lifted size (see STRETCH.length), then as a scale of the lens's own size.
-    const dMain = STRETCH.length * (motion - q);
-    const dCross = STRETCH.length * (-motion * (motion > 0 ? STRETCH.crossStretch : STRETCH.crossSquash) + q * WALLS.cross);
+    const dMain = ST.length * (motion - q);
+    const dCross = ST.length * (-motion * (motion > 0 ? ST.crossStretch : ST.crossSquash) + q * WALLS.cross);
     // Hovered (at rest), it grows by HOVER.selScale and leans and stretches toward the pointer.
     const hs = 1 + (HOVER.selScale - 1) * sh;
     const scMain = pillMain.value ? liftMain * hs + (dMain + selExtra.value * sh) / pillMain.value : liftMain * hs;
@@ -469,7 +490,7 @@ export function createPillDragCore({
     const hsCross = crossSize ? Math.min(hs, Math.max(1, 1 + Math.min(padCross[0], padCross[1]) / crossSize)) : hs;
     const scCross = crossSize ? liftCross * hsCross + dCross / crossSize : liftCross * hsCross;
     // Squashed against a wall, the lens keeps its outer edge on it: its middle moves out by what it lost.
-    let pos = pillPos.value + wallSide * (STRETCH.length * q) / 2 + selLean.value * sh;
+    let pos = pillPos.value + wallSide * (ST.length * q) / 2 + selLean.value * sh;
     // Grown by the hover at an end cell, it's kept off the track's rounded end: into half its padding at most.
     if (sh > 0.001) {
       const half = pillMain.value * scMain / 2, mid = pos + pillMain.value / 2;
@@ -534,6 +555,11 @@ export function createPillDragCore({
     pill.style.borderRadius = kx > 0 && ky > 0 ? `${R / kx}px / ${R / ky}px` : '';
     updateMask(scMain, scCross, pos, gx, gy);
     renderHover(L, g, crossSize, sh);
+    if (dragging && grabbed && anchors.length) {
+      const at = nearestTo(pillPos.value);
+      if (at !== pressIdx) crossed = true;
+      if (at !== aimIdx) { aimIdx = at; onAim?.(at); }
+    }
     onRender?.({ pos: pillPos.value });
   }
 
@@ -714,9 +740,9 @@ export function createPillDragCore({
     if (!a) return;
     raise();
     later(() => {
-      pillPos.to(a.pos, { stiffness: 400, damping: 35, mass: 0.8 });
-      pillMain.to(a.size, { stiffness: 400, damping: 35, mass: 0.8 });
-    }, 50);
+      pillPos.to(a.pos, lf.tapSlide);
+      pillMain.to(a.size, lf.tapSlide);
+    }, lf.tapSlideMs);
     later(settle, TAP_HOLD_MS);   // and it comes down while it's still sliding in
   }
 
@@ -748,6 +774,13 @@ export function createPillDragCore({
   // when the control is scaled (CSS zoom or a transform on an ancestor).
   let ptrScale = 1;
   let holdTimer = 0, captureEl = null;
+  // The cell the grabbed lens is over (onAim), and whether it has left the one it was grabbed on (flipUnlessCrossed).
+  let aimIdx = -1, pressIdx = -1, crossed = false;
+  const nearestTo = (pos) => {
+    let best = 0, bestDist = Infinity;
+    anchors.forEach((a, i) => { const d = Math.abs(pos - a.pos); if (d < bestDist) { bestDist = d; best = i; } });
+    return best;
+  };
   let samples = [];
 
   const clampDragPos = (pos) => Math.max(anchors[0].pos - DRAG_OVERSHOOT,
@@ -812,6 +845,7 @@ export function createPillDragCore({
     ptrScale = ((vertical ? r.height / items.offsetHeight : r.width / items.offsetWidth) || 1) * (rectK ?? 1);
     grantTime = performance.now();
     samples = [{ x: mainPos(e), t: grantTime }];
+    aimIdx = pressIdx = index; crossed = false;
     // Pressed, the hovered cell's pill stops leaning, back on its cell.
     if (!onHit && cells.indexOf(captureEl) === hovIdx && hovVis.target > 0) {
       hoverPressed = true;
@@ -825,7 +859,7 @@ export function createPillDragCore({
     fallStart = 0;
     if (lift.target < PRESS_LIFT) lift.to(PRESS_LIFT, LIFT_UP);
     later(raise, PRESS_GLASS_MS);
-    if (absoluteDrag) holdTimer = setTimeout(() => engage(e), HOLD_MS);
+    if (absoluteDrag) holdTimer = setTimeout(() => engage(e), holdMs);
   }
 
   function onDragMove(e) {
@@ -843,8 +877,8 @@ export function createPillDragCore({
 
     const raw = dragRaw(e);
     // Close behind the finger (about 25ms): a looser follow would leave a flicked lens far behind it, and slow.
-    pillPos.to(wallDragPos(raw), FOLLOW);
-    pillMain.to(sizeForPos(raw), FOLLOW);
+    pillPos.to(wallDragPos(raw), followSpring);
+    pillMain.to(sizeForPos(raw), followSpring);
     crossOff.to(rubber(dCross, CROSS_GIVE), { stiffness: 700, damping: 42, mass: 0.5 });
     containerOff.to(rubber(dMain * trail.follow, trail.give),
       { stiffness: 260, damping: 26, mass: 1 });
@@ -854,8 +888,14 @@ export function createPillDragCore({
     pull.to(w ? Math.sign(overNow) * rubber(Math.abs(overNow) * w.follow, w.give) : 0, { stiffness: 260, damping: 26, mass: 1 });
   }
 
+  // Let go: whatever it settles on, the aim ends there.
   function release(e, terminated) {
     if (!dragging) return;
+    letGo(e, terminated);
+    if (aimIdx >= 0 && aimIdx !== index) { aimIdx = index; onAim?.(index); }
+  }
+
+  function letGo(e, terminated) {
     dragging = false;
     clearTimeout(holdTimer); holdTimer = 0;
     try { captureEl?.releasePointerCapture(e.pointerId); } catch { /* already gone */ }
@@ -887,8 +927,10 @@ export function createPillDragCore({
     wall.to(0, LIFT_DOWN);
     const dMain = mainDelta(e), dCross = crossDelta(e);
 
-    // A barely-moved grab of the pill itself is a tap on it.
-    if (!terminated && !absoluteDrag && onPillTap && Math.abs(dMain) < 8 && Math.abs(dCross) < 8) {
+    // A barely-moved grab of the pill itself is a tap on it; with flipUnlessCrossed, any grab that never crossed is,
+    // and none that did, even one brought back to where it started.
+    const barely = Math.abs(dMain) < 8 && Math.abs(dCross) < 8;
+    if (!terminated && !absoluteDrag && onPillTap && (flipUnlessCrossed ? !crossed : barely)) {
       onPillTap();
       return;
     }
@@ -915,11 +957,7 @@ export function createPillDragCore({
       v0 = pillPos.v = Math.sign(v) * Math.min(Math.abs(v * 1000), THROW.maxSpeed);
     }
     const projectedPos = clampDragPos(Math.abs(v0) > THROW.minSpeed ? pillPos.value + v0 * THROW.coast : dragRaw(e) + v * 80);
-    let nearest = 0, bestDist = Infinity;
-    anchors.forEach((anchor, i) => {
-      const d = Math.abs(projectedPos - anchor.pos);
-      if (d < bestDist) { bestDist = d; nearest = i; }
-    });
+    const nearest = nearestTo(projectedPos);
     // (With canSelect) a forbidden or unchanged target: spring back to the current cell,
     // snappier than a real move — it's a correction, not a selection.
     if (canSelect && (nearest === index || !canSelect(nearest))) {

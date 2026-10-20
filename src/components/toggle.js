@@ -1,7 +1,7 @@
 // iOS-style switch driven by pill-drag-core: a two-cell "picker" (off / on)
 // whose pill is the thumb, so it lifts into glass on tap, follows the finger
-// on drag and commits to the nearer end on release. The root is a <button>, so
-// Space/Enter toggle natively.
+// on drag and, let go, flips, or settles on the side it was dragged across to.
+// The root is a <button>, so Space/Enter toggle natively.
 import { createPillDragCore } from '../core/pill-drag-core.js';
 import { createPillParts, el } from './dom.js';
 
@@ -12,8 +12,19 @@ import { createPillParts, el } from './dom.js';
 //   the way up it's still most of the way white, and clear by the top;
 //   let go, it shrinks at a steady rate, back to the thumb in 0.185s; its glass is gone by 0.59 of the height
 //   and the white comes back about 80ms behind, so the thumb stays translucent a little after it's landed;
-//   lifted, it goes 9.5pt past either end's spot and stops there, unsquashed: it squashes only when it arrives
-//   fast (the deformation's own braking).
+//   lifted, it goes up to 9.9pt past either end's spot on a rubber band, unsquashed: it squashes only when it
+//   arrives fast (the deformation's own braking).
+// And off the iPadOS 27 one, under a mouse, against the pointer:
+//   it trails the pointer about 107ms behind (a critically damped follow: 1pt rms over 23s of drags), much looser
+//   than the tab bar's lens, and a tap slides it over on the same follow, starting at once; it comes down about
+//   0.23s after the press;
+//   it deforms far less than the tab bar's: barely with speed (its stretch follows it about 130ms behind), mostly
+//   as it speeds up and brakes, one swing each (fitted on both recordings: +1pt at 66pt/s, +2.4 / -1.9 at 200);
+//   it thins 0.67pt across per pt it stretches and grows 0.74 per pt it squashes;
+//   the track takes the color of the side the lens is over as it crosses, not when it's let go;
+//   let go, it flips unless it was taken across the middle: a press that stays on its own side (held still,
+//   or moved and brought back) is a tap.
+const FOLLOW = { stiffness: 350, damping: 37.4, mass: 1 };
 const TOGGLE_LENS = {
   tapScale: 1.6,
   lift: {
@@ -26,8 +37,25 @@ const TOGGLE_LENS = {
     glass: [0, 1],
     glassDown: [0.59, 1],
     glassLag: 0.081,
+    tapSlide: FOLLOW,
+    tapSlideMs: 0,
+    tapHoldMs: 130,   // after the release: about 0.23s after the press of a ~0.1s click
   },
-  walls: { travel: 9.5, squash: 0 },
+  walls: { travel: 9.9, squash: 0 },
+  follow: FOLLOW,
+  stretch: {
+    speed: 0.019,
+    speedLag: { stiffness: 136, damping: 23.3, mass: 1 },
+    accel: 2.53e-5,
+    stiffness: 50,
+    damping: 6.3,
+    crossStretch: 0.67,
+    crossSquash: 0.74,
+  },
+  flipUnlessCrossed: true,
+  // Pressed on the bare track, iOS only lifts the lens where it is; ours comes to the finger, and at once, as it
+  // lifts, rather than after a hold.
+  holdMs: 0,
 };
 
 // `color` is the track's on-color: any CSS color, or 'accent' to follow the
@@ -58,7 +86,7 @@ export function createToggle({ value = false, onChange, label, color } = {}) {
   const api = {
     el: root,
     setColor,
-    get on() { return root.classList.contains('on'); },
+    get on() { return root.getAttribute('aria-checked') === 'true'; },
     set(v, { animate = true } = {}) {
       apply(v);
       core.select(v ? 1 : 0, { animate, silent: true });
@@ -77,13 +105,15 @@ export function createToggle({ value = false, onChange, label, color } = {}) {
     cellSelector: '.lg-toggle__cell',
     ...TOGGLE_LENS,
     onPillTap: () => flip(),
+    // Dragged, the track shows the side the lens is over; the state itself changes only once it's let go.
+    onAim: (i) => root.classList.toggle('on', i === 1),
     onChange(i, { silent }) {
       apply(i === 1);
       if (!silent) { onChange?.(i === 1); }
     },
   });
 
-  function flip() { core.select(api.on ? 0 : 1); }
+  function flip() { core.select(core.index === 1 ? 0 : 1); }
 
   // A tap on the bare track (padding, or keyboard Space/Enter). The thumb and
   // cells handle their own taps; a click after a drag targets the hit overlay

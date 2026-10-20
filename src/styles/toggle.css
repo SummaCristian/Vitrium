@@ -9,9 +9,8 @@
   border: none;
   border-radius: var(--lg-radius-pill);
   flex-shrink: 0;
-  background: color-mix(in srgb, var(--lg-text) 10%, transparent);
-  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--lg-text) 18%, transparent);
-  transition: background 0.25s ease, box-shadow 0.25s ease;
+  background: var(--lg-toggle-off);
+  transition: background 0.25s ease;
   -webkit-tap-highlight-color: transparent;
   /* Horizontal drags belong to the thumb; vertical ones still scroll the page. */
   touch-action: pan-y;

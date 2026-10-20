@@ -218,6 +218,9 @@
   /* Accent: active tab color, focus rings. Override to brand the kit. */
   --lg-accent: #0a7aff;
   --lg-toggle-on: #34c759;
+  /* The toggle's track when off: a translucent cool gray, so it reads on any ground (iOS 27: 189 on a white cell,
+     80 on the dark one). */
+  --lg-toggle-off: rgb(120 120 128 / 0.49);
   --lg-danger: #ff3b30;
 
   /* Sliding pill (tab bar, segmented control, toggle thumb): flat fill at
@@ -293,6 +296,7 @@
   --lg-danger: #ff453a;
   --lg-pill-highlight: rgba(255, 255, 255, 0.08);
   --lg-pill-border: rgba(255, 255, 255, 0.06);
+  --lg-toggle-off: rgb(120 120 128 / 0.57);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -330,6 +334,7 @@
     --lg-danger: #ff453a;
     --lg-pill-highlight: rgba(255, 255, 255, 0.08);
     --lg-pill-border: rgba(255, 255, 255, 0.06);
+    --lg-toggle-off: rgb(120 120 128 / 0.57);
   }
 }
 

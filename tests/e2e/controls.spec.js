@@ -51,6 +51,29 @@ test.describe('slider', () => {
     await expect(thumb.locator('.lg-pill')).toHaveClass(/lg-pill--lifted/);
   });
 
+  test('a mouse over it leans the thumb toward the pointer, and leaving lets it go', async ({ page }) => {
+    const slider = page.locator('#controls-section .lg-slider').first();
+    await slider.scrollIntoViewIfNeeded();
+    const thumb = slider.locator('.lg-slider__thumb');
+    const lens = thumb.locator('.lg-pill');
+    const b = await slider.boundingBox();
+    // The lens's middle from the thumb's, in px (positive: toward the end).
+    const lean = async () => centerOf(await lens.boundingBox()).x - centerOf(await thumb.boundingBox()).x;
+
+    await page.mouse.move(b.x + b.width - 4, b.y + b.height / 2);
+    await page.waitForTimeout(400);
+    expect(await lean()).toBeGreaterThan(2);
+    await page.mouse.move(b.x + 4, b.y + b.height / 2, { steps: 4 });
+    await page.waitForTimeout(400);
+    expect(await lean()).toBeLessThan(-2);
+    await expect(lens).not.toHaveClass(/lg-pill--lifted/);
+    expect(await page.evaluate(() => controls.slider.value)).toBe(40);
+
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height + 60);
+    await page.waitForTimeout(400);
+    expect(Math.abs(await lean())).toBeLessThan(0.1);
+  });
+
   test('a tap on the track jumps there', async ({ page }) => {
     const slider = page.locator('#controls-section .lg-slider').first();
     await slider.scrollIntoViewIfNeeded();

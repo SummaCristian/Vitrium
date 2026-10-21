@@ -9,7 +9,8 @@
 // the same physics: it lifts into glass when grabbed, stretches along its
 // motion, rubber-bands past the ends and pulls the whole control along a touch.
 // While you drag it follows the finger freely; on release it settles on the
-// snapped value.
+// snapped value. Hovered with a mouse or pen, the thumb a press would take leans
+// toward the pointer, as the toggle's does.
 //
 // Each thumb is a real `role="slider"`: Left/Down and Right/Up move by `step`
 // (flipped in a right-to-left layout), PageUp/PageDown by ten steps, Home/End
@@ -41,6 +42,14 @@ const DRAG_POS = { stiffness: 1000, damping: 70, mass: 0.5 };
 const SETTLE_POS = { stiffness: 400, damping: 35, mass: 0.8 };
 const LIFT = { stiffness: 500, damping: 25, mass: 0.5 };
 const DROP = { stiffness: 350, damping: 30, mass: 0.8 };
+
+// Hovered with a mouse or pen (iOS has no hover here: this one is ours), the thumb a press would take leans toward
+// the pointer wherever it is on the slider and stretches a little after it, by the toggle's numbers (its hoverLens),
+// without growing, and kept inside the slider. The springs are pill-drag-core's HOVER ones.
+const HOVER = { lean: 0.06, leanMax: 3, stretch: 0.08, stretchMax: 2 };
+const HOVER_GLIDE = { stiffness: 600, damping: 49, mass: 1 };    // its lean, in about 0.2s
+const HOVER_GROW = { stiffness: 300, damping: 35, mass: 1 };     // it comes in in about 0.2s...
+const HOVER_SHRINK = { stiffness: 1500, damping: 78, mass: 1 };  // ...and goes in about 60ms
 
 /** @typedef {number | [number, number]} SliderValue  A number for one thumb, a [low, high] pair for a range. */
 /**
@@ -114,6 +123,8 @@ export function createSlider({
       node, pill,
       pos: new Spring(0), scale: new Spring(1), cross: new Spring(0),
       lastPos: 0, stretch: 0,
+      // Hover: how far it shows (0..1), and the lean and stretch (px) it shows.
+      hov: new Spring(0), lean: new Spring(0), extra: new Spring(0), hovered: false,
     };
   });
   const trail = new Spring(0);
@@ -131,6 +142,16 @@ export function createSlider({
   const thumbW = () => thumbs[0].node.offsetWidth;
   const usable = () => Math.max(0, root.offsetWidth - thumbW());
   const px = (v) => toFraction(v, min, max) * usable();
+
+  // The thumb a press at x (from the start edge) takes: the one it's on, or for a range the nearer one (two stacked
+  // at one value: the one on the pointer's side).
+  function pick(x, on) {
+    if (on) return Number(on.dataset.index);
+    if (!range) return 0;
+    const center = (k) => thumbW() / 2 + px(vals[k]);
+    const d = vals.map((_, k) => Math.abs(x - center(k)));
+    return d[0] === d[1] ? (x > center(0) ? 1 : 0) : (d[1] < d[0] ? 1 : 0);
+  }
 
   /* --- Semantics (values → aria) ---------------------------------------------------- */
   function syncAria() {
@@ -155,7 +176,8 @@ export function createSlider({
     const fresh = gap > 100 || gap <= 0;
     const dt = Math.min(Math.max(gap, 1), 64);
     const dir = isRtl() ? -1 : 1;
-    const tw = thumbW();
+    const tw = thumbW(), room = usable();
+    syncHover();
 
     thumbs.forEach((t) => {
       const v = fresh ? 0 : (t.pos.value - t.lastPos) / dt;
@@ -164,8 +186,16 @@ export function createSlider({
       const target = lifted ? Math.min(Math.abs(v) * STRETCH_GAIN, STRETCH_MAX) : 0;
       t.stretch = lifted ? t.stretch + (target - t.stretch) * 0.3 : 0;
       const s = t.scale.value;
+      // Hovered, it leans and stretches toward the pointer, its edges kept on the slider.
+      const h = t.hov.value, extra = t.extra.value * h;
+      let lean = t.lean.value * h;
+      if (h > 0.001) {
+        const lo = extra / 2 - t.pos.value, hi = room - t.pos.value - extra / 2;
+        if (lo <= hi) lean = clamp(lean, lo, hi);
+      }
       t.node.style.transform = `translate(${dir * t.pos.value}px, ${t.cross.value}px)`;
-      t.pill.style.transform = `scale(${s * (1 + t.stretch)}, ${s * (1 - 0.5 * t.stretch)})`;
+      t.pill.style.transform = (lean ? `translateX(${dir * lean}px) ` : '')
+        + `scale(${s * (1 + t.stretch) + extra / tw}, ${s * (1 - 0.5 * t.stretch)})`;
       applyLift(t.pill, s, TAP_SCALE, { held: keyboardFocus && document.activeElement === t.node });
       t.node.style.zIndex = lifted ? '1' : '';
     });
@@ -202,6 +232,42 @@ export function createSlider({
     }
     return true;
   }
+
+  /* --- Hover ------------------------------------------------------------------------- */
+  let ptr = null;   // a mouse or pen over the slider: { x (from the start edge), on (the thumb it's on, if any) }
+
+  // The thumb a press would take shows the hover, once it's at rest on the ground (not dragged or lifted), aimed
+  // from where it is now, so one that moves under a still pointer (keys, set()) keeps leaning the right way.
+  function syncHover() {
+    const at = ptr && !drag && !isDisabled ? pick(ptr.x, ptr.on) : -1;
+    thumbs.forEach((t, i) => {
+      const on = i === at && !isLifted(t.scale.value);
+      if (on !== t.hovered) {
+        t.hovered = on;
+        t.hov.to(on ? 1 : 0, on ? HOVER_GROW : HOVER_SHRINK);
+      }
+      if (!on) return;
+      const off = ptr.x - (t.pos.value + thumbW() / 2);
+      const extra = Math.min(HOVER.stretchMax, Math.abs(off) * HOVER.stretch);
+      const lean = clamp(off * HOVER.lean, -HOVER.leanMax, HOVER.leanMax) + Math.sign(off) * extra / 2;
+      if (Math.abs(lean - t.lean.target) > 0.01) t.lean.to(lean, HOVER_GLIDE);
+      if (Math.abs(extra - t.extra.target) > 0.01) t.extra.to(extra, HOVER_GLIDE);
+    });
+  }
+
+  function hoverAt(e) {
+    if (e.pointerType === 'touch') return;
+    const rect = root.getBoundingClientRect();
+    ptr = { x: isRtl() ? rect.right - e.clientX : e.clientX - rect.left, on: e.target.closest('.lg-slider__thumb') };
+    syncHover();
+  }
+
+  function hoverOff() {
+    ptr = null;
+    syncHover();
+  }
+
+  root.addEventListener('pointerleave', hoverOff);
 
   /* --- Pointer ----------------------------------------------------------------------- */
   let drag = null;   // { i, offset, origin, rtl, startX, startY }
@@ -240,12 +306,7 @@ export function createSlider({
     const center = (i) => tw / 2 + px(vals[i]);
 
     const grabbed = e.target.closest('.lg-slider__thumb');
-    let i = grabbed ? Number(grabbed.dataset.index) : 0;
-    if (!grabbed && range) {
-      const d = vals.map((_, k) => Math.abs(x - center(k)));
-      // Two thumbs stacked at one value: take the one on the pointer's side.
-      i = d[0] === d[1] ? (x > center(0) ? 1 : 0) : (d[1] < d[0] ? 1 : 0);
-    }
+    const i = pick(x, grabbed);
     // Grabbing a thumb keeps the finger's offset on it; a tap on the track centres it there.
     drag = { i, origin, rtl, offset: grabbed ? x - center(i) : 0, startX: e.clientX, startY: e.clientY };
 
@@ -259,7 +320,10 @@ export function createSlider({
     if (!grabbed) dragTo(e);
   });
 
-  root.addEventListener('pointermove', (e) => { if (drag) dragTo(e); });
+  root.addEventListener('pointermove', (e) => {
+    if (drag) dragTo(e);
+    hoverAt(e);
+  });
 
   function endDrag() {
     if (!drag) return;
@@ -313,6 +377,7 @@ export function createSlider({
     root.classList.toggle('is-disabled', isDisabled);
     root.setAttribute('aria-disabled', String(isDisabled));
     for (const { node } of thumbs) node.tabIndex = isDisabled ? -1 : 0;
+    if (isDisabled) hoverOff();
   }
 
   const ro = new ResizeObserver(() => place({ animate: false }));
@@ -338,7 +403,7 @@ export function createSlider({
     destroy() {
       ro.disconnect();
       offFrame();
-      for (const t of thumbs) { t.pos.dispose(); t.scale.dispose(); t.cross.dispose(); }
+      for (const t of thumbs) for (const sp of [t.pos, t.scale, t.cross, t.hov, t.lean, t.extra]) sp.dispose();
       trail.dispose();
       root.remove();
     },

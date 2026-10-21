@@ -147,6 +147,7 @@ slider.value;                            // 80  (or [low, high] for a range)`)),
 
       section('Physics', {},
         table(['Moment', 'What the thumb does'], [
+          ['Hover (mouse or pen)', 'The thumb a press would take leans a little toward the pointer, wherever it is on the slider, and stretches after it, as the toggle\'s does. iOS has no hover here: this is Vitrium\'s.'],
           ['Grab it', 'Lifts to 1.3 times its size and becomes glass.'],
           ['Drag', 'Follows the pointer, stretching along its motion and squashing across it, capped at 26%. Moving the pointer off the rail pulls it a few pixels with it.'],
           ['Past either end', 'Rubber-bands up to 11px beyond the track and springs back.'],

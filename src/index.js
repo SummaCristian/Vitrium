@@ -29,6 +29,10 @@ export { createPillDragCore } from './core/pill-drag-core.js';
 export { createMorphPopup } from './core/morph-popup.js';
 /** @typedef {import('./core/morph-popup.js').MorphPopupOptions} MorphPopupOptions */
 /** @typedef {import('./core/morph-popup.js').MorphPopup} MorphPopup */
+export { createHoverHighlight, highlightRect } from './core/hover-highlight.js';
+/** @typedef {import('./core/hover-highlight.js').HoverHighlightOptions} HoverHighlightOptions */
+/** @typedef {import('./core/hover-highlight.js').HoverHighlight} HoverHighlight */
+/** @typedef {import('./core/hover-highlight.js').HoverHighlightShape} HoverHighlightShape */
 export { createModalLayer } from './core/modal-layer.js';
 /** @typedef {import('./core/modal-layer.js').ModalLayer} ModalLayer */
 export { clamp, snapToStep, toFraction, fromFraction } from './core/value-math.js';

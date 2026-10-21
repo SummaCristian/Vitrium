@@ -1,5 +1,6 @@
 // The token reference is generated from src/styles/tokens.css, so it can't drift from the real values.
 import css from '../../src/styles/tokens.css?raw';
+import { createHoverHighlight, highlightRect } from '../../src/index.js';
 import { h, section, table, codeBlock, copyText } from '../dom.js';
 import { isColor, shortColor, toggleTokenPopover } from './token-popover.js';
 
@@ -117,8 +118,9 @@ const NOTES = {
 };
 
 // The token name in the first column. Clicking copies it and swaps the name for "Copied" and back. Both labels
-// stay in one grid cell the whole time, so the cell keeps the wider one's width and nothing reflows.
-const nameCell = (name) => {
+// stay in one grid cell the whole time, so the cell keeps the wider one's width and nothing reflows. `onSwap` is
+// called at each swap (the hover highlight resizes to the label showing).
+const nameCell = (name, onSwap) => {
   const btn = h('button', { class: 'token-name', type: 'button', title: `Copy ${name}`, 'aria-label': `Copy ${name}` },
     h('code', { class: 'tn-name' }, name), h('code', { class: 'tn-copied', 'aria-hidden': 'true' }, 'Copied'));
   let timer;
@@ -126,8 +128,9 @@ const nameCell = (name) => {
     if (!(await copyText(name))) return;
     btn.classList.add('copied');
     btn.setAttribute('aria-label', 'Copied');
+    onSwap?.();
     clearTimeout(timer);
-    timer = setTimeout(() => { btn.classList.remove('copied'); btn.setAttribute('aria-label', `Copy ${name}`); }, 1200);
+    timer = setTimeout(() => { btn.classList.remove('copied'); btn.setAttribute('aria-label', `Copy ${name}`); onSwap?.(); }, 1200);
   });
   return btn;
 };
@@ -165,6 +168,26 @@ const cell = (name, theme, value) => {
   return btn;
 };
 
+// A group's table. Its names and values are borderless buttons, so a mouse over them raises the hover highlight
+// (core/hover-highlight.js), one per table, on each button's own box. They're small, dense labels that come right up
+// to its rim, which would bend every letter: here it's the fill alone. A name's box keeps the wider of its two labels,
+// so there it fits the label showing, and follows it into "Copied" and back. What leans and grows is the button
+// itself: its labels' own scale is the swap's.
+const PAD = 12;   // .token-name's padding, both sides
+const shape = (item) => {
+  if (!item.classList.contains('token-name')) return highlightRect(item.offsetWidth, item.offsetHeight, 0);
+  const label = item.querySelector(item.classList.contains('copied') ? '.tn-copied' : '.tn-name');
+  return { x: 0, y: 0, width: Math.min(item.offsetWidth, label.offsetWidth + PAD), height: item.offsetHeight };
+};
+const tokenTable = (list) => {
+  let hl = null;
+  const card = table(['Token', 'Purpose', 'Light', 'Dark'],
+    list.map((n) => [nameCell(n, () => hl?.refresh()), NOTES[n] ?? '', cell(n, 'Light', light.get(n)), cell(n, 'Dark', dark.get(n))]),
+    { class: 'api tokens' });
+  hl = createHoverHighlight(card.querySelector('.table-scroll'), { items: '.token-name, .token-btn', shape, content: 'self', refract: false });
+  return card;
+};
+
 export default {
   id: 'tokens',
   title: 'Tokens',
@@ -176,10 +199,7 @@ export default {
       section('Overview', {},
         h('p', {}, 'Everything is a custom property on `:root`, prefixed `--lg-`, so you can retheme by overriding any of them. The values below are read straight from the stylesheet.'),
         h('p', {}, 'A dark value of "same" means the token does not change with the theme. Click any value to see it in full, with a larger preview and, for colors, its HEX, RGB and HSL forms.')),
-      ...groups.map(([title, list]) => section(title, {},
-        table(['Token', 'Purpose', 'Light', 'Dark'],
-          list.map((n) => [nameCell(n), NOTES[n] ?? '', cell(n, 'Light', light.get(n)), cell(n, 'Dark', dark.get(n))]),
-          { class: 'api tokens' }))),
+      ...groups.map(([title, list]) => section(title, {}, tokenTable(list))),
       section('Overriding', {},
         h('p', {}, 'Set a token on `:root` to change it everywhere, or on one element to change it there.'),
         codeBlock(`

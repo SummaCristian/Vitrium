@@ -1,0 +1,39 @@
+/* Hover highlight (core/hover-highlight.js): the capsule a mouse or pen raises over a toolbar item or a borderless
+   button, painted over the item so its rim bends the item's own label. JS places, sizes and fades it; this is what
+   it looks like.
+
+   Measured off iPadOS 27 (Files' toolbar on white): a fill about 10 % of the label colour (23-29 levels darker than
+   the white under it), its bottom edge a little darker; over a dark wallpaper, the same reads as faint light glass.
+   No blur: it covers the label it's for. Where refraction is on (core/refraction.js), its rim bends what's under it
+   inward, mirrored, as the clock's digits showed at its top rim: a narrow rim, on the toggle's lens curve. Not measured:
+   set by eye, as deep as folds a letter cleanly (8px scattered stray pixels at the fold, 4px smeared it). */
+.lg-hover-highlight {
+  --lg-hover-highlight-fill: color-mix(in srgb, var(--lg-text) 10%, transparent);
+  --lg-refraction-blur: 0px;
+  --lg-refraction-bezel: 6px;
+  --lg-refraction-depth: 5px;
+  --lg-refraction-curve: 1.9;
+  --lg-refraction-dispersion: 0;
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  background: var(--lg-hover-highlight-fill);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 45%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--lg-text) 6%, transparent),
+    inset 0 0 0 0.5px color-mix(in srgb, var(--lg-text) 5%, transparent);
+}
+
+/* The highlight replaces the hover lift of an item that's itself liquid glass (a glass button in a highlighted
+   toolbar): it keeps its press. Heavier than liquid-glass.css's lift. */
+@media (hover: hover) {
+  :root .lg-hover-highlight-host .liquid-glass:not(.lg-popover):hover {
+    scale: none;
+  }
+}

@@ -1,4 +1,4 @@
-import { createButton, icons } from '../src/index.js';
+import { createButton, createHoverHighlight, icons } from '../src/index.js';
 import { highlight } from './highlight.js';
 import { addZoom } from './zoom.js';
 
@@ -110,5 +110,8 @@ export function breadcrumbs(trail) {
     if (i) { const sep = h('li', { class: 'crumb-sep', 'aria-hidden': 'true' }); sep.innerHTML = CHEVRON_RIGHT; list.append(sep); }
     list.append(h('li', {}, t.href ? h('a', { href: t.href }, t.label) : h('span', { 'aria-current': 'page' }, t.label)));
   });
-  return h('nav', { class: 'crumbs', 'aria-label': 'Breadcrumb' }, back, list);
+  const nav = h('nav', { class: 'crumbs', 'aria-label': 'Breadcrumb' }, back, list);
+  // One hover highlight over the back button and the links, as over a toolbar's (core/hover-highlight.js).
+  createHoverHighlight(nav, { items: '.crumb-back, .crumb-list a' });
+  return nav;
 }

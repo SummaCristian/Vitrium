@@ -158,8 +158,9 @@ body {
 .crumb-back { flex: none; }
 .crumb-list { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 0; padding: 0; list-style: none; }
 .crumb-list li { display: flex; align-items: center; }
-.crumb-list a { color: inherit; opacity: 0.7; text-decoration: none; }
-.crumb-list a:hover { color: var(--lg-accent); opacity: 1; }
+.crumb-list a { color: inherit; opacity: 0.7; text-decoration: none; padding: 10px 16px; margin: -10px -16px; border-radius: var(--lg-radius-pill); }   /* room for the hover highlight: its round ends bend what comes near them */
+.crumb-list a:hover { opacity: 1; }   /* a mouse also raises the hover highlight over it (dom.js) */
+.crumb-list a:focus-visible { outline: 2px solid var(--lg-accent); outline-offset: -2px; }
 .crumb-list [aria-current] { font-weight: 700; }
 .crumb-sep { opacity: 0.4; }
 .crumb-sep svg { width: 14px; height: 14px; }
@@ -278,7 +279,6 @@ code { font: 0.9em ui-monospace, 'SF Mono', Menlo, monospace; }
 @media (prefers-reduced-motion: reduce) { .stage--backdrop { animation: none; transition: none; } }
 .muted { opacity: 0.5; }
 .token-name { display: grid; align-items: center; justify-items: start; margin: -3px -6px; padding: 3px 6px; border: 0; border-radius: 8px; background: none; color: inherit; font: inherit; text-align: start; }
-.token-name:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
 .token-name:focus-visible { outline: 2px solid var(--lg-accent); outline-offset: 1px; }
 /* Name and "Copied" share one grid cell. The swap is the copy button's: the outgoing label shrinks, fades and blurs away as the other grows in. */
 .token-name > code { grid-area: 1 / 1; transform-origin: left center; transition: opacity 0.3s ease, scale 0.3s cubic-bezier(0.2, 0, 0, 1), filter 0.3s ease; }
@@ -289,7 +289,6 @@ code { font: 0.9em ui-monospace, 'SF Mono', Menlo, monospace; }
 /* No max-width: 100% here: a percentage cap is ignored when the table sizes its columns, so a narrow column came out a few
    pixels too small and clamped the button, leaving the text poking out of its hover box. The text has its own cap. */
 .token-btn { display: inline-flex; align-items: center; gap: 8px; margin: -3px -6px; padding: 3px 6px; border: 0; border-radius: 8px; background: none; color: inherit; font: inherit; text-align: start; }
-.token-btn:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
 .token-btn:focus-visible { outline: 2px solid var(--lg-accent); outline-offset: 1px; }
 .swatch { flex: none; width: 14px; height: 14px; border-radius: 4px; box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 25%, transparent); }
 .token-value { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; max-width: clamp(12rem, 26cqw, 40rem); overflow: hidden; overflow-wrap: break-word; text-align: start; }
@@ -808,3 +807,32 @@ a.gh-btn { display: inline-flex; align-items: center; }
   align-items: center;
   gap: 1rem;
 }
+
+/* Hover highlight page (foundation/hover.js): a toolbar like Files' on iPad, and a row of links. The toolbar's two
+   halves sit at either end. Where the stage is too narrow for them at full size (the docs' column next to the sidebar),
+   the items shrink from 48px to 40px; narrower still (a phone), the halves stack, centred. */
+.hl-stack { width: 100%; }
+.hl-frame { width: min(100%, 720px); container-type: inline-size; }
+.hl-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 4px; }
+.hl-side { display: flex; align-items: center; gap: 8px; }
+.hl-group { display: flex; align-items: center; height: 3rem; padding: 0 2px; }
+.hl-item:not(.lg-glass) { font: inherit; color: var(--lg-text); background: none; border: none; cursor: default; -webkit-tap-highlight-color: transparent; }
+.hl-item:focus-visible { outline: 2px solid var(--lg-accent); outline-offset: 2px; border-radius: var(--lg-radius-pill); }
+.hl-icon { display: grid; place-items: center; width: 3rem; height: 3rem; padding: 0; }
+.hl-icon > svg, .hl-title > svg { width: 1.375rem; height: 1.375rem; }
+.hl-title { display: flex; align-items: center; gap: 4px; height: 3rem; padding: 0 14px; font-weight: 600; font-size: 1.05rem; }
+.hl-title > svg { width: 1rem; height: 1rem; opacity: 0.6; }
+@container (max-width: 590px) {
+  .hl-side { gap: 6px; }
+  .hl-group, .hl-icon, .hl-title { height: 2.5rem; }
+  .hl-icon { width: 2.5rem; }
+  .hl-toolbar .lg-button { width: 2.5rem; height: 2.5rem; }
+  .hl-toolbar .lg-button.lg-button--text { width: auto; min-width: 2.5rem; padding: 0 14px; }
+  .hl-title { padding: 0 10px; font-size: 1rem; }
+  .hl-icon > svg, .hl-toolbar .lg-button > svg { width: 1.2rem; height: 1.2rem; }
+}
+@container (max-width: 480px) {
+  .hl-toolbar { flex-direction: column; }
+}
+.hl-links { display: flex; flex-wrap: wrap; gap: 4px; }
+.hl-link { display: block; padding: 10px 16px; color: var(--lg-accent); text-decoration: none; }

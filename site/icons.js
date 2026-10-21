@@ -17,6 +17,11 @@ import Share01Icon from '@hugeicons/core-free-icons/Share01Icon';
 import Delete02Icon from '@hugeicons/core-free-icons/Delete02Icon';
 import MoreHorizontalIcon from '@hugeicons/core-free-icons/MoreHorizontalIcon';
 import GithubIcon from '@hugeicons/core-free-icons/GithubIcon';
+import FolderAddIcon from '@hugeicons/core-free-icons/FolderAddIcon';
+import ArrowLeft01Icon from '@hugeicons/core-free-icons/ArrowLeft01Icon';
+import ArrowRight01Icon from '@hugeicons/core-free-icons/ArrowRight01Icon';
+import ArrowDown01Icon from '@hugeicons/core-free-icons/ArrowDown01Icon';
+import SidebarLeftIcon from '@hugeicons/core-free-icons/SidebarLeftIcon';
 
 export const toSvg = (data) => {
   const body = data.map(([tag, { key, ...attrs }]) =>
@@ -51,4 +56,9 @@ export const demoIcons = {
   share: { svg: toSvg(Share01Icon), name: 'Share01Icon' },
   trash: { svg: toSvg(Delete02Icon), name: 'Delete02Icon' },
   more: { svg: toSvg(MoreHorizontalIcon), name: 'MoreHorizontalIcon' },
+  folderAdd: { svg: toSvg(FolderAddIcon), name: 'FolderAddIcon' },
+  back: { svg: toSvg(ArrowLeft01Icon), name: 'ArrowLeft01Icon' },
+  forward: { svg: toSvg(ArrowRight01Icon), name: 'ArrowRight01Icon' },
+  down: { svg: toSvg(ArrowDown01Icon), name: 'ArrowDown01Icon' },
+  sidebar: { svg: toSvg(SidebarLeftIcon), name: 'SidebarLeftIcon' },
 };

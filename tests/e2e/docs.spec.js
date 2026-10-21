@@ -512,3 +512,74 @@ test.describe('cards that are links, on a phone', () => {
     await page.mouse.up();
   });
 });
+
+test.describe('hover highlight', () => {
+  // The highlight's box in the page, and how much of it shows.
+  const state = (page) => page.evaluate(() => {
+    const el = document.querySelector('.hl-toolbar .lg-hover-highlight');
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, w: r.width, h: r.height, op: +getComputedStyle(el).opacity };
+  });
+  const middle = async (page, name) => {
+    const b = await page.locator('.hl-toolbar').getByRole('button', { name, exact: true }).boundingBox();
+    return [b.x + b.width / 2, b.y + b.height / 2, b];
+  };
+
+  test('shows over the item under a mouse, inset in it, and its content grows', async ({ page }) => {
+    await open(page, 'foundation/hover', '.hl-toolbar');
+    await page.locator('.hl-toolbar').scrollIntoViewIfNeeded();
+    const [x, y, box] = await middle(page, 'Documents');
+    await page.mouse.move(x, y);
+    await page.waitForTimeout(500);
+    const s = await state(page);
+    expect(s.op).toBeGreaterThan(0.95);
+    expect(Math.abs(s.x - x)).toBeLessThan(2);
+    expect(s.h).toBeCloseTo(box.height - 8, 0);
+    expect(s.w).toBeCloseTo(box.width - 8, 0);
+    const scale = await page.locator('.hl-title > span').evaluate((n) => parseFloat(getComputedStyle(n).scale));
+    expect(scale).toBeGreaterThan(1.02);
+  });
+
+  test('the breadcrumbs share one, and their glass back button gives up its hover lift for it', async ({ page }) => {
+    await open(page, 'foundation/tokens', '.crumbs');
+    const shown = () => page.locator('.crumbs .lg-hover-highlight').evaluate((n) => +getComputedStyle(n).opacity);
+    const back = page.locator('.crumb-back');
+    const b = await back.boundingBox();
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+    await page.waitForTimeout(400);
+    expect(await shown()).toBeGreaterThan(0.95);
+    // Not lifted (a glass button's own hover scales it to 1.045).
+    expect(await back.evaluate((n) => parseFloat(getComputedStyle(n).scale) || 1)).toBeLessThan(1.01);
+    const link = await page.locator('.crumb-list a').first().boundingBox();
+    await page.mouse.move(link.x + link.width / 2, link.y + link.height / 2, { steps: 4 });
+    await page.waitForTimeout(400);
+    const hl = await page.locator('.crumbs .lg-hover-highlight').boundingBox();
+    expect(Math.abs(hl.x + hl.width / 2 - (link.x + link.width / 2))).toBeLessThan(2);
+    expect(await shown()).toBeGreaterThan(0.95);
+  });
+
+  test('travels to the next item, fades out over a gap, and puts the content back', async ({ page }) => {
+    await open(page, 'foundation/hover', '.hl-toolbar');
+    await page.locator('.hl-toolbar').scrollIntoViewIfNeeded();
+    const [x1, y] = await middle(page, 'Back');
+    const [x2] = await middle(page, 'Forward');
+    await page.mouse.move(x1, y);
+    await page.waitForTimeout(400);
+    await page.mouse.move(x2, y, { steps: 4 });
+    await page.waitForTimeout(60);
+    // Mid-trip: between the two, not faded in fresh at the second.
+    const mid = await state(page);
+    expect(mid.x).toBeGreaterThan(x1 + 2);
+    expect(mid.op).toBeGreaterThan(0.3);
+    await page.waitForTimeout(400);
+    expect(Math.abs((await state(page)).x - x2)).toBeLessThan(2);
+    // Over no item (well below the toolbar), it fades where it is.
+    await page.mouse.move(x2, y + 200);
+    await page.waitForTimeout(500);
+    const gone = await state(page);
+    expect(gone.op).toBeLessThan(0.02);
+    expect(Math.abs(gone.x - x2)).toBeLessThan(2);
+    const left = await page.locator('.hl-toolbar').getByRole('button', { name: 'Forward', exact: true }).locator('svg').evaluate((n) => n.style.scale + n.style.translate);
+    expect(left).toBe('');
+  });
+});

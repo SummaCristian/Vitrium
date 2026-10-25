@@ -4,7 +4,7 @@ import { createSearchOverlay } from './search.js';
 import { mountExplore } from './explore.js';
 import { mountModal } from './modal.js';
 import { mountControls } from './controls.js';
-import { createBackButton, setGlassTint, createToolbar, createListPicker, createChipPicker, createPopover, createSegmentedControl, createToggle, createTabBar, icons, initLiquidGlass, initBlurCapability, getBlurMode, setBlurMode, applyBlurState, resolveBlurCapability } from '../../src/index.js';
+import { createBackButton, setGlassTint, createToolbar, createListPicker, createChipPicker, createPopover, createBadge, createSegmentedControl, createToggle, createTabBar, icons, initLiquidGlass, initBlurCapability, getBlurMode, setBlurMode, applyBlurState, resolveBlurCapability } from '../../src/index.js';
 import { hugeicons } from './hugeicons.js';
 import '@fontsource-variable/nunito';
 
@@ -228,6 +228,17 @@ for (let i = 1; i <= 8; i++) {
   b.addEventListener('blur', () => hoverTip.hide());
   blocks.appendChild(b);
 }
+
+// Badges
+const inbox = document.getElementById('badge-inbox');
+const box = document.getElementById('badge-box');
+const bar = document.getElementById('badge-bar');
+window.badges = {
+  count: createBadge({ target: inbox, content: 3, max: 99, label: '3 unread' }),
+  north: createBadge({ target: box, content: 'North', side: 'top', align: 'center', tint: '#2f7cf6' }),
+  east: createBadge({ target: box, content: 'East', side: 'right', align: 'center', overlap: false, tint: '#ff3b30' }),
+  now: createBadge({ target: bar, content: 'Now', side: 'top', align: 0.3, overlap: false, tint: '#1f9d46' }),
+};
 
 window.controls = mountControls(document.getElementById('controls-section'));
 window.sheet = explore.sheet;

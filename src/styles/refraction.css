@@ -16,15 +16,6 @@
   backdrop-filter: var(--_lg-refraction);
 }
 
-/* The popover's arrow inherits the box's backdrop, which would be the box's
-   filter at the arrow's own size, misplaced. The arrow is too small to bend,
-   and the middle of the glass, which it continues, isn't bent either: it only
-   needs the same backdrop minus the bend. */
-:root[data-refraction="on"] .lg-popover__arrow {
-  -webkit-backdrop-filter: var(--_lg-refraction-base, none);
-  backdrop-filter: var(--_lg-refraction-base, none);
-}
-
 /* The sliding pill's lens (pill.css), lifted mid tap or drag: a drop of glass
    over the labels, as frosted as the glass style makes a lens (the lens role's blur, --lg-material-blur:
    frost blurs it a little, transparent, and curated, which gives lenses transparent's, barely), with the

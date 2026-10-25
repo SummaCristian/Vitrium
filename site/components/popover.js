@@ -198,7 +198,7 @@ popover.el.style.setProperty('--lg-popover-max-width', '30rem');
 popover.setContent(newContent);   // it resizes and re-positions on its own`)),
 
       section('How it works', {},
-        h('p', {}, 'The positioning is done by Floating UI (`@floating-ui/dom`), the library\'s one runtime dependency. Only the popover imports it, so a page that does not use popovers does not pay for it. The popover builds on three of its functions:'),
+        h('p', {}, 'The positioning is done by Floating UI (`@floating-ui/dom`), the library\'s one runtime dependency. Only the popover and the badge import it, so a page that uses neither does not pay for it. The popover builds on three of its functions:'),
         table(['Floating UI', 'What the popover uses it for'], [
           ['`computePosition`', 'Works out where the popover should sit next to the anchor, with the `offset`, `flip`, `shift` and `arrow` steps above. It returns coordinates and where the arrow goes.'],
           ['`autoUpdate`', 'Runs it again whenever something could have moved the anchor or resized the popover: scrolling any ancestor, resizing the window, or either element changing size. It runs only while open.'],
@@ -207,8 +207,8 @@ popover.setContent(newContent);   // it resizes and re-positions on its own`)),
         h('ul', { class: 'steps' },
           h('li', {}, h('strong', {}, 'On `<body>`, fixed. '), 'The popover is not placed in the page next to its trigger. It goes on `<body>` with `position: fixed`, so no ancestor\'s `overflow` can clip it, and no stacking context can put it behind something.'),
           h('li', {}, h('strong', {}, 'Position first, then show. '), 'It is placed while still invisible and revealed once it is in the right spot, so it never appears in the wrong place and jumps.'),
-          h('li', {}, h('strong', {}, 'The arrow is glass too. '), 'It is a rotated square sharing the popover\'s material, clipped to the triangle that points out, so no seam shows where it meets the edge.'),
-          h('li', {}, h('strong', {}, 'Scales in from the arrow. '), 'Its transform origin is the arrow\'s position, so it grows out of the anchor on open and shrinks back into it on close.'),
+          h('li', {}, h('strong', {}, 'One piece of glass. '), 'The arrow is part of the popover\'s outline, not a shape stuck to its edge: one rim, stroke and shadow run around both, so no seam shows where they meet. This is `createShapedGlass`, shared with the badge (see Core). In Chromium the blur comes from two pieces, the body and a square for the arrow, so there the arrow has straight sides; elsewhere it curves out of the body to a rounded tip.'),
+          h('li', {}, h('strong', {}, 'Scales in from the arrow. '), 'Its transform origin is the arrow\'s tip, so it grows out of the anchor on open and shrinks back into it on close, its corners kept round through the uneven scale.'),
           h('li', {}, h('strong', {}, 'One open at a time. '), 'Opening a popover closes any other.'))),
 
       section('Accessibility', {},

@@ -59,7 +59,7 @@ document.querySelector('#settings').append(toggle.el);`),
 
       section('Dependencies', {},
         h('ul', { class: 'dep-list' },
-          h('li', {}, h('a', { href: 'https://floating-ui.com', target: '_blank', rel: 'noopener' }, 'floating-ui'), ' positions the popover, which is the only place it is imported. There is nothing else to install.'))),
+          h('li', {}, h('a', { href: 'https://floating-ui.com', target: '_blank', rel: 'noopener' }, 'floating-ui'), ' positions the popover and keeps a badge on its target, the only places it is imported. There is nothing else to install.'))),
 
       section('Next steps', {},
         h('div', { class: 'grid' }, guides.filter((g) => g.id !== 'get-started').map((g) =>

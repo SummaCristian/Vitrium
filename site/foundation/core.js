@@ -227,6 +227,7 @@ export default {
         table(['Piece', 'What it is for'], [
           ['`attachLiquidGlass`, `initLiquidGlass`', 'Press and stretch on any glass surface.'],
           ['`createMorphPopup`', 'A trigger that grows into a panel and back.'],
+          ['`createShapedGlass`, `shapeOutline`, `holdCorners`', 'A glass surface with a pointer, as one piece of glass: the popover\'s and the badge\'s.'],
           ['`createPillDragCore`', 'The sliding, draggable lens of the segmented control, the toggle and the tab bar.'],
           ['`snapGeometry`, `morphGeometry`, and two helpers', 'The FLIP motion behind the morph.'],
           ['`sheetPhysics`', 'The pure logic of the sheet: detents, rubber-banding, and resize-or-scroll.'],
@@ -285,6 +286,27 @@ button.addEventListener('click', () => popup.toggle());`),
           ['destroy()', 'Remove it. It is on `<body>`, so call this when its page goes away.'],
         ].map((r) => [h('code', {}, r[0]), r[1]])),
         h('p', {}, 'See Chip picker for how it works, and Menu and List picker for what is built on it. The trigger\'s own click is yours to wire, as in the code above.')),
+
+      section('Shaped glass', {},
+        h('p', {}, '`createShapedGlass` makes a glass surface and a pointer one piece of glass, as in the popover and the badge. It cuts the glass to one outline around both, and draws the material along that outline: the rim, the outline and its shadows, the elevation ring and the outside stroke. On a plain `.lg-glass` those follow the rectangular box, so a pointer added to one would show a seam.'),
+        codeBlock(`
+import { createShapedGlass } from 'vitrium';
+
+// root: positioned, no padding. glass: a .lg-glass inside it, holding the content.
+const shape = createShapedGlass(root, glass, { pointer: { side: 'bottom', at: 40 } });
+
+shape.setPointer({ side: 'left', length: 8, width: 16 });   // or null for none
+shape.tip;                                                // [x, y], to grow out of`),
+        h('p', {}, 'The material is read off a hidden `.lg-glass` with the glass\'s own classes, in the same place, so the theme, tint, clear or regular glass, elevation and glass style all apply. It is read again when the glass\'s classes or tint, the theme or the blur change; call `refresh()` after changing anything else it depends on. The pointer\'s room is a transparent border on its side of the glass, so the glass\'s padding stays as it is.'),
+        h('p', {}, 'Two rules come with it. Nothing on `root` may cut what is inside it off from the page: no `filter`, no opacity below 1, no mask or clip-path, or the blur below would only see the root. Fade it with `--lg-shaped-opacity` on the root instead, which sets every layer\'s opacity. And the blur takes two routes: in Chromium, which draws a masked or clipped blur wrongly under pinch zoom and in rounded containers that clip, it comes from two unclipped pieces, a rounded body and a square for the pointer, so the pointer has straight sides there; elsewhere the glass blurs itself under an SVG clip path, and the pointer curves out of it.'),
+        table(['Member', 'Description'], [
+          ['setPointer(pointer)', 'Move the pointer: `{ side, at, length, width }`, `at` in px along the edge from its start. `null` takes it away.'],
+          ['setRadius({ x, y })', 'Draw the corners at this radius until `null`. `holdCorners(shape, animation, …)` does it frame by frame, so a surface scaled unevenly keeps round corners.'],
+          ['tip, d, pointer', 'The pointer\'s tip in the glass\'s box, the outline as SVG path data, and the pointer as last set.'],
+          ['update(), refresh()', 'Draw it again for the glass\'s size (a size change is seen on its own), or read the material again.'],
+          ['destroy()', 'Take its layers out and stop watching.'],
+        ].map((r) => [h('code', {}, r[0]), r[1]])),
+        h('p', {}, '`shapeOutline({ width, height, rx, ry, pointer, smooth })` is the outline on its own, a pure function, for drawing one elsewhere.')),
 
       section('Pill drag core', {},
         h('p', {}, '`createPillDragCore` is the behavior of the sliding glass lens: it lifts when grabbed, follows a finger with inertia, rubber-bands past the ends, resizes to each cell, and settles on the nearest one. The segmented control, the toggle and the tab bar are all this core with different markup. It owns the springs and the motion, and you supply the DOM and decide what a selection means.'),

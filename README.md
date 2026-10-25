@@ -19,7 +19,7 @@ A JS/CSS re-implementation of a Liquid Glass-inspired design system and componen
 - **Fast by default.** Backdrop blur is benchmarked once on the device and only switched on if it keeps up, and can be forced on or off.
 - **Themeable.** Everything is a `--lg-*` custom property, with light and dark values that follow the system or can be pinned.
 - **Accessible.** Real elements and ARIA roles, keyboard support, and respect for reduced motion and reduced transparency.
-- **One dependency.** [floating-ui](https://floating-ui.com), used only by the popover.
+- **One dependency.** [floating-ui](https://floating-ui.com), used only by the popover and the badge.
 
 ## Install
 
@@ -67,6 +67,7 @@ On phones, add `viewport-fit=cover` to the viewport meta tag so the tab bar and 
 | | `createSheet` | A panel that resizes between detents, as a bottom sheet or a side panel. |
 | Navigation | `createTabBar` | A fixed bar of tabs: a row, a rail or one compact bar. |
 | Status | `createProgress` | A bar or ring, determinate or indeterminate. |
+| | `createBadge` | Tinted glass marking an element: a count on a corner, or a callout pointing along an edge. |
 
 ## Foundation
 
@@ -76,7 +77,7 @@ On phones, add `viewport-fit=cover` to the viewport meta tag so the tab bar and 
 - **Refraction:** glass that bends what's behind it at the rim, on top of whatever blur its glass style gives it: `initRefraction()` turns it on for all glass, `setRefraction(false)` turns it off, and `lg-no-refract` (or a control's `refract: false`) keeps one surface or region plain. Chromium only; elsewhere the glass stays blurred.
 - **Glass style:** how glass blurs, refracting or not: `setGlassStyle('frost' | 'transparent' | 'curated')` for the page, `setGlassStyle(el, style)` for one element and what's in it. `curated` mixes the two across each control, part by part: frosted surfaces and rails, transparent lenses. What a style does to a piece of glass is its role's (`surface`, `rail`, `lens`, or one you define with `defineGlassRole`), so your own components can follow the styles the way Vitrium's do.
 - **Motion:** the springs, the press physics, the easing tokens, and reduced motion.
-- **Core:** the exported building blocks, for making your own controls: `attachLiquidGlass`, `createMorphPopup`, `createPillDragCore`, the FLIP helpers, `sheetPhysics` and the value math.
+- **Core:** the exported building blocks, for making your own controls: `attachLiquidGlass`, `createMorphPopup`, `createShapedGlass` (a glass surface and its pointer as one piece of glass), `createPillDragCore`, the FLIP helpers, `sheetPhysics` and the value math.
 
 ## Documentation
 

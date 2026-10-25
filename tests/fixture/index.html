@@ -37,6 +37,10 @@
     .lg-btn.circle { width: 3rem; height: 3rem; }
     .lg-btn.pill { padding: 0.75rem 1.5rem; }
     .panel { padding: 1rem 1.25rem; border-radius: 24px; max-width: 260px; }
+    .badge-card { position: relative; overflow: hidden; border-radius: 20px; padding: 40px 32px 56px; display: grid; gap: 64px;
+      background: repeating-linear-gradient(115deg, #111 0 6px, #fff 6px 14px, #e33 14px 18px, #fff 18px 26px); }
+    .badge-box { width: 120px; height: 64px; display: grid; place-items: center; border-radius: 14px; background: #fff; color: #111; font-weight: 700; }
+    .badge-bar { height: 14px; border-radius: 7px; background: #fff; }
 
     /* Stack the tab bar (z-index 20) above the sheet, so the sheet wraps around it as it grows. */
     :root { --lg-z-sheet: 10; }
@@ -124,6 +128,16 @@
     <p>Anchored glass panels. Click the button for a popover with content; hover the blocks for one popover re-anchored between targets.</p>
     <section class="row" id="popovers-row"></section>
     <section class="row" id="blocks-row" style="gap: 6px"></section>
+
+    <h2>Badges</h2>
+    <p>Tinted glass marking an element: a count on a glass button's corner (beside it, since glass cuts off what's inside), words on a plain box's sides, and a callout pointing along a bar. Inside a rounded card that clips its overflow, as cards do.</p>
+    <section class="badge-card" id="badges-row">
+      <div class="row" style="gap: 40px">
+        <button class="lg-btn circle lg-glass liquid-glass" id="badge-inbox" aria-label="Inbox">✉</button>
+        <div class="badge-box" id="badge-box">Box</div>
+      </div>
+      <div class="badge-bar" id="badge-bar"></div>
+    </section>
 
     <div id="controls-section"></div>
 

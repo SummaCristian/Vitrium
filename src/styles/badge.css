@@ -1,0 +1,109 @@
+/* Badge (components/badge.js): a small piece of tinted glass marking an element, with or without a
+   pointer, one piece of glass with it (styles/shaped-glass.css). The component places it with left and
+   top; its grow and glide are Web Animations, so `transform` and `translate` are left alone here. */
+
+.lg-badge {
+  /* How long it takes to grow in, for a 400px trip (each one is fitted to its size). */
+  --lg-badge-dur: var(--lg-popover-dur);
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: var(--lg-z-badge, 5);
+  width: max-content;
+
+  font-size: var(--lg-badge-font-size, 12px);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+
+  /* Hidden until shown: it fades by its layers, never as a whole (that would cut its blur off from
+     the page), and stays visible while it draws back in. */
+  --lg-shaped-opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: visibility 0s linear var(--lg-badge-dur);
+}
+
+.lg-badge[data-show] {
+  --lg-shaped-opacity: 1;
+  visibility: visible;
+  transition: visibility 0s;
+}
+
+.lg-badge--pressable[data-show] {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.lg-badge .lg-shaped__layer {
+  transition: opacity 150ms ease-out, filter 0.2s ease;
+}
+
+/* A pressable badge is glass that presses (styles/liquid-glass.css): its spring and the visibility flip
+   in one declaration, as either one alone would replace the other. */
+.lg-badge.liquid-glass {
+  transition:
+    visibility 0s linear var(--lg-badge-dur),
+    translate var(--lg-press-out-dur) var(--lg-ease-spring),
+    scale var(--lg-press-out-dur) var(--lg-ease-spring);
+}
+
+.lg-badge.liquid-glass[data-show] {
+  transition:
+    visibility 0s,
+    translate var(--lg-press-out-dur) var(--lg-ease-spring),
+    scale var(--lg-press-out-dur) var(--lg-ease-spring);
+}
+
+.lg-badge.liquid-glass.lg-pressing {
+  transition:
+    visibility 0s,
+    translate var(--lg-press-in-dur) var(--lg-press-in-ease),
+    scale var(--lg-press-in-dur) var(--lg-press-in-ease);
+}
+
+.lg-badge.liquid-glass.lg-dragging {
+  transition: visibility 0s, translate 0s, scale 0s;
+}
+
+.lg-badge:focus-visible {
+  outline: 2px solid var(--lg-accent);
+  outline-offset: 2px;
+  border-radius: var(--lg-radius-pill);
+}
+
+/* A pill; one digit makes it a circle. */
+.lg-badge__glass {
+  display: block;
+  min-width: 1.6em;
+  padding: 0.175em 0.5em;
+  border-radius: var(--lg-radius-pill);
+  box-sizing: border-box;
+  text-align: center;
+}
+
+/* Plain glass reads in the text color; tinted glass in the one its tint picks (styles/glass.css). */
+.lg-badge__glass:not(.lg-glass--tinted) {
+  color: var(--lg-text);
+}
+
+.lg-badge__label {
+  position: relative;
+}
+
+.lg-badge--dot .lg-badge__glass {
+  min-width: 0;
+  width: var(--lg-badge-dot-size, 10px);
+  height: var(--lg-badge-dot-size, 10px);
+  padding: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-badge,
+  .lg-badge[data-show],
+  .lg-badge .lg-shaped__layer {
+    transition: none;
+  }
+}

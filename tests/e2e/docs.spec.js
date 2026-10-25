@@ -437,7 +437,9 @@ test.describe('refraction', () => {
   test('a popover is held unbent while it grows, and while it glides to a new size', async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('lg:blur-mode', 'on'));
     await open(page, 'components/popover', '.popover-arena');
+    // Its blur, the glass that refracts, is the body piece of its shaped glass (core/shaped-glass.js) in Chromium.
     const pop = '.lg-popover[aria-label="What is new"]';
+    const glass = `${pop} .lg-shaped__body`;
     const trigger = page.getByRole('button', { name: 'Medium' });
 
     // Opened once and closed, so it has a bend of its own to lose
@@ -446,12 +448,12 @@ test.describe('refraction', () => {
     await page.keyboard.press('Escape');
     await page.waitForTimeout(1000);
 
-    let log = bendLog(page, pop, 1200);
+    let log = bendLog(page, glass, 1200);
     await trigger.click();
     heldThrough(await log, 150);
 
     await page.waitForTimeout(300);
-    log = bendLog(page, pop, 1200);
+    log = bendLog(page, glass, 1200);
     await page.locator(pop).getByRole('button', { name: 'Show more' }).click();
     heldThrough(await log, 150);
   });

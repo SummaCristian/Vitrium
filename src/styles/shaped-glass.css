@@ -1,0 +1,122 @@
+/* Shaped glass (core/shaped-glass.js): a glass surface and its pointer as one piece of glass. The
+   glass is cut to one outline, and what .lg-glass paints around its box (the rim, the outline and
+   shadows, the ring, the stroke) is drawn again along it by the SVG layers here.
+
+   Nothing that paints is faded or filtered as a whole: opacity or a filter on the root would make it a
+   backdrop root, and the blur inside would see only the root, not the page. --lg-shaped-opacity on the
+   root sets every layer's opacity instead (transition `opacity` on .lg-shaped__layer to animate it). */
+
+.lg-shaped {
+  --lg-shaped-opacity: 1;
+}
+
+.lg-shaped__layer {
+  opacity: var(--lg-shaped-opacity);
+  transition: filter 0.2s ease;
+}
+
+/* The glass. Its box grows on the pointer's side by a transparent border the tint paints under (the
+   pointer's length, --_lg-shaped-<side>, set on the root). Its box-shadows and pseudo-elements follow
+   the box, not the outline, so they're off here and drawn again by the layers. */
+.lg-shaped > .lg-shaped__glass.lg-glass {
+  border-style: solid;
+  border-color: transparent;
+  border-width: var(--_lg-shaped-top, 0px) var(--_lg-shaped-right, 0px) var(--_lg-shaped-bottom, 0px) var(--_lg-shaped-left, 0px);
+  box-shadow: none;
+}
+
+.lg-shaped > .lg-shaped__glass.lg-glass::before,
+.lg-shaped > .lg-shaped__glass.lg-glass::after {
+  display: none;
+}
+
+/* The drawings, in the glass's box: the ring and outer shadows behind it, the rim in it under its
+   content (from its border edge, not its padding edge), the stroke above it. */
+.lg-shaped__back,
+.lg-shaped__stroke,
+.lg-shaped__rim {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.lg-shaped__rim {
+  left: calc(var(--_lg-shaped-left, 0px) * -1);
+  top: calc(var(--_lg-shaped-top, 0px) * -1);
+  z-index: -1;
+}
+
+.lg-shaped__defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+/* The .lg-glass the material is read off. */
+.lg-shaped > .lg-shaped__probe {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* The blur in pieces (Chromium): the body, cut only by its border-radius, and the pointer, a rotated
+   square stretched out of the edge and shown only past it by its wrapper. They blur and paint nothing
+   else; the glass above them blurs nothing. */
+.lg-shaped > .lg-shaped__body,
+.lg-shaped > .lg-shaped__tip-wrap {
+  display: none;
+  position: absolute;
+  pointer-events: none;
+}
+
+.lg-shaped--pieces > .lg-shaped__body,
+.lg-shaped--pieces > .lg-shaped__tip-wrap:not([hidden]) {
+  display: block;
+}
+
+.lg-shaped__tip-wrap {
+  overflow: hidden;
+}
+
+.lg-shaped__tip-wrap > .lg-shaped__tip {
+  position: absolute;
+  transform: rotate(45deg);
+}
+
+.lg-shaped > .lg-shaped__body.lg-glass,
+.lg-shaped__tip-wrap > .lg-shaped__tip.lg-glass {
+  background: none;
+  box-shadow: none;
+}
+
+.lg-shaped__tip-wrap > .lg-shaped__tip.lg-glass {
+  border-radius: 0;
+}
+
+.lg-shaped > .lg-shaped__body.lg-glass::before,
+.lg-shaped > .lg-shaped__body.lg-glass::after,
+.lg-shaped__tip-wrap > .lg-shaped__tip.lg-glass::before,
+.lg-shaped__tip-wrap > .lg-shaped__tip.lg-glass::after {
+  display: none;
+}
+
+.lg-shaped--pieces > .lg-shaped__glass.lg-glass {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* Pressed or dragged glass (styles/liquid-glass.css) catches more light: on each layer, not the root. */
+.lg-shaped.liquid-glass.lg-pressing,
+.lg-shaped.liquid-glass.lg-dragging {
+  filter: none;
+}
+
+.lg-shaped.liquid-glass:is(.lg-pressing, .lg-dragging) .lg-shaped__layer {
+  filter: brightness(1.11) saturate(1.35);
+}

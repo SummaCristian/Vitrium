@@ -33,6 +33,14 @@ export { createHoverHighlight, highlightRect } from './core/hover-highlight.js';
 /** @typedef {import('./core/hover-highlight.js').HoverHighlightOptions} HoverHighlightOptions */
 /** @typedef {import('./core/hover-highlight.js').HoverHighlight} HoverHighlight */
 /** @typedef {import('./core/hover-highlight.js').HoverHighlightShape} HoverHighlightShape */
+export { createShapedGlass, shapeOutline, holdCorners, blurInPieces, parseShadows, parseGradient } from './core/shaped-glass.js';
+/** @typedef {import('./core/shaped-glass.js').ShapedGlass} ShapedGlass */
+/** @typedef {import('./core/shaped-glass.js').ShapedGlassOptions} ShapedGlassOptions */
+/** @typedef {import('./core/shaped-glass.js').GlassPointer} GlassPointer */
+/** @typedef {import('./core/shaped-glass.js').PointerSide} PointerSide */
+/** @typedef {import('./core/shaped-glass.js').ShapeOutline} ShapeOutline */
+/** @typedef {import('./core/shaped-glass.js').ShapeOutlineOptions} ShapeOutlineOptions */
+/** @typedef {import('./core/shaped-glass.js').HoldCornersOptions} HoldCornersOptions */
 export { createModalLayer } from './core/modal-layer.js';
 /** @typedef {import('./core/modal-layer.js').ModalLayer} ModalLayer */
 export { clamp, snapToStep, toFraction, fromFraction } from './core/value-math.js';
@@ -101,6 +109,12 @@ export { createPopover } from './components/popover.js';
 /** @typedef {import('./components/popover.js').PopoverOptions} PopoverOptions */
 /** @typedef {import('./components/popover.js').Popover} Popover */
 /** @typedef {import('./components/popover.js').PopoverPlacement} PopoverPlacement */
+export { createBadge } from './components/badge.js';
+/** @typedef {import('./components/badge.js').BadgeOptions} BadgeOptions */
+/** @typedef {import('./components/badge.js').Badge} Badge */
+/** @typedef {import('./components/badge.js').BadgePosition} BadgePosition */
+/** @typedef {import('./components/badge.js').BadgeSide} BadgeSide */
+/** @typedef {import('./components/badge.js').BadgeAlign} BadgeAlign */
 export { createSheet, DEFAULT_SHEET_DETENTS } from './components/sheet.js';
 /** @typedef {import('./components/sheet.js').SheetOptions} SheetOptions */
 /** @typedef {import('./components/sheet.js').Sheet} Sheet */

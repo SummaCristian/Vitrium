@@ -10,6 +10,7 @@ import textFieldPage from './text-field.js';
 import stepperPage from './stepper.js';
 import progressPage from './progress.js';
 import popoverPage from './popover.js';
+import badgePage from './badge.js';
 import tabbarPage from './tabbar.js';
 import sheetPage from './sheet.js';
 
@@ -93,7 +94,15 @@ export const components = [
     title: 'Popover',
     abstract: 'A glass panel attached to an element, with an arrow that follows it.',
     page: popoverPage,
-    related: ['button', 'toggle'],
+    related: ['badge', 'button'],
+  },
+  {
+    id: 'badge',
+    group: 'Status',
+    title: 'Badge',
+    abstract: 'Tinted glass marking an element: a count on a corner, or a callout pointing along an edge.',
+    page: badgePage,
+    related: ['popover', 'progress'],
   },
   {
     id: 'tab-bar',

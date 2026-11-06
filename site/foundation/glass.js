@@ -222,7 +222,9 @@ export default {
         stage.append(el);
       },
       patch(s, stage, key) {
-        if (key === 'ui') { ui.classList.toggle('on', s.ui); return; }
+        // With the feed scrolling behind it, the glass takes the live reflection (none where there isn't one): a
+        // still one, worked out once, would keep showing where the feed was.
+        if (key === 'ui') { ui.classList.toggle('on', s.ui); el.classList.toggle('glass-demo--over-ui', s.ui); return; }
         if (key === 'backdrop') { canvas.classList.toggle('stage--plain', !s.backdrop); return; }
         // Dragging the color picker fires constantly, so that updates live, without a fade.
         if (key === 'variant' || key === 'tint') crossfade(el, stage, () => apply(s)); else apply(s);

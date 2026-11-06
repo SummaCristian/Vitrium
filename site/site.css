@@ -328,6 +328,8 @@ table.tokens { table-layout: auto; }
 .ui-layer { position: absolute; inset: 0; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity 0.4s ease;
   container-type: inline-size; /* the shapes and padding below scale with the card, not the viewport */ }
 .ui-layer.on { opacity: 1; }
+/* The glass over the scrolling feed: the live reflection, which follows it, or none (core/refraction.js). */
+.glass-demo--over-ui { --lg-reflection-live: 1; --lg-reflection-static: 0; }
 .ui-track { width: min(560px, 100%); margin-inline: auto; padding-inline: clamp(12px, 4cqw, 24px); box-sizing: border-box; animation: ui-scroll 32s linear infinite; }
 .ui-set { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding-block: 12px; }
 @keyframes ui-scroll { to { transform: translateY(-50%); } }

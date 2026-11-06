@@ -94,7 +94,7 @@
   backdrop-filter: var(--_lg-reflection);
 }
 
-/* The still reflection (--lg-reflection-static, core/refraction.js): the same, worked out once and drawn on two
+/* The still reflection (the default, core/refraction.js): the same, worked out once and drawn on two
    canvases over the skin, the rim's light (already lightened against the glass under it) and the band over that. Shown when the live
    one would be, so the CSS rim comes back with it. */
 .lg-reflection-still {

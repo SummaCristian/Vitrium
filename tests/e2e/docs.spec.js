@@ -375,7 +375,8 @@ test.describe('refraction', () => {
       localStorage.setItem('lg:blur-mode', 'on');
       // Slowed down, so a frame in the middle of it can be caught.
       document.addEventListener('DOMContentLoaded', () => document.head.append(Object.assign(document.createElement('style'), {
-        textContent: '.glass-demo { transition-duration: 3s !important; transition-timing-function: linear !important }',
+        // The live reflection, whose maps follow the shape (the still one is drawn again once it settles).
+        textContent: '.glass-demo { transition-duration: 3s !important; transition-timing-function: linear !important; --lg-reflection-live: 1 }',
       })));
     });
     await open(page, 'foundation/glass', '.glass-demo');

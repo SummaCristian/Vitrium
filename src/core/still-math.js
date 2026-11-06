@@ -153,9 +153,10 @@ export function paintBoxes(ctx, boxes, ground) {
   ctx.scale(STILL_RES, STILL_RES);
   ctx.fillStyle = ground;
   ctx.fillRect(0, 0, ctx.canvas.width / STILL_RES, ctx.canvas.height / STILL_RES);
-  for (const { x, y, w, h, radii: corners, opacity, bg, image } of boxes) {
+  for (const { x, y, w, h, radii: corners, opacity, bg, image, cut } of boxes) {
     ctx.save();
     ctx.globalAlpha = parseFloat(opacity) || 0;
+    if (cut) { ctx.beginPath(); ctx.rect(cut.x, cut.y, cut.w, cut.h); ctx.clip(); }
     const corner = (v) => {
       const [a] = v.split(' ');
       return a.endsWith('%') ? Math.min(w, h) * parseFloat(a) / 100 : parseFloat(a) || 0;

@@ -48,14 +48,14 @@
 
 /* The same ring the chip shows while its panel is open. */
 .lg-field:focus-within {
-  box-shadow:
+  --lg-surface-shadow:
     var(--lg-shadow),
     0 0 0 3px color-mix(in srgb, var(--lg-accent) 22%, transparent);
 }
 
 .lg-field.is-invalid,
 .lg-field.is-invalid:focus-within {
-  box-shadow:
+  --lg-surface-shadow:
     var(--lg-shadow),
     0 0 0 3px color-mix(in srgb, var(--lg-danger) 28%, transparent);
 }

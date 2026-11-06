@@ -143,7 +143,7 @@
 /* The lighter, less opaque material below the largest detent: it keeps what's
    behind more visible except when the sheet fills the view. */
 .lg-sheet__glass.is-clear {
-  background: var(--lg-tint-clear);
+  --lg-surface-fill: var(--lg-tint-clear);
   -webkit-backdrop-filter: blur(var(--lg-material-blur-clear));
   backdrop-filter: blur(var(--lg-material-blur-clear));
 }

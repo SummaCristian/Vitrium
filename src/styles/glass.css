@@ -36,11 +36,21 @@
      recognise the prefixed name, so the glass silently lost its blur outside Safari. */
   position: relative;
   border-radius: var(--lg-radius-pill);
-  background: var(--lg-tint);
+  /* The fill and the rim, as properties the glass paints itself with (below) and its pane takes over where
+     refraction gives it one (styles/refraction.css). Restyle glass through these, not background and box-shadow. */
+  --lg-surface-fill: var(--lg-tint);
+  --lg-surface-shadow: var(--lg-shadow);
   -webkit-backdrop-filter: blur(var(--lg-material-blur-md));
   backdrop-filter: blur(var(--lg-material-blur-md));
-  box-shadow: var(--lg-shadow);
   color: var(--lg-text-secondary);
+}
+
+/* Glass paints its fill and rim from --lg-surface-fill and --lg-surface-shadow: on itself, or on its pane while it has
+   one (styles/refraction.css), which draws them over the backdrop as the glass would. :where keeps it at no weight, so
+   a page's own background on a glass element still wins where there's no pane. */
+:where(.lg-glass, .lg-morph, .lg-tabbar__bar, .lg-seg__track) {
+  background: var(--lg-surface-fill);
+  box-shadow: var(--lg-surface-shadow);
 }
 
 /* Every glass surface casts the ring below, including the ones that build the
@@ -247,7 +257,7 @@
 }
 
 .lg-glass--clear {
-  background: var(--lg-tint-clear);
+  --lg-surface-fill: var(--lg-tint-clear);
   -webkit-backdrop-filter: blur(var(--lg-material-blur-clear));
   backdrop-filter: blur(var(--lg-material-blur-clear));
 }
@@ -255,7 +265,7 @@
 /* Tinted: the color sits over a thin neutral base so it reads as colored glass
    (not paint) on both light and dark backdrops. */
 .lg-glass--tinted {
-  background:
+  --lg-surface-fill:
     linear-gradient(color-mix(in srgb, var(--lg-glass-tint, var(--lg-accent)) var(--lg-tint-strength), transparent) 0 0),
     var(--lg-tint-clear);
   color: var(--lg-glass-tint-text, #fff);
@@ -265,7 +275,7 @@
 /* Clear glass shows less tint and drops the neutral base, so only the color
    veils what's behind. */
 .lg-glass--tinted.lg-glass--clear {
-  background: color-mix(in srgb, var(--lg-glass-tint, var(--lg-accent)) var(--lg-tint-strength-clear), transparent);
+  --lg-surface-fill: color-mix(in srgb, var(--lg-glass-tint, var(--lg-accent)) var(--lg-tint-strength-clear), transparent);
   /* Backdrop bleeds through and drags the hue (green over orange goes olive):
      saturating it keeps the tint reading as itself. */
   -webkit-backdrop-filter: blur(var(--lg-material-blur-clear)) saturate(var(--lg-tint-saturate-clear));

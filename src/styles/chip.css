@@ -44,7 +44,7 @@
 
 /* Ring while its panel is open. */
 .lg-chip[aria-expanded="true"] {
-  box-shadow:
+  --lg-surface-shadow:
     var(--lg-shadow),
     0 0 0 3px color-mix(in srgb, var(--lg-accent) 12%, transparent);
 }

@@ -69,7 +69,10 @@ function watchContent(btn) {
   new ResizeObserver(([e]) => { width = e.borderBoxSize?.[0]?.inlineSize ?? btn.offsetWidth; }).observe(btn);
   new MutationObserver((records) => {
     const w0 = width;
-    const added = records.flatMap((r) => [...r.addedNodes]).filter((n) => n.isConnected && n.nodeType === 1);
+    // Not the glass's own layers (refraction's pane, skin and reflection, [data-lg-layer]): they go back in when the
+    // content is swapped wholesale, and aren't content to grow in.
+    const added = records.flatMap((r) => [...r.addedNodes]).filter((n) => n.isConnected && n.nodeType === 1 && !n.hasAttribute('data-lg-layer'));
+    if (!added.length && records.every((r) => [...r.removedNodes].every((n) => n.nodeType === 1 && n.hasAttribute?.('data-lg-layer')))) return;
     const pill = !!btn.querySelector('.lg-button-label');
     btn.classList.toggle('lg-button--text', pill);
     // The circle's stroke mask is radial and only fits a square, so it waits for the resize to finish.

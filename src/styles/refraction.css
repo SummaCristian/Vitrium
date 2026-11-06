@@ -16,6 +16,84 @@
   backdrop-filter: var(--_lg-refraction);
 }
 
+/* The pane and the skin (core/refraction.js): a refracting surface's backdrop on one child and its fill and rim
+   (--lg-surface-fill, --lg-surface-shadow) on the next, under everything else in it, so that what else is in the
+   glass can see the page around it (a surface with a backdrop filter of its own would be a backdrop root, and show
+   what's inside it only itself). In that order they draw what the surface did: the backdrop, the fill, the rim,
+   then the ring (::before, z-index -1) over them. They share a z-index, so the order is theirs in the DOM. */
+.lg-glass-pane,
+.lg-glass-skin {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  border-radius: inherit;
+  corner-shape: inherit;
+  pointer-events: none;
+}
+
+/* The skin, right after the pane (the reflection goes after it): the fill and rim, drawn over the backdrop as
+   the pane would draw its own background over it, so with nothing between them it's the same
+   picture. The surface's transitions carry over, so its fill and rim ease as they did. */
+.lg-glass-skin {
+  background: var(--lg-surface-fill);
+  box-shadow: var(--lg-surface-shadow);
+  transition: inherit;
+}
+
+:root[data-refraction="on"] .lg-paned {
+  background: none;
+  box-shadow: none;
+  isolation: isolate;
+}
+
+/* At rest the backdrop is the pane's. A surface with a filter or opacity of its own (pressed or dragged, a sheet
+   being dragged, held through a morph, or fading by an inline opacity) is a backdrop root, which would leave the
+   pane with nothing behind it: then the surface takes the backdrop back, and the pane only paints. */
+:root[data-refraction="on"] .lg-paned:not(.lg-pressing, .lg-dragging, .lg-sheet__glass.is-active, .lg-refraction-held, [style*="opacity"]) {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+:root[data-refraction="on"] .lg-paned:not(.lg-pressing, .lg-dragging, .lg-sheet__glass.is-active, .lg-refraction-held, [style*="opacity"]) > .lg-glass-pane {
+  -webkit-backdrop-filter: var(--_lg-refraction);
+  backdrop-filter: var(--_lg-refraction);
+}
+
+/* The reflection (core/refraction.js): the color of what's around the glass, in a band in from its rim, on a layer
+   reaching past it (refraction.js sets how far), over the skin. Its filter lays it on the glass as light, each
+   channel the brighter of the two, so the fill keeps its tint to the very edge: what's near lights it, and never
+   washes it out. It draws nothing outside the glass's box, so nothing clips it.
+   Like the pane's backdrop it needs the surface not to be a backdrop root, so it's off whenever the pane's is. */
+.lg-reflection {
+  position: absolute;
+  z-index: -2;
+  pointer-events: none;
+}
+
+/* Tinted glass leaves the page's own color out of its reflection: plain glass is near white (or black) itself, so a
+   ring of the page round it barely shows, but round a colored one it reads as a white (or black) border. */
+.lg-glass--tinted {
+  --lg-reflection-page: 1;
+}
+
+/* The rim is the reflection's too (core/refraction.js): the glass's edge, where it turns away from the eye, is where it
+   reflects most, so the reflection draws the lit top and bottom edges and the shaded sides there, in the colors of
+   what's around. While it does (.lg-reflecting), nothing of the CSS rim is drawn with it: the inset highlight goes
+   from the skin's shadow and the 0.5px stroke goes, so the reflection's light reaches the very edge. Where the
+   reflection can't draw, pressed or fading (the backdrop is the surface's then), the CSS rim is back. */
+:root[data-refraction="on"] .lg-reflecting:not(.lg-pressing, .lg-dragging, .lg-sheet__glass.is-active, .lg-refraction-held, [style*="opacity"]) {
+  --lg-highlight: 0 0 0 0 transparent;
+}
+
+:root[data-refraction="on"] .lg-reflecting:not(.lg-pressing, .lg-dragging, .lg-sheet__glass.is-active, .lg-refraction-held, [style*="opacity"])::after {
+  opacity: 0;
+}
+
+:root[data-refraction="on"] .lg-paned:not(.lg-pressing, .lg-dragging, .lg-sheet__glass.is-active, .lg-refraction-held, [style*="opacity"]) > .lg-reflection {
+  -webkit-backdrop-filter: var(--_lg-reflection);
+  backdrop-filter: var(--_lg-reflection);
+}
+
 /* The sliding pill's lens (pill.css), lifted mid tap or drag: a drop of glass
    over the labels, as frosted as the glass style makes a lens (the lens role's blur, --lg-material-blur:
    frost blurs it a little, transparent, and curated, which gives lenses transparent's, barely), with the

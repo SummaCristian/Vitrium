@@ -319,13 +319,21 @@ test.describe('home', () => {
   });
 });
 
+// The backdrop filter a glass surface shows: its own, or while refraction gives it a pane (core/refraction.js), the
+// pane's, which carries it so that what's in the glass can see the page around it.
+const backdropOf = (n) => {
+  const own = getComputedStyle(n).backdropFilter;
+  const pane = n.querySelector(':scope > .lg-glass-pane');
+  return own === 'none' && pane ? getComputedStyle(pane).backdropFilter : own;
+};
+
 test.describe('segmented control blur', () => {
   test('the track blurs what is behind it only when asked to', async ({ page }) => {
     // Blur stays off until the device has been benchmarked, so force it on for this test, the way a person can.
     await page.addInitScript(() => localStorage.setItem('lg:blur-mode', 'on'));
     await open(page, 'components/segmented-control', '.playground .lg-seg__track');
     const track = page.locator('.playground .stage .lg-seg__track');
-    const filter = () => track.evaluate((n) => getComputedStyle(n).backdropFilter);
+    const filter = () => track.evaluate(backdropOf);
     expect(await filter()).toBe('none');
     await page.locator('.playground .control-row', { hasText: 'Blur' }).locator('[role="switch"]').click();
     await page.waitForTimeout(600);
@@ -338,7 +346,7 @@ test.describe('segmented control blur', () => {
   test('the theme switcher in the corner has it', async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('lg:blur-mode', 'on'));
     await open(page, 'home', '.hero-stage .float');
-    expect(await page.locator('.theme-seg .lg-seg__track').evaluate((n) => getComputedStyle(n).backdropFilter)).toMatch(/blur|url\(/);
+    expect(await page.locator('.theme-seg .lg-seg__track').evaluate(backdropOf)).toMatch(/blur|url\(/);
   });
 });
 
@@ -350,15 +358,52 @@ test.describe('refraction', () => {
     expect(await page.evaluate(() => document.documentElement.dataset.refraction)).toBe('on');
     const demo = page.locator('.glass-demo');
     // The surface's own blur, as its glass style leaves it, then the refraction.
-    const filter = await demo.evaluate((n) => getComputedStyle(n).backdropFilter);
+    const filter = await demo.evaluate(backdropOf);
     expect(filter).toMatch(/^(blur\([\d.]+px\) )?url\("#lg-refraction-\d+"\)$/);
-    // The filter it points at has a map the size of the surface.
-    const size = await demo.evaluate((n) => {
-      const id = getComputedStyle(n).backdropFilter.match(/#([\w-]+)/)[1];
-      const img = document.getElementById(id).querySelector('feImage');
-      return [+img.getAttribute('width'), +img.getAttribute('height'), n.offsetWidth, n.offsetHeight];
+    // The filter it points at covers the surface, its map tiled over it: the bottom-right corner piece at its corner.
+    const size = await demo.evaluate((n, id) => {
+      const f = document.getElementById(id);
+      const br = f.querySelector('feImage[result="rbr"]');
+      return [+f.getAttribute('width'), +f.getAttribute('height'), +br.getAttribute('x') + +br.getAttribute('width'), +br.getAttribute('y') + +br.getAttribute('height'), n.offsetWidth, n.offsetHeight];
+    }, filter.match(/#([\w-]+)/)[1]);
+    expect(size.slice(0, 2)).toEqual(size.slice(4));
+    expect(size.slice(2, 4)).toEqual(size.slice(4));
+  });
+
+  test('its maps follow the glass through a change of shape, frame by frame, not only once it settles', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('lg:blur-mode', 'on');
+      // Slowed down, so a frame in the middle of it can be caught.
+      document.addEventListener('DOMContentLoaded', () => document.head.append(Object.assign(document.createElement('style'), {
+        textContent: '.glass-demo { transition-duration: 3s !important; transition-timing-function: linear !important }',
+      })));
     });
-    expect(size.slice(0, 2)).toEqual(size.slice(2));
+    await open(page, 'foundation/glass', '.glass-demo');
+    await page.locator('.glass-demo').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(800);
+    // Where the glass is, and where its maps' bottom-right corner pieces end: the refraction's over the glass, the
+    // reflection's over the glass inside its layer.
+    const corners = () => page.evaluate(() => {
+      const g = document.querySelector('.glass-demo');
+      const end = (prop, piece) => {
+        const n = document.getElementById(g.style.getPropertyValue(prop).match(/#([\w-]+)/)[1]).querySelector(`feImage[result="${piece}"]`);
+        return [+n.getAttribute('x') + +n.getAttribute('width'), +n.getAttribute('y') + +n.getAttribute('height')];
+      };
+      const layer = g.querySelector(':scope > .lg-reflection');
+      return {
+        w: g.offsetWidth, h: g.offsetHeight,
+        refraction: end('--_lg-refraction', 'rbr'),
+        reflection: end('--_lg-reflection', 'mbr').map((v, i) => v - [-parseFloat(layer.style.left), -parseFloat(layer.style.top)][i]),
+      };
+    });
+    const start = await corners();
+    await page.locator('.playground .control-row', { hasText: 'Shape' }).locator('.lg-seg__item[data-value="panel"]').first().click();
+    await page.waitForTimeout(900);
+    const mid = await corners();
+    // Mid-way through the change, and both maps on the glass as it is in that frame.
+    expect(mid.w, JSON.stringify({ start, mid })).not.toBe(start.w);
+    expect(mid.refraction, JSON.stringify(mid)).toEqual([mid.w, mid.h]);
+    expect(mid.reflection, JSON.stringify(mid)).toEqual([mid.w, mid.h]);
   });
 
   test('glass that stays inside a morph popup is held through every open, not only the first', async ({ page }) => {

@@ -19,8 +19,8 @@
   padding: 3px;
   border-radius: var(--lg-radius-pill);
   touch-action: none;
-  background: var(--lg-tint);
-  box-shadow: var(--lg-shadow-compact);
+  --lg-surface-fill: var(--lg-tint);
+  --lg-surface-shadow: var(--lg-shadow-compact);
   transition: backdrop-filter 0.25s ease, -webkit-backdrop-filter 0.25s ease;
 }
 
@@ -37,7 +37,7 @@
    track's own background has the same weight. No blur unless `blur` is on, as for regular glass, so it only swaps the
    blur's strength. */
 .lg-seg__track.lg-glass--clear {
-  background: var(--lg-tint-clear);
+  --lg-surface-fill: var(--lg-tint-clear);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }

@@ -40,11 +40,11 @@
   -webkit-user-select: none;
   user-select: none;
 
-  background: var(--lg-tint);
+  --lg-surface-fill: var(--lg-tint);
   -webkit-backdrop-filter: blur(var(--lg-material-blur-md));
   backdrop-filter: blur(var(--lg-material-blur-md));
   color: var(--lg-text);
-  box-shadow:
+  --lg-surface-shadow:
     0 0 0 0.1px var(--lg-outline),
     var(--lg-highlight),
     0 12px 40px 0 var(--lg-shadow-color);
@@ -67,7 +67,7 @@
 /* Clear glass (the menu's and chip picker's `glass: 'clear'`): the lighter tint and blur. The rim comes from the shared
    class (see glass.css). */
 .lg-morph.lg-glass--clear {
-  background: var(--lg-tint-clear);
+  --lg-surface-fill: var(--lg-tint-clear);
   -webkit-backdrop-filter: blur(var(--lg-material-blur-clear));
   backdrop-filter: blur(var(--lg-material-blur-clear));
 }

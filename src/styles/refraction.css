@@ -94,6 +94,43 @@
   backdrop-filter: var(--_lg-reflection);
 }
 
+/* The still reflection (--lg-reflection-static, core/refraction.js): the same, worked out once and drawn on two
+   canvases over the skin, the rim's light (already lightened against the glass under it) and the band over that. Shown when the live
+   one would be, so the CSS rim comes back with it. */
+.lg-reflection-still {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  border-radius: inherit;
+  pointer-events: none;
+  display: none;
+}
+
+:root[data-refraction="on"] .lg-paned:not(.lg-pressing, .lg-dragging, .lg-sheet__glass.is-active, .lg-refraction-held, [style*="opacity"]) > .lg-reflection-still {
+  display: block;
+}
+
+/* Where refraction can't run (Firefox, Safari), the still reflection is the only one, first in the glass, which it
+   isolates so the canvases stay inside it (behind its content, over its fill). The CSS rim gives way to it there
+   too, as it does to the live one. */
+:root:not([data-refraction="on"]) .lg-reflecting {
+  isolation: isolate;
+}
+
+:root:not([data-refraction="on"]) .lg-reflecting:not(.lg-pressing, .lg-dragging, .lg-sheet__glass.is-active, [style*="opacity"]) {
+  --lg-highlight: 0 0 0 0 transparent;
+}
+
+:root:not([data-refraction="on"]) .lg-reflecting:not(.lg-pressing, .lg-dragging, .lg-sheet__glass.is-active, [style*="opacity"])::after {
+  opacity: 0;
+}
+
+:root:not([data-refraction="on"]) .lg-reflecting:not(.lg-pressing, .lg-dragging, .lg-sheet__glass.is-active, [style*="opacity"]) > .lg-reflection-still {
+  display: block;
+}
+
 /* The sliding pill's lens (pill.css), lifted mid tap or drag: a drop of glass
    over the labels, as frosted as the glass style makes a lens (the lens role's blur, --lg-material-blur:
    frost blurs it a little, transparent, and curated, which gives lenses transparent's, barely), with the

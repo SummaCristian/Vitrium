@@ -56,6 +56,9 @@
 // pane keeps painting, so nothing moves but the backdrop (styles/refraction.css).
 
 import { BLUR_STATE_EVENT } from './blur-capability.js';
+import { reflectionMap, edge, gaussian, STILL_RES, stillPixels } from './still-math.js';
+
+export { reflectionMap };
 import { GLASS_STYLE_MS } from '../components/glass-style.js';
 
 const SVGNS = 'http://www.w3.org/2000/svg';
@@ -246,117 +249,6 @@ export function lensMap(w, h, {
     }
   }
   return { data, width: pw, height: ph };
-}
-
-// The reflection's map (core/refraction.js, Reflection below), as RGBA bytes over the `w` x `h` box: red and green
-// the offset as displacementMap's, blue how much of the reflection shows there (the filter's mask). The rim of
-// a slab of glass curves away toward its edge, so it mirrors what's around it: a point `d` px in from the edge
-// shows what's beyond it, d to the edge and then out, more the deeper it is, as a curved mirror squeezes a
-// wide view into a thin band. Out to `reach` (per side: top, right, bottom, left, px past the edge), over the
-// band (from `inset` to `band` px in from the edge), along an arc (atan) that gives the first few px most of it. It shows only in a
-// band in from the rim: over the outer `inset` px (where the rim's highlight is) the same sample as the band's first
-// px, as strong, so the rim takes on its color, then fading out across the band (smootherstep) from `strength`, as a reflection fades where the rim levels off into the face,
-// and fading too with how far past the edge the point it shows is, gone `falloff` px out (smootherstep): what's
-// right beside the glass reflects in it plainly, what's further off only faintly.
-// In units of `scale` px (the filter's scale is twice it).
-/**
- * @param {number} w
- * @param {number} h
- * @param {{ radius?: number, n?: number, res?: number, reach: number[], band: number, inset: number,
- *   strength: number, falloff?: number, rimWidth?: number }} options
- * @returns {RefractionMap & { rim: Uint8ClampedArray, scale: number }}
- */
-export function reflectionMap(w, h, { radius = 0, n = 2, res = 1, reach, band, inset, strength, falloff = Infinity, rimWidth = 0 }) {
-  const pw = Math.max(1, Math.round(w * res));
-  const ph = Math.max(1, Math.round(h * res));
-  const data = new Uint8ClampedArray(pw * ph * 4);
-  // The rim, the outer `rimWidth` px: red how lit it is (the top and bottom edges), green how shaded (the sides),
-  // by the edge's normal, so the corners turn from one to the other.
-  const rim = new Uint8ClampedArray(pw * ph * 4);
-  const hw = w / 2, hh = h / 2;
-  const r = Math.max(0, Math.min(radius, hw, hh));
-  const [rt, rr, rb, rl] = reach;
-  const b = Math.max(inset + 1, band);
-  const arc = Math.tan(1.3);
-  // 0 where the band starts (`inset` in), 1 at its inner edge: the first of it shows what's right at the edge.
-  const out = (d) => Math.atan(Math.min(1, Math.max(0, d - inset) / (b - inset)) * arc) / 1.3;
-  const scale = Math.max(1, b + Math.max(rt, rr, rb, rl));
-  const smoother = (t) => t * t * t * (t * (6 * t - 15) + 10);
-  for (let y = 0; y < ph; y++) {
-    for (let x = 0; x < pw; x++) {
-      const e = edge((x + 0.5) / res - hw, (y + 0.5) / res - hh, hw, hh, r, n);
-      const i = (y * pw + x) * 4;
-      data[i + 3] = 255;
-      const d = e.inward;
-      rim[i + 3] = 255;
-      if (rimWidth > 0 && d > -0.5 && d < rimWidth) {
-        // Full over the outer px (eased over the pixel the edge crosses), fading out across the rest.
-        const wgt = Math.min(1, d * res + 0.5) * (1 - smoother(Math.min(1, Math.max(0, (d - 1) / Math.max(0.01, rimWidth - 1)))));
-        rim[i] = 255 * wgt * e.oy * e.oy;
-        rim[i + 1] = 255 * wgt * e.ox * e.ox;
-      }
-      if (d < 0 || d >= b) { data[i] = 128; data[i + 1] = 128; data[i + 2] = 0; continue; }
-      const dd = Math.max(d, inset);   // inside the inset it looks where the band's first px does: the band reaches the rim
-      const k = out(dd);
-      const ax = k * (e.ox < 0 ? rl : rr), ay = k * (e.oy < 0 ? rt : rb);   // how far past the edge it looks
-      const sx = e.ox * (dd + ax);
-      const sy = e.oy * (dd + ay);
-      data[i] = 128 + 127 * sx / scale;
-      data[i + 1] = 128 + 127 * sy / scale;
-      const on = Math.min(1, Math.max(0, d + 0.5));              // eased over the pixel the edge crosses
-      const fade = 1 - smoother(Math.min(1, Math.max(0, (dd - inset) / (b - inset))));
-      const far = 1 - smoother(Math.min(1, Math.hypot(e.ox * ax, e.oy * ay) / falloff));
-      data[i + 2] = 255 * Math.min(1, strength * on * fade * far);
-    }
-  }
-  return { data, rim, width: pw, height: ph, scale };
-}
-
-// Where (px, py), from the middle of a `2hw` x `2hh` box with corners of radius `r` and exponent `n`,
-// stands against its edge: `inward`, how far in from the nearest edge (negative outside), and that edge's
-// outward normal (ox, oy).
-function edge(px, py, hw, hh, r, n) {
-  const qx = Math.abs(px) - (hw - r);
-  const qy = Math.abs(py) - (hh - r);
-  let inward, nx, ny;
-  if (qx > 0 && qy > 0) {
-    // In a corner: distance from the superellipse arc, normal along its gradient.
-    const len = n === 2 ? Math.hypot(qx, qy) : (qx ** n + qy ** n) ** (1 / n);
-    inward = r - len;
-    const gx = n === 2 ? qx : qx ** (n - 1);
-    const gy = n === 2 ? qy : qy ** (n - 1);
-    const gl = Math.hypot(gx, gy) || 1;
-    nx = gx / gl; ny = gy / gl;
-  } else if (qx > qy) {
-    inward = r - qx; nx = 1; ny = 0;
-  } else {
-    inward = r - qy; nx = 0; ny = 1;
-  }
-  return { inward, ox: Math.sign(px) * nx, oy: Math.sign(py) * ny };
-}
-
-// A separable Gaussian blur of a `w` x `h` field in place, `sigma` in its own pixels, its edges held.
-function gaussian(f, w, h, sigma) {
-  const rad = Math.ceil(3 * sigma);
-  const k = new Float32Array(2 * rad + 1);
-  let sum = 0;
-  for (let i = -rad; i <= rad; i++) sum += k[i + rad] = Math.exp(-(i * i) / (2 * sigma * sigma));
-  for (let i = 0; i < k.length; i++) k[i] /= sum;
-  const tmp = new Float32Array(f.length);
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      let a = 0;
-      for (let i = -rad; i <= rad; i++) a += k[i + rad] * f[y * w + Math.min(w - 1, Math.max(0, x + i))];
-      tmp[y * w + x] = a;
-    }
-  }
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      let a = 0;
-      for (let i = -rad; i <= rad; i++) a += k[i + rad] * tmp[Math.min(h - 1, Math.max(0, y + i)) * w + x];
-      f[y * w + x] = a;
-    }
-  }
 }
 
 // The bezel and the shift at the rim for a `w` x `h` surface, from the tokens:
@@ -736,6 +628,7 @@ function measureReflection(el, cs, w, h) {
   const threshold = Math.max(0, px(cs, '--lg-reflection-threshold', REFLECT.threshold));
   const saturation = Math.max(0, px(cs, '--lg-reflection-saturation', REFLECT.saturation));
   const glow = Math.min(1, Math.max(0, px(cs, '--lg-reflection-glow', REFLECT.glow)));
+  const still = px(cs, '--lg-reflection-static', 0) > 0;
   const ambient = Math.max(blur, px(cs, '--lg-reflection-ambient', REFLECT.ambient));
   const nearContrast = Math.max(0, px(cs, '--lg-reflection-near-contrast', REFLECT.nearContrast));
   const nearThreshold = Math.max(0, px(cs, '--lg-reflection-near-threshold', REFLECT.nearThreshold));
@@ -746,7 +639,7 @@ function measureReflection(el, cs, w, h) {
   const layer = reach.map((r) => (r > 0 ? Math.ceil(r + 2) : 0));
   if (!reach.some((r) => r > 0)) return null;
   return {
-    strength, reach, band, inset, blur, falloff, page, contrast, threshold, saturation, glow, ambient, nearContrast, nearThreshold, rimWidth, rimLight, rimGain, rimSpecular, rimShade, layer, room: pad,
+    strength, reach, band, inset, blur, falloff, page, contrast, threshold, saturation, glow, ambient, nearContrast, nearThreshold, still, rimWidth, rimLight, rimGain, rimSpecular, rimShade, layer, room: pad,
     bandToken: px(cs, '--lg-reflection-band', REFLECT.band), insetToken: px(cs, '--lg-reflection-inset', REFLECT.inset),
   };
 }
@@ -754,7 +647,9 @@ function measureReflection(el, cs, w, h) {
 // The reflection's layer and filter, made or updated for a measured surface (m.reflection), or taken off.
 function applyReflection(el, s, m) {
   const r = m.reflection;
-  if (!r || !s.pane) { dropReflection(el, s); return; }
+  if (!r || !s.pane) { dropReflection(el, s); dropStillReflection(el, s); return; }
+  if (r.still) { dropReflection(el, s); applyStillReflection(el, s, m); return; }
+  dropStillReflection(el, s);
   if (!s.refl) {
     const id = `lg-reflection-${++uid}`;
     const filter = svg('filter', { id, 'color-interpolation-filters': 'sRGB', filterUnits: 'userSpaceOnUse', x: 0, y: 0 });
@@ -972,6 +867,349 @@ function dropReflection(el, s) {
   el.style.removeProperty('--_lg-reflection');
 }
 
+/* --- The still reflection on its own ---------------------------------------------------------- */
+// Where refraction can't run (no SVG filter on a backdrop: Firefox, Safari), the glass still gets its reflection,
+// the still one (above), which needs neither: every glass surface refraction would take, with no pane of its own
+// to put it after, the canvases first in it. Drawn again when it changes size, and with the theme.
+const stillOnly = new Map();
+function startStillOnly() {
+  let queued = false;
+  const ro = new ResizeObserver((entries) => { for (const e of entries) if (stillOnly.has(e.target)) refreshStill(e.target, STILL_SETTLE); });
+  const scan = () => {
+    queued = false;
+    for (const el of document.querySelectorAll(selector)) {
+      if (stillOnly.has(el) || el.matches(NO_PANE)) continue;
+      stillOnly.set(el, {});
+      ro.observe(el);
+      refreshStill(el, 0);
+    }
+    for (const [el, s] of stillOnly) {
+      if (el.isConnected) continue;
+      dropStillReflection(el, s);
+      ro.unobserve(el);
+      stillOnly.delete(el);
+    }
+  };
+  const later = () => { if (!queued) { queued = true; requestAnimationFrame(scan); } };
+  const all = recolorStill;
+  new MutationObserver((records) => {
+    for (const r of records) {
+      const st = stillOnly.get(r.target)?.still;
+      if (r.type === 'childList' && st && st.light.parentNode !== r.target) r.target.prepend(st.light, st.band);
+      if (r.attributeName === 'data-theme') all();
+    }
+    later();
+  }).observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'data-theme'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', all);
+  scan();
+}
+
+function refreshStill(el, delay) {
+  const s = stillOnly.get(el);
+  const w = el.offsetWidth, h = el.offsetHeight;
+  if (!s || !w || !h) return;
+  const cs = getComputedStyle(el);
+  const r = measureReflection(el, cs, w, h);
+  if (!r) { dropStillReflection(el, s); return; }
+  const n = cornerExponent(cs.getPropertyValue('corner-top-left-shape') || cs.getPropertyValue('corner-shape'));
+  applyStillReflection(el, s, { reflection: r, n }, delay);
+}
+
+/* --- A still reflection ---------------------------------------------------------------- */
+// The live reflection runs its filter on every frame the glass's part of the screen is drawn again (scrolled,
+// or anything moving over or near it), whether what's around it changed or not. Most glass sits still among
+// things that sit still, and a reflection of them can be worked out once: with --lg-reflection-static: 1, what's
+// around the glass is drawn from the layout (the backgrounds of the boxes
+// around and behind it, its own fill, nothing of their text), small, into a picture of its own, once; the same
+// steps as the live filter's run over it in JS (the map, the blurs, what stands out, the rim), and the result
+// is two canvases in the glass, the rim's light (lightening what the picture has under it, as the filter lays it
+// on the glass) and the band over it. Drawn
+// again when the glass changes size (once it settles), not when what's around it moves: a neighbor that moves
+// isn't followed. Images (url()) don't show in it.
+const STILL_SETTLE = 150;  // ms after the last change of size before it's drawn again
+const XHTML = 'http://www.w3.org/1999/xhtml';
+
+// A surface's state: refraction's, or (where refraction can't run) the still reflection's own (stillOnly).
+const stillState = (el) => surfaces.get(el) ?? stillOnly.get(el);
+
+function applyStillReflection(el, s, m, delay = 0) {
+  if (!s.still) {
+    const mk = (kind) => {
+      const c = document.createElement('canvas');
+      c.className = `lg-reflection-still lg-reflection-still--${kind}`;
+      c.setAttribute('aria-hidden', 'true');
+      c.dataset.lgLayer = '';
+      return c;
+    };
+    s.still = { light: mk('light'), band: mk('band'), gen: 0, visible: false, pending: false };
+    watchStill(el);
+  }
+  const st = s.still;
+  if (s.skin) {
+    if (st.light.parentNode !== el || st.light.previousElementSibling !== s.skin) s.skin.after(st.light, st.band);
+  } else if (st.light.parentNode !== el) el.prepend(st.light, st.band);
+  st.params = { ...m.reflection, n: m.n };
+  if (!st.hidden) el.classList.add('lg-reflecting');
+  drawStillLater(el, delay);
+}
+
+function dropStillReflection(el, s) {
+  if (!s.still) return;
+  el.classList.remove('lg-reflecting');
+  s.still.light.remove();
+  s.still.band.remove();
+  clearTimeout(s.still.timer);
+  stillIO?.unobserve(el);
+  stillQueue.delete(el);
+  s.still = null;
+}
+
+// Drawn once it's near the screen (stillIO), one glass at a time with a break between (stillQueue), so a page of
+// them doesn't hold up what the page does meanwhile.
+function drawStillLater(el, delay) {
+  const st = stillState(el)?.still;
+  if (!st) return;
+  clearTimeout(st.timer);
+  st.timer = setTimeout(() => {
+    st.pending = true;
+    if (st.visible) queueStill(el);
+  }, delay);
+}
+
+let stillIO = null;
+function watchStill(el) {
+  stillIO ??= new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      const st = stillState(e.target)?.still;
+      if (!st) continue;
+      st.visible = e.isIntersecting;
+      if (st.visible && st.pending) queueStill(e.target);
+    }
+  }, { rootMargin: '50% 0px' });
+  stillIO.observe(el);
+}
+
+// Drawn in batches of about STILL_BUDGET ms, each batch put on screen together: a page of them loads without holding
+// up the page, and what's redrawn at once (a theme) changes at once. An urgent batch (stillUrgent: a theme) takes
+// every one that's waiting, so the glass changes with the page, not one after another.
+const STILL_BUDGET = 8;
+const stillQueue = new Set();
+let stillPumping = false, stillUrgent = false;
+function queueStill(el) {
+  stillQueue.add(el);
+  if (stillPumping) return;
+  stillPumping = true;
+  setTimeout(pumpStill, 0);
+}
+async function pumpStill() {
+  while (stillQueue.size) {
+    const start = performance.now(), urgent = stillUrgent, shown = [];
+    stillUrgent = false;
+    for (const el of [...stillQueue]) {
+      stillQueue.delete(el);
+      const st = stillState(el)?.still;
+      if (!st?.pending || !st.visible) continue;
+      const show = await drawStill(el);
+      if (show) shown.push(show);
+      if (!urgent && performance.now() - start > STILL_BUDGET) break;
+    }
+    for (const show of shown) show();
+    if (stillQueue.size) await new Promise((go) => setTimeout(go, 0));
+  }
+  stillPumping = false;
+}
+
+// A new theme: what every still reflection shows is the old one's, so they're taken off at once (the glass shows its
+// CSS rim, in the new theme, meanwhile) and drawn again together once the page's own transition to it is over (no
+// color, background, shadow or border transition running, or RECOLOR_SETTLE_MS), measured again first (the page's
+// color may have changed).
+let recolorWait = 0;
+function recolorStill() {
+  const all = [...surfaces, ...stillOnly].filter(([, s]) => s.still);
+  for (const [el, s] of all) {
+    const st = s.still;
+    st.hidden = true;
+    st.gen++;   // a drawing under way is of the old theme
+    st.light.style.visibility = st.band.style.visibility = 'hidden';
+    el.classList.remove('lg-reflecting');
+  }
+  cancelAnimationFrame(recolorWait);
+  const t0 = performance.now();
+  const moving = () => typeof CSSTransition !== 'undefined' &&
+    document.getAnimations().some((a) => a instanceof CSSTransition && a.playState === 'running' && /color|background|shadow|border/.test(a.transitionProperty));
+  const check = () => {
+    if (moving() && performance.now() - t0 < RECOLOR_SETTLE_MS) { recolorWait = requestAnimationFrame(check); return; }
+    stillUrgent = true;
+    for (const [el, s] of all) {
+      if (!s.still || !el.isConnected) continue;
+      if (stillOnly.has(el)) refreshStill(el, 0); else if (!s.held) build(el, s);
+    }
+  };
+  recolorWait = requestAnimationFrame(check);
+}
+
+// What's around the glass, `m` px past its box on every side, as a picture STILL_RES px per CSS px: the
+// backgrounds of its ancestors and of every box near it, each where it is, and its own fill over them, drawn by
+// the browser (an SVG's foreignObject) so gradients come out as the page draws them.
+async function stillWorld(el, s, m) {
+  const box = el.getBoundingClientRect();
+  const w = el.offsetWidth, h = el.offsetHeight;
+  const rx = box.left + box.width / 2 - w / 2 - m, ry = box.top + box.height / 2 - h / 2 - m;
+  const rw = w + 2 * m, rh = h + 2 * m;
+  const hits = (r) => r.right > rx && r.left < rx + rw && r.bottom > ry && r.top < ry + rh;
+  const dark = /dark/.test(getComputedStyle(document.documentElement).colorScheme) && matchMedia('(prefers-color-scheme: dark)').matches;
+  // The boxes, bottom first: where each is in the picture and what it paints.
+  const boxes = [];
+  const add = (n, r) => {
+    const painted = stillState(n)?.skin ?? n;
+    const cs = getComputedStyle(painted);
+    if (cs.visibility === 'hidden' || (cs.backgroundImage === 'none' && rgba(cs.backgroundColor)[3] === 0)) return;
+    const own = getComputedStyle(n);
+    boxes.push({
+      x: r.left - rx, y: r.top - ry, w: r.width, h: r.height,
+      radii: [own.borderTopLeftRadius, own.borderTopRightRadius, own.borderBottomRightRadius, own.borderBottomLeftRadius],
+      radius: own.borderRadius, borders: [own.borderTopWidth, own.borderRightWidth, own.borderBottomWidth, own.borderLeftWidth],
+      opacity: own.opacity, bg: cs.backgroundColor, image: cs.backgroundImage.replace(/url\([^)]*\)/g, 'none'),
+      size: cs.backgroundSize, position: cs.backgroundPosition, repeat: cs.backgroundRepeat,
+      origin: cs.backgroundOrigin, clip: cs.backgroundClip,
+    });
+  };
+  // Its ancestors, outermost first: what it sits on.
+  const chain = [];
+  for (let a = el.parentElement; a; a = a.parentElement) chain.unshift(a);
+  for (const a of chain) add(a, a.getBoundingClientRect());
+  // Everything else near it, in the order the page lays it out, from the nearest ancestor that holds the area.
+  let top = el.parentElement;
+  while (top.parentElement) {
+    const r = top.getBoundingClientRect();
+    if (r.left <= rx && r.top <= ry && r.right >= rx + rw && r.bottom >= ry + rh) break;
+    top = top.parentElement;
+  }
+  const ancestors = new Set(chain);
+  const walk = (n) => {
+    for (const c of n.children) {
+      if (c === el || c.dataset.lgLayer !== undefined || c instanceof SVGElement) continue;
+      const r = c.getBoundingClientRect();
+      if (!r.width && !r.height && getComputedStyle(c).display !== 'contents') continue;
+      if (hits(r)) { if (!ancestors.has(c)) add(c, r); walk(c); }
+    }
+  };
+  walk(top);
+  // And its own fill, over all of it, as the live filter sees it.
+  add(el, { left: rx + m, top: ry + m, width: w, height: h });
+  const cw = Math.ceil(rw * STILL_RES), ch = Math.ceil(rh * STILL_RES);
+  const ground = dark ? '#121212' : '#fff';
+  const data = await drawnByPage(boxes, rw, rh, cw, ch, ground);
+  // As data, for stillPixels (here or in the worker): the page's drawing, or the boxes for it to paint.
+  return data ? { data, cw, ch } : { boxes, ground, cw, ch };
+}
+
+// The boxes drawn by the browser itself, an SVG's foreignObject, so every background comes out as the page draws
+// it, as RGBA bytes. Null where the picture can't be read back (Safari treats one with a foreignObject as from
+// elsewhere).
+let pageDraws = true;   // false once a picture's read back has been refused: no use asking again
+async function drawnByPage(boxes, rw, rh, cw, ch, ground) {
+  if (!pageDraws) return null;
+  const root = document.createElementNS(XHTML, 'div');
+  root.setAttribute('style', `position:relative;width:${rw}px;height:${rh}px;overflow:hidden;background:${ground}`);
+  for (const b of boxes) {
+    const d = document.createElementNS(XHTML, 'div');
+    d.setAttribute('style', [
+      'position:absolute', 'box-sizing:border-box', `left:${b.x}px`, `top:${b.y}px`, `width:${b.w}px`, `height:${b.h}px`,
+      'border-style:solid', 'border-color:transparent', `border-width:${b.borders.join(' ')}`,
+      `border-radius:${b.radius}`, `background-color:${b.bg}`, `background-image:${b.image}`,
+      `background-size:${b.size}`, `background-position:${b.position}`, `background-repeat:${b.repeat}`,
+      `background-origin:${b.origin}`, `background-clip:${b.clip}`, `opacity:${b.opacity}`,
+    ].join(';'));
+    root.append(d);
+  }
+  const ctx = Object.assign(document.createElement('canvas'), { width: cw, height: ch }).getContext('2d', { willReadFrequently: true });
+  try {
+    const img = new Image();
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${rw}" height="${rh}"><foreignObject width="100%" height="100%">${new XMLSerializer().serializeToString(root)}</foreignObject></svg>`);
+    await img.decode();
+    ctx.drawImage(img, 0, 0, cw, ch);
+  } catch {
+    return null;
+  }
+  try {
+    return ctx.getImageData(0, 0, cw, ch).data;
+  } catch {
+    pageDraws = false;
+    return null;
+  }
+}
+
+// The pixels worked out off the page's thread where it can (a worker, still-worker.js), on it where it can't (no
+// Worker, a worker that can't load, or one with no 2D canvas of its own).
+let stillWorker = null, workerBroken = false, jobs = 0;
+const waiting = new Map();
+function runStill(job) {
+  if (!stillWorker && !workerBroken) {
+    try {
+      stillWorker = new Worker(new URL('./still-worker.js', import.meta.url), { type: 'module' });
+      stillWorker.onmessage = ({ data }) => {
+        const w = waiting.get(data.id);
+        if (!w) return;
+        waiting.delete(data.id);
+        if (data.error) { breakWorker(); w.resolve(stillPixels(w.job)); } else w.resolve(data);
+      };
+      stillWorker.onerror = () => breakWorker();
+    } catch { workerBroken = true; }
+  }
+  if (workerBroken) return Promise.resolve(stillPixels(job));
+  return new Promise((resolve) => {
+    const id = ++jobs;
+    waiting.set(id, { resolve, job });
+    stillWorker.postMessage({ id, job });
+  });
+}
+function breakWorker() {
+  if (workerBroken) return;
+  workerBroken = true;
+  stillWorker?.terminate();
+  stillWorker = null;
+  for (const [id, w] of waiting) { waiting.delete(id); w.resolve(stillPixels(w.job)); }
+}
+
+async function drawStill(el) {
+  const s = stillState(el), st = s?.still;
+  if (!st || !el.isConnected) return;
+  st.pending = false;
+  const gen = ++st.gen;
+  const p = st.params;
+  const w = el.offsetWidth, h = el.offsetHeight;
+  if (!w || !h) return;
+  const res = Math.min(2, Math.max(1, Math.round(globalThis.devicePixelRatio || 1)));
+  const band = Math.max(2, Math.min(p.bandToken, Math.min(w, h) / 5));
+  const inset = Math.max(0, Math.min(p.insetToken, band - 1));
+  const map = { radius: cornerOf(el, w, h, null), n: p.n, reach: p.reach, band, inset, strength: p.strength, falloff: p.falloff, rimWidth: p.rimWidth };
+  const m = Math.ceil(Math.max(...p.reach) + 3 * p.ambient);
+  let picture;
+  try { picture = await stillWorld(el, s, m); } catch { return; }
+  if (gen !== st.gen || !el.isConnected) return;
+  const { W, H, light, band: shown } = await runStill({
+    w, h, res, m, map, picture,
+    p: { blur: p.blur, ambient: p.ambient, saturation: p.saturation, glow: p.glow, nearContrast: p.nearContrast,
+      nearThreshold: p.nearThreshold, rimLight: p.rimLight, rimSpecular: p.rimSpecular, rimShade: p.rimShade,
+      rimGain: p.rimGain, page: p.page, contrast: p.contrast, threshold: p.threshold },
+  });
+  // Put on screen by the batch (pumpStill), with the rest of it.
+  return () => {
+    if (gen !== st.gen || s.still !== st) return;
+    for (const [c, bytes] of [[st.light, light], [st.band, shown]]) {
+      c.width = W; c.height = H;
+      c.getContext('2d').putImageData(new ImageData(bytes, W, H), 0, 0);
+    }
+    if (st.hidden) {
+      st.hidden = false;
+      st.light.style.visibility = st.band.style.visibility = '';
+      el.classList.add('lg-reflecting');
+    }
+  };
+}
+
 // The steps that make a surface's map, at the head of its filter: a lens's one image, or the tiles of everyone
 // else's. Changing them rebuilds the steps after them (primitives).
 function setHead(s, lens) {
@@ -1016,6 +1254,7 @@ function follow(el, s) {
   if (!w || !h) return;
   if (s.tiles && s.geo) tileRefraction(el, s, w, h, null);
   if (s.refl?.params) tileReflection(el, s, w, h, null);
+  if (s.still && (w !== s.w || h !== s.h)) drawStillLater(el, STILL_SETTLE);
   s.w = w; s.h = h;
 }
 
@@ -1471,6 +1710,7 @@ function deactivate(el) {
   s.filter.remove();
   setLayer(el, s, 0);
   dropReflection(el, s);
+  dropStillReflection(el, s);
   setPanes([{ el, s, on: false }]);
   el.classList.remove(HELD);
   surfaces.delete(el);
@@ -1570,6 +1810,7 @@ function recolor() {
   const again = () => {
     for (const [el, s] of surfaces) if (s.refl?.page && !s.held) build(el, s);
   };
+  recolorStill();
   requestAnimationFrame(again);
   clearTimeout(recolorTimer);
   recolorTimer = setTimeout(again, RECOLOR_SETTLE_MS);
@@ -1584,6 +1825,7 @@ function noteMutations(records) {
       if (s?.pane && s.pane.parentNode !== r.target) r.target.prepend(s.pane);
       if (s?.skin && s.skin.parentNode !== r.target) s.pane.after(s.skin);
       if (s?.refl && s.refl.layer.parentNode !== r.target) s.skin.after(s.refl.layer);
+      if (s?.still && s.still.light.parentNode !== r.target) s.skin.after(s.still.light, s.still.band);
       for (const n of r.addedNodes) if (n.nodeType === 1) { added.add(n); any = true; }
       if (r.removedNodes.length) { removed = true; any = true; }
     } else if (r.attributeName === 'data-theme') {
@@ -1678,6 +1920,7 @@ export function initRefraction({ enabled: on = true, selector: extra, refractMor
   selector = extra ? `${DEFAULT_ON}, ${extra}` : DEFAULT_ON;
   if (!supportsRefraction()) {
     document.documentElement.dataset.refraction = 'off';
+    startStillOnly();
     return;
   }   // active stays false, and no event ever fires
   window.addEventListener(BLUR_STATE_EVENT, applyState);

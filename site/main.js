@@ -15,6 +15,8 @@ import { componentsPage } from './pages/components.js';
 
 initTheme();
 initLiquidGlass();
+// Prototype: ?static-reflection works the glass's reflection out once instead of live (core/refraction.js).
+if (new URLSearchParams(location.search).has('static-reflection')) document.documentElement.style.setProperty('--lg-reflection-static', '1');
 initBlurCapability();
 initRefraction();
 setGlassStyle('curated');   // this page's choice: frosted surfaces, transparent lenses; the library's own default is frost

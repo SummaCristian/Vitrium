@@ -579,9 +579,20 @@ function room(el, rect) {
 // A CSS color as [r, g, b, a], 0 to 1, whatever its notation: drawn on a pixel and read back (sRGB).
 const colors = new Map();
 let swatch = null;
+// A computed color is nearly always rgb() or rgba(), read as it stands; anything else (color(), color-mix() left as
+// it is, a named color) goes through the canvas, which a slow phone feels when it's every box near every glass.
+const RGB = /^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)\s*(?:[,/]\s*([\d.]+)(%?)\s*)?\)$/;
 function rgba(css) {
   let c = colors.get(css);
   if (c) return c;
+  const m = RGB.exec(css);
+  if (m) {
+    const a = m[4] == null ? 1 : parseFloat(m[4]) / (m[5] ? 100 : 1);
+    c = [m[1] / 255, m[2] / 255, m[3] / 255, Math.min(1, a)];
+    if (colors.size > 256) colors.clear();
+    colors.set(css, c);
+    return c;
+  }
   swatch ??= Object.assign(document.createElement('canvas'), { width: 1, height: 1 }).getContext('2d', { willReadFrequently: true });
   swatch.clearRect(0, 0, 1, 1);
   swatch.fillStyle = '#0000';
@@ -662,6 +673,8 @@ function measureReflection(el, cs, w, h) {
   const layer = reach.map((r) => (r > 0 ? Math.ceil(r + 2) : 0));
   if (!reach.some((r) => r > 0)) return null;
   return {
+    // The glass's fill as its style gives it (a still reflection drawn over another is out of date: parked, below).
+    fill: cs.getPropertyValue('--lg-surface-fill').trim() || `${cs.backgroundColor} ${cs.backgroundImage}`,
     strength, reach, band, inset, blur, falloff, page, contrast, threshold, saturation, glow, ambient, nearContrast, nearThreshold, live, still, floating, rimWidth, rimLight, rimGain, rimSpecular, rimShade, layer, room: pad,
     bandToken: px(cs, '--lg-reflection-band', REFLECT.band), insetToken: px(cs, '--lg-reflection-inset', REFLECT.inset),
   };
@@ -1005,7 +1018,31 @@ const XHTML = 'http://www.w3.org/1999/xhtml';
 // A surface's state: refraction's, or (where refraction can't run) the still reflection's own (stillOnly).
 const stillState = (el) => surfaces.get(el) ?? stillOnly.get(el);
 
+// A still reflection taken off glass that left the screen (refraction lets go of it there, deactivate) is kept, its
+// drawing with it, and put straight back if the glass comes back as it was: the same size, fill and reflection, in
+// the same theme. A scroll back up then draws nothing again, which a slow phone would feel: each drawing has the
+// page draw a picture and the layout read. Anything else is drawn again, as it would have been.
+const parked = new WeakMap();   // element → its still reflection, off the glass
+let stillEpoch = 0;             // a new theme: every drawing made before it is out of date
+const stillKey = (w, h, params) => `${w}x${h}|${stillEpoch}|${JSON.stringify(params)}`;
+
+function parkStill(el, s) {
+  const st = s.still;
+  if (!st?.drawn) { dropStillReflection(el, s); return; }
+  dropStillReflection(el, s);
+  st.gen++;   // a drawing under way is dropped
+  parked.set(el, st);
+}
+
 function applyStillReflection(el, s, m, delay = 0) {
+  let back = false;
+  if (!s.still && parked.has(el)) {
+    s.still = parked.get(el);
+    parked.delete(el);
+    Object.assign(s.still, { visible: false, pending: false, waitSince: null });
+    watchStill(el, s.still);
+    back = true;
+  }
   if (!s.still) {
     const mk = (kind) => {
       const c = document.createElement('canvas');
@@ -1024,6 +1061,16 @@ function applyStillReflection(el, s, m, delay = 0) {
     if (st.light.parentNode !== el || st.light.previousElementSibling !== s.skin) s.skin.after(st.light, st.band);
   } else if (st.light.parentNode !== el) el.prepend(st.light, st.band);
   st.params = { ...m.reflection, n: m.n };
+  if (back) {
+    // As it was: back on, as drawn. Otherwise its CSS rim until it's drawn again.
+    if (st.key === stillKey(m.w, m.h, st.params)) {
+      st.hidden = false;
+      st.light.style.visibility = st.band.style.visibility = '';
+      el.classList.add('lg-reflecting');
+      return;
+    }
+    stepAside(el, st);
+  }
   // A drawing of another size (the glass landed from a morph, or settled from a resize) would show stretched.
   if (!st.hidden && st.size && (st.size[0] !== m.w || st.size[1] !== m.h)) stepAside(el, st);
   if (!st.hidden) el.classList.add('lg-reflecting');
@@ -1052,6 +1099,8 @@ function drawStillLater(el, delay) {
   st.timer = setTimeout(() => {
     // Not drawn yet, or taken off for a change (stepAside): drawn once the glass and what's around it are done
     // changing (moving, resizing, fading), not in the middle of it, though not waiting on it for ever.
+    // Nor while the page scrolls, when reading the layout to look costs what the scroll needs (pumpStill).
+    if (scrolling()) { drawStillLater(el, SCROLL_IDLE); return; }
     if (st.hidden || !st.drawn) {
       st.waitSince ??= performance.now();
       if (performance.now() - st.waitSince < STILL_WAIT && busyAround(el, st)) { drawStillLater(el, STILL_SETTLE); return; }
@@ -1138,14 +1187,26 @@ function queueStill(el) {
   stillPumping = true;
   setTimeout(pumpStill, 0);
 }
+// Not while the page scrolls (any scroller in it): each drawing reads the layout and has the page draw a picture,
+// work a phone does on the thread its scroll needs, for glass that's going by. Drawn once it's been still for
+// SCROLL_IDLE ms; the glass shows its CSS rim meanwhile. A theme's batch doesn't wait.
+const SCROLL_IDLE = 120;
+let lastScroll = -Infinity, scrollWatched = false;
+const scrolling = () => performance.now() - lastScroll < SCROLL_IDLE;
 async function pumpStill() {
+  if (!scrollWatched) {
+    scrollWatched = true;
+    document.addEventListener('scroll', () => { lastScroll = performance.now(); }, { capture: true, passive: true });
+  }
   while (stillQueue.size) {
+    while (!stillUrgent && scrolling()) await new Promise((go) => setTimeout(go, SCROLL_IDLE));
     const start = performance.now(), urgent = stillUrgent, shown = [];
     stillUrgent = false;
     for (const el of [...stillQueue]) {
       stillQueue.delete(el);
       const st = stillState(el)?.still;
       if (!st?.pending || !st.visible) continue;
+      if (!urgent && scrolling()) { stillQueue.add(el); break; }   // it started scrolling: the rest wait for it to stop
       const show = await drawStill(el);
       if (show) shown.push(show);
       if (!urgent && performance.now() - start > STILL_BUDGET) break;
@@ -1162,6 +1223,7 @@ async function pumpStill() {
 // color may have changed).
 let recolorWait = 0;
 function recolorStill() {
+  stillEpoch++;
   const all = [...surfaces, ...stillOnly].filter(([, s]) => s.still);
   for (const [el, s] of all) stepAside(el, s.still);
   cancelAnimationFrame(recolorWait);
@@ -1347,7 +1409,7 @@ async function drawStill(el) {
   const inset = Math.max(0, Math.min(p.insetToken, band - 1));
   const map = { radius: cornerOf(el, w, h, null), n: p.n, reach: p.reach, band, inset, strength: p.strength, falloff: p.falloff, rimWidth: p.rimWidth };
   const m = Math.ceil(Math.max(...p.reach) + 3 * p.ambient);
-  const fill = fillOf(el);
+  const fill = fillOf(el), key = stillKey(w, h, p);
   let picture;
   try { picture = await stillWorld(el, s, m); } catch { return; }
   if (gen !== st.gen || !el.isConnected) return;
@@ -1363,6 +1425,7 @@ async function drawStill(el) {
     st.drawn = true;
     st.size = [w, h];
     st.fill = fill;
+    st.key = key;
     for (const [c, bytes] of [[st.light, light], [st.band, shown]]) {
       c.width = W; c.height = H;
       c.getContext('2d').putImageData(new ImageData(bytes, W, H), 0, 0);
@@ -1894,7 +1957,7 @@ function deactivate(el, panes) {
   s.filter.remove();
   setLayer(el, s, 0);
   dropReflection(el, s);
-  dropStillReflection(el, s);
+  parkStill(el, s);
   if (panes) panes.push({ el, s, on: false }); else setPanes([{ el, s, on: false }]);
   el.classList.remove(HELD);
   surfaces.delete(el);

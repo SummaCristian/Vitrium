@@ -117,13 +117,22 @@ export function createMenu({
   let byKeyboard = false;
   let list = null;
 
-  // The panel only takes focus once the morph has landed; Esc should work before that too.
+  // The panel only takes focus once the morph has landed; the keys work before that too. Esc closes, and what the
+  // panel would take (a letter to jump to, the arrows, Home and End) is the menu's already, so typing right after a
+  // click that opens it isn't lost. Enter and Space stay the trigger's, and a field being typed in keeps its keys.
+  const EARLY = new Set(['ArrowDown', 'ArrowUp', 'Home', 'End']);
   const onDocKeydown = (e) => {
-    if (e.key !== 'Escape') return;
-    e.preventDefault();
-    // The popup hands focus back to the trigger only if it was inside the panel.
-    if (!panel.contains(document.activeElement)) panel.focus({ preventScroll: true });
-    popup.close();
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      // The popup hands focus back to the trigger only if it was inside the panel.
+      if (!panel.contains(document.activeElement)) panel.focus({ preventScroll: true });
+      popup.close();
+      return;
+    }
+    const a = document.activeElement;
+    if (panel.contains(a) || a?.matches?.('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return;
+    if (e.altKey || e.ctrlKey || e.metaKey || !(EARLY.has(e.key) || (e.key.length === 1 && e.key !== ' '))) return;
+    onPanelKeydown(e);
   };
 
   const popup = createMorphPopup({
@@ -131,7 +140,7 @@ export function createMenu({
     title: title === false ? undefined : (title ?? (label ? { text: label } : undefined)),
     onOpen: () => { document.addEventListener('keydown', onDocKeydown); onOpen?.(); },
     // Opened from the keyboard, the first item is ready; opened by pointer, nothing is lit.
-    onAfterOpen: () => { if (byKeyboard) edge(false); },
+    onAfterOpen: () => { if (byKeyboard && activeIndex < 0) edge(false); },   // unless a key already lit one
     onClose: () => { document.removeEventListener('keydown', onDocKeydown); clearTypeahead(); clearActive(); onClose?.(); },
   });
   const { panel, inner } = popup;
@@ -229,7 +238,8 @@ export function createMenu({
   });
   panel.addEventListener('pointerleave', clearActive);
 
-  panel.addEventListener('keydown', (e) => {
+  panel.addEventListener('keydown', onPanelKeydown);
+  function onPanelKeydown(e) {
     if (e.altKey || e.ctrlKey || e.metaKey) return;
     switch (e.key) {
       case 'ArrowDown': e.preventDefault(); moveActive(1); break;
@@ -251,7 +261,7 @@ export function createMenu({
           if (match >= 0) setActive(match);
         }
     }
-  });
+  }
 
   /* --- The trigger ------------------------------------------------------------------ */
   // A click with no pointer behind it (detail 0) is Enter / Space on the trigger.

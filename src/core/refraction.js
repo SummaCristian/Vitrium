@@ -655,10 +655,10 @@ function measureReflection(el, cs, w, h) {
   const ambient = Math.max(blur, px(cs, '--lg-reflection-ambient', REFLECT.ambient));
   const nearContrast = Math.max(0, px(cs, '--lg-reflection-near-contrast', REFLECT.nearContrast));
   const nearThreshold = Math.max(0, px(cs, '--lg-reflection-near-threshold', REFLECT.nearThreshold));
-  // The layer reaches as far as the furthest sample (the band, then the reach) and the blur's spread past it.
-  const spread = 0;   // the blur is over the box, in the filter: the layer needn't reach past what it samples
+  // The layer reaches as far as the furthest sample (the band, then the reach). The blur is over the box, in the
+  // filter, so it needn't reach past what it samples.
   const pad = room(el, el.getBoundingClientRect());
-  const reach = pad.map((p) => Math.max(0, Math.min(want, p - band - spread)));
+  const reach = pad.map((p) => Math.max(0, Math.min(want, p - band)));
   const layer = reach.map((r) => (r > 0 ? Math.ceil(r + 2) : 0));
   if (!reach.some((r) => r > 0)) return null;
   return {
@@ -913,8 +913,12 @@ function startStillOnly() {
       refreshStill(el, STILL_SETTLE);
     }
   });
+  // A scan queued before it was stopped (refraction came on) would take the glass back on, and put a second still
+  // reflection in it beside refraction's: it's called off.
+  let queuedFrame = 0;
   const scan = () => {
     queued = false;
+    queuedFrame = 0;
     for (const el of document.querySelectorAll(selector)) {
       if (stillOnly.has(el) || el.matches(NO_PANE)) continue;
       stillOnly.set(el, {});
@@ -928,27 +932,34 @@ function startStillOnly() {
       stillOnly.delete(el);
     }
   };
-  const later = () => { if (!queued) { queued = true; requestAnimationFrame(scan); } };
+  const later = () => { if (!queued) { queued = true; queuedFrame = requestAnimationFrame(scan); } };
   const all = recolorStill;
   const mo = new MutationObserver((records) => {
     const restyled = new Set();
+    let any = false;
     for (const r of records) {
       const st = stillOnly.get(r.target)?.still;
-      if (r.type === 'childList' && st && st.light.parentNode !== r.target) r.target.prepend(st.light, st.band);
-      if (r.attributeName === 'data-theme') all();
-      else if (r.attributeName === 'class' && stillOnly.has(r.target)) restyled.add(r.target);
+      if (r.type === 'childList') {
+        if (st && st.light.parentNode !== r.target) r.target.prepend(st.light, st.band);
+        any = true;
+      } else if (r.attributeName === 'data-theme') {
+        if (r.oldValue !== r.target.getAttribute('data-theme')) all();
+      } else if (signature(r.oldValue) !== signature(r.target.getAttribute('class'))) {
+        // Not the classes a press or its own reflection flips (lg-reflecting comes and goes with every drawing).
+        if (stillOnly.has(r.target)) restyled.add(r.target);
+        any = true;
+      }
     }
-    // A class can turn its reflection on or off (--lg-reflection-static, a fixed position): drawn or dropped then.
-    for (const el of restyled) {
-      const s = stillOnly.get(el);
-      if (wantsStill(el) !== !!s.still) refreshStill(el, 0);
-    }
-    later();
+    // A class can recolor the glass (a variant, a tint) or turn its reflection on or off (--lg-reflection-static, a
+    // fixed position): measured and drawn again, or dropped.
+    for (const el of restyled) refreshStill(el, 0);
+    if (any) later();
   });
-  mo.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'data-theme'] });
+  mo.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'data-theme'], attributeOldValue: true });
   const scheme = matchMedia('(prefers-color-scheme: dark)');
   scheme.addEventListener('change', all);
   stillOnlyStop = () => {
+    cancelAnimationFrame(queuedFrame);
     mo.disconnect();
     ro.disconnect();
     scheme.removeEventListener('change', all);
@@ -963,14 +974,6 @@ function stopStillOnly() {
   stillOnlyStop?.();
 }
 
-// Whether, here (no refraction running), a glass gets the still reflection at all.
-function wantsStill(el) {
-  const w = el.offsetWidth, h = el.offsetHeight;
-  if (!w || !h) return false;
-  const r = measureReflection(el, getComputedStyle(el), w, h);
-  return !!r && !r.floating && r.still;
-}
-
 function refreshStill(el, delay) {
   const s = stillOnly.get(el);
   const w = el.offsetWidth, h = el.offsetHeight;
@@ -981,7 +984,7 @@ function refreshStill(el, delay) {
   // No live one here: one that asked for it gets the still one, one that floats or turned it off, none.
   if (!r || r.floating || !r.still) { dropStillReflection(el, s); return; }
   const n = cornerExponent(cs.getPropertyValue('corner-top-left-shape') || cs.getPropertyValue('corner-shape'));
-  applyStillReflection(el, s, { reflection: r, n }, delay);
+  applyStillReflection(el, s, { reflection: r, n, w, h }, delay);
 }
 
 /* --- A still reflection ---------------------------------------------------------------- */
@@ -1011,14 +1014,18 @@ function applyStillReflection(el, s, m, delay = 0) {
       c.dataset.lgLayer = '';
       return c;
     };
-    s.still = { light: mk('light'), band: mk('band'), gen: 0, visible: false, pending: false };
-    watchStill(el);
+    // Hidden until it's first drawn: the glass keeps its CSS rim meanwhile, not none.
+    s.still = { light: mk('light'), band: mk('band'), gen: 0, visible: false, pending: false, hidden: true, size: null };
+    s.still.light.style.visibility = s.still.band.style.visibility = 'hidden';
+    watchStill(el, s.still);
   }
   const st = s.still;
   if (s.skin) {
     if (st.light.parentNode !== el || st.light.previousElementSibling !== s.skin) s.skin.after(st.light, st.band);
   } else if (st.light.parentNode !== el) el.prepend(st.light, st.band);
   st.params = { ...m.reflection, n: m.n };
+  // A drawing of another size (the glass landed from a morph, or settled from a resize) would show stretched.
+  if (!st.hidden && st.size && (st.size[0] !== m.w || st.size[1] !== m.h)) stepAside(el, st);
   if (!st.hidden) el.classList.add('lg-reflecting');
   drawStillLater(el, delay);
 }
@@ -1029,6 +1036,8 @@ function dropStillReflection(el, s) {
   s.still.light.remove();
   s.still.band.remove();
   clearTimeout(s.still.timer);
+  clearTimeout(s.still.fillTimer);
+  s.still.fillMO?.disconnect();
   stillIO?.unobserve(el);
   stillQueue.delete(el);
   s.still = null;
@@ -1088,8 +1097,24 @@ function busyAround(el, st) {
   return false;
 }
 
+// The glass's own fill is in the drawing (the rim's light is lightened against it), and an inline change can recolor
+// it with no class changing (setGlassTint to another color, a tint set by hand): once its inline style has held still
+// for STILL_SETTLE ms, the fill is read, and a different one is drawn again. Read only then, not on every change: a
+// spring may write the style on every frame.
+const fillOf = (el) => {
+  const cs = getComputedStyle(stillState(el)?.skin ?? el);
+  return `${cs.backgroundColor} ${cs.backgroundImage}`;
+};
 let stillIO = null;
-function watchStill(el) {
+function watchStill(el, st) {
+  st.fillMO = new MutationObserver(() => {
+    clearTimeout(st.fillTimer);
+    st.fillTimer = setTimeout(() => {
+      if (stillState(el)?.still !== st || !st.drawn || !el.isConnected) return;
+      if (fillOf(el) !== st.fill) drawStillLater(el, 0);
+    }, STILL_SETTLE);
+  });
+  st.fillMO.observe(el, { attributes: true, attributeFilter: ['style'] });
   stillIO ??= new IntersectionObserver((entries) => {
     for (const e of entries) {
       const st = stillState(e.target)?.still;
@@ -1322,6 +1347,7 @@ async function drawStill(el) {
   const inset = Math.max(0, Math.min(p.insetToken, band - 1));
   const map = { radius: cornerOf(el, w, h, null), n: p.n, reach: p.reach, band, inset, strength: p.strength, falloff: p.falloff, rimWidth: p.rimWidth };
   const m = Math.ceil(Math.max(...p.reach) + 3 * p.ambient);
+  const fill = fillOf(el);
   let picture;
   try { picture = await stillWorld(el, s, m); } catch { return; }
   if (gen !== st.gen || !el.isConnected) return;
@@ -1335,6 +1361,8 @@ async function drawStill(el) {
   return () => {
     if (gen !== st.gen || s.still !== st) return;
     st.drawn = true;
+    st.size = [w, h];
+    st.fill = fill;
     for (const [c, bytes] of [[st.light, light], [st.band, shown]]) {
       c.width = W; c.height = H;
       c.getContext('2d').putImageData(new ImageData(bytes, W, H), 0, 0);
@@ -1660,14 +1688,13 @@ function setLayer(el, s, margin) {
 
 // Gives surfaces their panes (on) or takes them off, all of `list` ({ el, s, on }) at once. The fill and
 // rim move between the surface and its pane in one frame, so the surface's transitions are held off for it
-// (one style pass for the lot): a transition on its background would otherwise fade its own copy out over
-// the pane's, and the glass would read twice as thick for that long.
+// (holdTransitions): a transition on its background would otherwise fade its own copy out over the pane's,
+// and the glass would read twice as thick for that long.
 function setPanes(list) {
   const todo = list.filter(({ s, on }) => on !== !!s.pane);
   if (!todo.length) return;
-  const before = todo.map(({ el }) => el.style.getPropertyValue('transition'));
+  holdTransitions(todo.map(({ el }) => el));
   for (const { el, s, on } of todo) {
-    el.style.setProperty('transition', 'none');
     if (on) {
       s.pane = document.createElement('span');
       s.pane.className = 'lg-glass-pane';
@@ -1686,10 +1713,27 @@ function setPanes(list) {
       el.classList.remove('lg-paned');
     }
   }
-  getComputedStyle(todo[0].el).backgroundColor;   // the style pass, with the transitions off
-  todo.forEach(({ el }, i) => {
-    if (before[i]) el.style.setProperty('transition', before[i]); else el.style.removeProperty('transition');
-  });
+}
+
+// Holds the transitions of `els` off (.lg-transitions-held, styles/refraction.css) over the next frame's style
+// pass, the one that sees the change, and gives them back two frames on: not by forcing a style pass now, which
+// surfaces coming and going one by one on a scroll would each pay for. A class, so the element's own inline
+// transition is left alone. A hold taken again meanwhile lasts from then.
+const HOLD_TRANSITIONS = 'lg-transitions-held';
+const heldTransitions = new Map();   // element → the latest hold's token
+function holdTransitions(els) {
+  const token = {};
+  for (const el of els) {
+    heldTransitions.set(el, token);
+    el.classList.add(HOLD_TRANSITIONS);
+  }
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    for (const el of els) {
+      if (heldTransitions.get(el) !== token) continue;
+      heldTransitions.delete(el);
+      el.classList.remove(HOLD_TRANSITIONS);
+    }
+  }));
 }
 
 // A size change: the tiled maps follow it at once, every frame of it (a lens stretches its one map), and the whole
@@ -1764,13 +1808,14 @@ function attach(el, manual = false) {
   if (typeof IntersectionObserver === 'undefined') { w.visible = true; activate([el]); return; }
   io ??= new IntersectionObserver((entries) => {
     // The last entry per element is where it stands now.
-    const seen = [];
+    const seen = [], gone = [];
     for (const { target, isIntersecting } of entries) {
       const w = watched.get(target);
       if (!w) continue;
       w.visible = isIntersecting;
-      if (isIntersecting) seen.push(target); else deactivate(target);
+      if (isIntersecting) seen.push(target); else deactivate(target, gone);
     }
+    setPanes(gone);   // all that left together, in one style pass
     activate(seen);
   }, { rootMargin: WATCH_MARGIN });
   io.observe(el);
@@ -1833,8 +1878,10 @@ export function detachRefraction(el) {
 }
 
 // Take the filter off (it left the screen, or refraction went off), keeping the
-// element watched so it comes back when it's seen again.
-function deactivate(el) {
+// element watched so it comes back when it's seen again. With `panes`, its pane is
+// left for the caller to take off with the others (setPanes), each costing a style
+// pass of its own otherwise.
+function deactivate(el, panes) {
   const s = surfaces.get(el);
   if (!s) return;
   clearTimeout(s.timer);
@@ -1848,7 +1895,7 @@ function deactivate(el) {
   setLayer(el, s, 0);
   dropReflection(el, s);
   dropStillReflection(el, s);
-  setPanes([{ el, s, on: false }]);
+  if (panes) panes.push({ el, s, on: false }); else setPanes([{ el, s, on: false }]);
   el.classList.remove(HELD);
   surfaces.delete(el);
   ro?.unobserve(el);
@@ -1873,7 +1920,7 @@ const restyled = new Set();   // elements whose glass style changed: the surface
 // Classes that flip while glass is pressed, dragged or lifted. They change
 // nothing refraction reads, and a press toggles several of them, so a change to
 // these alone isn't worth a look (re-reading a surface forces a style recalc).
-const TRANSIENT = new Set(['lg-refracting', 'lg-refracting--lens', 'lg-paned', 'lg-reflecting', 'lg-refraction-held', 'lg-pressing', 'lg-dragging', 'lg-settling', 'lg-pill--lifted', 'is-active']);
+const TRANSIENT = new Set(['lg-refracting', 'lg-refracting--lens', 'lg-paned', 'lg-reflecting', 'lg-refraction-held', 'lg-transitions-held', 'lg-pressing', 'lg-dragging', 'lg-settling', 'lg-pill--lifted', 'is-active']);
 const signature = (cls) => (cls ?? '').split(/\s+/).filter((c) => c && !TRANSIENT.has(c)).sort().join(' ');
 
 let wanted = true;            // the page's switch, setRefraction()
@@ -2007,9 +2054,12 @@ function applyState() {
   }
   // Off: let go of the automatic ones; hand-attached ones stay watched, with no
   // filter, and pick up again when it's back on.
+  const gone = [];
   for (const [el, w] of [...watched]) {
-    if (w.manual) deactivate(el); else detachRefraction(el);
+    if (!w.manual) { watched.delete(el); io?.unobserve(el); }
+    deactivate(el, gone);
   }
+  setPanes(gone);
   startStillOnly();
 }
 

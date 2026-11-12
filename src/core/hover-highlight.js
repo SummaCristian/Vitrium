@@ -179,12 +179,31 @@ export function createHoverHighlight(container, {
     return { left, top, iw, ih, r, s };
   };
 
+  // Not the glass's own layers ([data-lg-layer]: refraction's pane and skin, the reflection's canvases), which are
+  // the item, not its content: leaning them would move the glass apart from itself.
   const contentOf = (it) => {
     if (content === 'none') return [];
     if (content === 'self') return [it];
     if (typeof content === 'function') return [...content(it)];
-    return it.children.length ? [...it.children] : [it];
+    const own = [...it.children].filter((n) => !(n instanceof HTMLElement && 'lgLayer' in n.dataset));
+    return own.length ? own : [it];
   };
+
+  // Liquid glass pressed, dragged or springing back (core/liquid-glass.js): it moves itself then, and a highlight
+  // leaning toward the pointer over it would come apart from it, so the highlight is gone until it's at rest again.
+  const held = (it) => it.classList.contains('lg-pressing') || it.classList.contains('lg-dragging') || it.classList.contains('lg-settling');
+  // Gone at once, not faded where it was (the glass is already moving off it), and the content back in place.
+  function hide() {
+    const prev = item;
+    clearTimeout(fadeTimer);
+    item = null;
+    goneAt = -Infinity;   // it comes back fresh, not travelling from here
+    vis.set(0);
+    const c = prev && leaning.get(prev);
+    if (c) { c.x.set(0); c.y.set(0); c.k.to(1, HIGHLIGHT.fadeOut); }
+    wake();
+    if (prev) onChange?.(null);
+  }
   const grows = (it) => (typeof scale === 'function' ? scale(it)
     : scale ?? (it.textContent.trim() ? HIGHLIGHT.textScale : HIGHLIGHT.iconScale));
 
@@ -239,6 +258,7 @@ export function createHoverHighlight(container, {
     position();
     const it = itemAt(e);
     if (!it) { setItem(null); return; }
+    if (held(it)) { if (item || vis.value) hide(); return; }
     // Fresh: nothing to travel from (it's never shown, or it's been gone a while). Faded but recent, it travels.
     const fresh = !shown || (!item && performance.now() - goneAt > HIGHLIGHT.memory);
     shown = true;
@@ -253,10 +273,13 @@ export function createHoverHighlight(container, {
     aim(it, ox, oy, fresh);
   }
   const onLeave = (e) => { if (e.pointerType !== 'touch' || item) setItem(null); };
+  // A press: liquid glass marks itself pressed in its own pointerdown, which comes first (on the item, before here).
+  const onDown = (e) => { const it = itemAt(e); if (it && held(it)) hide(); };
   const onScroll = () => setItem(null);
 
   container.addEventListener('pointermove', onMove);
   container.addEventListener('pointerover', onMove);
+  container.addEventListener('pointerdown', onDown);
   container.addEventListener('pointerleave', onLeave);
   container.addEventListener('pointercancel', onLeave);
   container.addEventListener('scroll', onScroll, { passive: true });
@@ -304,6 +327,7 @@ export function createHoverHighlight(container, {
       offFrame?.();
       container.removeEventListener('pointermove', onMove);
       container.removeEventListener('pointerover', onMove);
+      container.removeEventListener('pointerdown', onDown);
       container.removeEventListener('pointerleave', onLeave);
       container.removeEventListener('pointercancel', onLeave);
       container.removeEventListener('scroll', onScroll);

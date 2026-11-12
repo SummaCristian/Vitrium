@@ -312,6 +312,22 @@ window.addEventListener(REFRACTION_STATE_EVENT, (e) => e.detail.active);
           [h('code', {}, '--lg-refraction-dispersion'), '0.025', 'Splits the bend by color at the rim, like a prism: 0.1 is a soft fringe. Any amount costs two more filter passes. The lens sets 0.15.'],
         ])),
 
+      section('Reflection', {},
+        h('p', {}, 'The rim of a slab of glass curves away from the eye, so it mirrors what is around it as well as bending what is behind. Once `initRefraction()` has run, every glass surface gets a reflection, in every browser: a band in from its rim takes on the color of what stands out nearby (a neighbor, not the page or a gradient it sits on), and the rim\'s lit top and bottom edges and shaded sides are drawn by it, in those colors, in place of the CSS highlight.'),
+        h('p', {}, 'By default it is the still reflection: worked out once from the layout around the glass (the backgrounds of the boxes near and behind it, and its own fill, not their text or images), off the main thread where a worker can, and drawn on two canvases inside the glass. It costs nothing per frame, so scrolling a page of glass costs what it would without it. It is drawn again when the glass changes size, morphs, changes class or inline fill, or the theme changes; meanwhile the glass shows its CSS rim. It does not follow a neighbor that moves on its own.'),
+        h('p', {}, 'The live reflection is an SVG filter over what is behind the glass, run on every frame it is drawn, so it follows whatever moves. It needs refraction to be running (Chromium, blur on). Glass that floats, fixed or sticky with nothing opaque between it and the page, takes it on its own, since the page moves behind it. Add `?live-reflection` to this site\'s address to give all its glass the live one and compare.'),
+        table(['Token', 'Default', 'What it does'], [
+          [h('code', {}, '--lg-reflection'), '0.9', 'How much shows, 0 to 1. 0 turns it off, and the glass keeps its CSS rim.'],
+          [h('code', {}, '--lg-reflection-live'), '0', '1 for the live reflection, where refraction runs. Elsewhere the glass keeps the still one.'],
+          [h('code', {}, '--lg-reflection-static'), '1', '0 for no still reflection: the glass then has the live one where it asked for it and refraction runs, and its CSS rim everywhere else.'],
+          [h('code', {}, '--lg-reflection-max-area'), '120000', 'The largest surface that gets one, in px². A big card or sheet would pay the most for the least of it.'],
+          [h('code', {}, '--lg-reflection-band'), '14px', 'How far in from the edge it shows, at most a fifth of the shorter side.'],
+          [h('code', {}, '--lg-reflection-reach'), '1.5', 'How far past the edge it looks, as a share of the shorter side, up to `--lg-reflection-reach-max` (40px).'],
+          [h('code', {}, '--lg-reflection-glow'), '0.4', 'How much of what is near lays over the fill: a faint shade of it on the tint, not the tint replaced.'],
+          [h('code', {}, '--lg-reflection-page'), '0', '1 leaves the page\'s own color out of the lit rim, so it does not ring the glass with it. Tinted glass sets it.'],
+        ]),
+        h('p', {}, 'The rest of its tokens (blur, falloff, contrast, saturation, and the rim\'s width, gain and shade) are listed with the code in `core/refraction.js`.')),
+
       section('Glass style', {},
         h('p', {}, 'How much the glass blurs is its style: `frost` (the material\'s own blur, the default), `transparent` (a light frost, so it reads as clear) or `curated` (the two mixed across each control: frost surfaces and rails, transparent lenses). It is set for the page or any region with `setGlassStyle`, and what it does to a piece of glass depends on that glass\'s role. It has nothing to do with refraction: refracting glass takes the same blur under its bend.'),
         h('p', {}, h('a', { href: '#/foundation/glass-styles' }, 'Glass styles'), ' covers it all: what each style does, part by part, how to set it and remember a visitor\'s choice, how to change the curated mix, and how to make your own components follow the styles.')),

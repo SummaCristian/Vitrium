@@ -46,6 +46,13 @@
   isolation: isolate;
 }
 
+/* For the frame its fill and rim move between it and its pane (core/refraction.js, holdTransitions): a transition
+   on its background would fade its own copy out over the pane's, and the glass would read twice as thick. The skin
+   inherits it. */
+.lg-transitions-held {
+  transition: none !important;
+}
+
 /* At rest the backdrop is the pane's. A surface with a filter or opacity of its own (pressed or dragged, a sheet
    being dragged, held through a morph, or fading by an inline opacity) is a backdrop root, which would leave the
    pane with nothing behind it: then the surface takes the backdrop back, and the pane only paints. */

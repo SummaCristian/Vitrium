@@ -528,6 +528,109 @@ test.describe('refraction', () => {
   });
 });
 
+test.describe('still reflection', () => {
+  // The glass with a still reflection drawn, and the glass with the live one, on the page as it is.
+  const census = (page) => page.evaluate(() => {
+    const drawn = (g) => {
+      const c = g.querySelector(':scope > .lg-reflection-still--band');
+      return !!c && c.style.visibility !== 'hidden' && g.classList.contains('lg-reflecting');
+    };
+    const floats = (g) => {
+      for (let n = g; n; n = n.parentElement) if (/fixed|sticky/.test(getComputedStyle(n).position)) return true;
+      return false;
+    };
+    const glass = [...document.querySelectorAll('.lg-glass')];
+    return {
+      refraction: document.documentElement.dataset.refraction,
+      still: glass.filter(drawn).length,
+      live: [...document.querySelectorAll('.lg-reflection')].map((l) => floats(l.parentElement)),
+    };
+  });
+
+  for (const blur of ['on', 'off']) {
+    test(`is what glass gets by default, and floating glass the live one (blur ${blur})`, async ({ page }) => {
+      await page.addInitScript((b) => localStorage.setItem('lg:blur-mode', b), blur);
+      await open(page, 'components', '.card.lg-glass');
+      await page.waitForTimeout(1000);
+      const c = await census(page);
+      expect(c.refraction).toBe(blur);
+      expect(c.still, JSON.stringify(c)).toBeGreaterThan(3);
+      // The live one only where the page moves behind the glass, and only where refraction runs.
+      expect(c.live.every(Boolean), JSON.stringify(c)).toBe(true);
+      if (blur === 'off') expect(c.live).toEqual([]);
+    });
+  }
+
+  test('is drawn once, not twice, when blur comes on just as glass is added (the blur benchmark\'s verdict)', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('lg:blur-mode', 'off'));
+    await open(page, 'components', '.card.lg-glass');
+    const stills = await page.evaluate(async (path) => {
+      const { applyBlurState } = await import(path);
+      const g = document.createElement('div');
+      g.className = 'lg-glass';
+      g.style.cssText = 'width: 200px; height: 60px; border-radius: 30px; margin: 20px';
+      document.querySelector('main, body').prepend(g);
+      await Promise.resolve();   // seen by the still-only path, whose scan is queued for the next frame
+      applyBlurState(true);      // and refraction takes over before it runs
+      await new Promise((r) => setTimeout(r, 1200));
+      return g.querySelectorAll(':scope > .lg-reflection-still').length;
+    }, `/@fs${new URL('../../src/core/blur-capability.js', import.meta.url).pathname}`);
+    expect(stills).toBe(2);   // one light, one band
+  });
+
+  test('keeps the CSS rim until it is drawn', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('lg:blur-mode', 'on'));
+    await open(page, 'components', '.card.lg-glass');
+    const seen = await page.evaluate(() => new Promise((resolve) => {
+      const g = document.createElement('div');
+      g.className = 'lg-glass';
+      g.style.cssText = 'width: 200px; height: 60px; border-radius: 30px; margin: 20px';
+      // As its layers go in, and at every frame until it's drawn.
+      const rows = [];
+      const look = () => {
+        const c = g.querySelector('.lg-reflection-still--band');
+        // Drawn: sized to the glass (a canvas no one has drawn on is 300 x 150).
+        rows.push({ drawn: !!c && c.width === g.offsetWidth * devicePixelRatio, rim: getComputedStyle(g, '::after').opacity });
+      };
+      new MutationObserver((rs, mo) => { if (g.querySelector('.lg-reflection-still')) { mo.disconnect(); look(); } }).observe(g, { childList: true });
+      const tick = () => { look(); if (rows.at(-1).drawn || rows.length > 120) resolve(rows); else requestAnimationFrame(tick); };
+      document.querySelector('main, body').prepend(g);
+      requestAnimationFrame(tick);
+    }));
+    expect(seen.at(-1).drawn, JSON.stringify(seen)).toBe(true);
+    // Never the CSS rim gone with nothing drawn in its place.
+    for (const r of seen) if (!r.drawn) expect(r.rim, JSON.stringify(seen)).not.toBe('0');
+  });
+
+  for (const blur of ['on', 'off']) {
+    test(`is drawn again when the glass is recolored inline (blur ${blur})`, async ({ page }) => {
+      await page.addInitScript((b) => localStorage.setItem('lg:blur-mode', b), blur);
+      await open(page, 'components', '.card.lg-glass');
+      // The average color of the rim's light, which is lightened against the glass's own fill.
+      const rim = () => page.evaluate(() => {
+        const c = document.querySelector('.tint-probe .lg-reflection-still--light');
+        if (!c || c.width === 300) return null;
+        const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+        let r = 0, b = 0, n = 0;
+        for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 20) { r += d[i]; b += d[i + 2]; n++; }
+        return [Math.round(r / n), Math.round(b / n)];
+      });
+      await page.evaluate(() => {
+        const g = document.createElement('div');
+        g.className = 'lg-glass lg-glass--tinted tint-probe';
+        g.style.cssText = 'width: 240px; height: 64px; border-radius: 32px; margin: 20px; --lg-glass-tint: #0a84ff';
+        document.querySelector('main, body').prepend(g);
+      });
+      await expect.poll(rim).not.toBeNull();
+      const blue = await rim();
+      expect(blue[1]).toBeGreaterThan(blue[0]);
+      // setGlassTint to another color: the class stays, only the inline tint changes.
+      await page.evaluate(() => document.querySelector('.tint-probe').style.setProperty('--lg-glass-tint', '#ff2d55'));
+      await expect.poll(async () => { const [r, b] = await rim(); return r > b; }).toBe(true);
+    });
+  }
+});
+
 test.describe('cards that are links', () => {
   test('keep the text color of every other card, on all the pages that list them', async ({ page }) => {
     for (const path of ['home', 'start', 'components', 'components/button', 'foundation']) {
@@ -604,6 +707,33 @@ test.describe('hover highlight', () => {
     const hl = await page.locator('.crumbs .lg-hover-highlight').boundingBox();
     expect(Math.abs(hl.x + hl.width / 2 - (link.x + link.width / 2))).toBeLessThan(2);
     expect(await shown()).toBeGreaterThan(0.95);
+  });
+
+  test('leans the back button\'s icon, never the glass\'s own layers, and goes while it is pressed and stretched', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('lg:blur-mode', 'on'));
+    await open(page, 'components/button', '.crumbs');
+    await page.waitForTimeout(800);   // its reflection drawn: canvases in it, beside the pane and skin
+    const back = page.locator('.crumb-back');
+    const kids = () => back.evaluate((n) => [...n.children].map((c) => ({ layer: 'lgLayer' in c.dataset, moved: !!(c.style.translate || c.style.scale) && c.style.translate !== '0.00px 0.00px' })));
+    const shown = () => page.locator('.crumbs .lg-hover-highlight').evaluate((n) => +getComputedStyle(n).opacity);
+    const b = await back.boundingBox();
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+    await page.mouse.move(b.x + b.width * 0.8, b.y + b.height / 2, { steps: 5 });
+    await page.waitForTimeout(400);
+    // Hovered: the icon leans, the glass's layers don't.
+    const hovered = await kids();
+    expect(hovered.some((k) => k.layer), JSON.stringify(hovered)).toBe(true);
+    expect(hovered.filter((k) => k.layer && k.moved), JSON.stringify(hovered)).toEqual([]);
+    expect(hovered.some((k) => !k.layer && k.moved), JSON.stringify(hovered)).toBe(true);
+    expect(await shown()).toBeGreaterThan(0.9);
+    // Pressed and stretched toward a drag: the highlight is gone and nothing in the glass moves apart from it.
+    await page.mouse.down();
+    await page.mouse.move(b.x + b.width * 0.8 + 40, b.y + b.height / 2 + 10, { steps: 8 });
+    await page.waitForTimeout(150);
+    const dragged = { kids: await kids(), shown: await shown() };
+    await page.mouse.up();
+    expect(dragged.shown, JSON.stringify(dragged)).toBe(0);
+    expect(dragged.kids.filter((k) => k.moved), JSON.stringify(dragged)).toEqual([]);
   });
 
   test('travels to the next item, fades out over a gap, and puts the content back', async ({ page }) => {
